@@ -148,13 +148,26 @@ img, svg, canvas { max-width: 100%; }
   pre, code { white-space: pre-wrap; word-break: break-word; }
 }
 @media (max-width: 680px) { .swipe-hint { display: block; } }
+
+  /* ---------- 상단바 뒤로가기 ---------- */
+  .nav-back { display: inline-flex; align-items: center; gap: 7px;
+    padding: 3px 11px 3px 7px; border-radius: 999px; border: 1px solid transparent;
+    transition: background .18s ease, border-color .18s ease; }
+  .nav-back:hover { background: var(--bg-soft); border-color: #D8E4F6; }
+  .nav-arrow { font-size: 15px; line-height: 1; color: #8295ad; transition: transform .18s ease, color .18s ease; }
+  .nav-back:hover .nav-arrow { transform: translateX(-3px); color: var(--primary); }
+  .nav-kitty { width: 26px; height: 26px; border-radius: 50%; display: block; flex: none; }
+  @media (max-width: 680px) {
+    .nav-kitty { width: 22px; height: 22px; }
+    .nav-back { padding: 3px 8px 3px 5px; gap: 5px; font-size: .78rem; }
+  }
 </style>
 </head>
 <body>
 
   <header class="site-nav">
     <div class="container nav-inner">
-      <a class="nav-back" href="../../index.html#projects">← 손혜미 포트폴리오</a>
+      <a class="nav-back" href="../../index.html#projects" title="홈으로 돌아가기"><span class="nav-arrow" aria-hidden="true">&#8592;</span><img class="nav-kitty" src="../../assets/kitty.svg" alt="" aria-hidden="true" width="26" height="26"><span>손혜미 포트폴리오</span></a>
       <nav aria-label="Section">
         <ul class="nav-links">
           <li><a href="#motivation">문제의식</a></li>

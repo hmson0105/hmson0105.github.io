@@ -96,18 +96,34 @@ img, svg, canvas { max-width: 100%; }
   .pyramid-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .pyramid-scroll svg { width: 640px !important; max-width: none; height: auto; }
 }
+
+/* ---------- 상단바: 고정 + 뒤로가기 ---------- */
+.jk-topbar { position: sticky; top: 0; z-index: 60;
+  background: rgba(255,255,255,.93); backdrop-filter: saturate(180%) blur(10px); }
+.jk-back { display: inline-flex; align-items: center; gap: 7px;
+  padding: 3px 11px 3px 7px; border-radius: 999px; border: 1px solid transparent;
+  transition: background .18s ease, border-color .18s ease; }
+.jk-back:hover { background: #EFF4FB; border-color: #D8E4F6; color: #1d4ed8; }
+.jk-arrow { font-size: 15px; line-height: 1; color: #8295ad; transition: transform .18s ease, color .18s ease; }
+.jk-back:hover .jk-arrow { transform: translateX(-3px); color: #1d4ed8; }
+.jk-kitty { width: 24px; height: 24px; border-radius: 50%; display: block; flex: none; }
+@media (max-width: 680px) {
+  .jk-topbar { font-size: 11.5px; gap: 5px; }
+  .jk-kitty { width: 21px; height: 21px; }
+  .jk-back { padding: 3px 8px 3px 5px; gap: 5px; }
+}
 </style>
 </head>
 <body>
 
 <div class="jk-topbar">
-  <a href="../../index.html"><img src="../../assets/kitty.svg" alt=""> 손혜미 포트폴리오</a> <span>/</span>
+  <a class="jk-back" href="../../index.html" title="홈으로 돌아가기"><span class="jk-arrow" aria-hidden="true">&#8592;</span><img class="jk-kitty" src="../../assets/kitty.svg" alt="" aria-hidden="true" width="24" height="24"><span>손혜미 포트폴리오</span></a> <span>/</span>
   <a href="../../index.html#projects">연구 프로젝트</a> <span>/</span>
   <span class="here">촉각센서 특허전략</span>
 </div>
 
 <div class="header">
-  <span class="badge-live">2026 특허 유니버시아드 · 서류심사 통과 · 최종결과 10월 13일</span>
+  <span class="badge-live">2026 특허 유니버시아드 출품작</span>
   <h1>촉각센서 기술 특허전략 수립</h1>
   <p>ETRI 전방위 촉각감지 로봇핸드 포트폴리오 강화전략 | 한·미·일·EU·중국 촉각센서 특허 2,786건 분석 (2007–2025)</p>
 </div>
@@ -123,8 +139,7 @@ img, svg, canvas { max-width: 100%; }
 <div class="container">
 
   <div class="notice">
-    <strong>진행 상태.</strong> 2026년 특허 유니버시아드 특허전략 수립 부문 출품작으로,
-    <strong>서류심사를 통과</strong>해 최종 결과 발표를 앞두고 있습니다.
+    <strong>진행 상태.</strong> 2026년 특허 유니버시아드 특허전략 수립 부문 <strong>출품작</strong>입니다.
     이 페이지는 99쪽 보고서의 핵심 분석만 요약한 개요입니다.
   </div>
 
