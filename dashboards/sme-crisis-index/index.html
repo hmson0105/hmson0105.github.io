@@ -53,6 +53,44 @@ canvas { max-height: 320px; }
   .chart-grid { grid-template-columns: 1fr; }
   .container, .header, .stats-bar, .jk-topbar { padding-left: 20px; padding-right: 20px; }
 }
+
+/* ---------- 모바일 대응 ---------- */
+@media (max-width: 680px) {
+  .container, .header, .stats-bar, .jk-topbar, .footer { padding-left: 16px !important; padding-right: 16px !important; }
+  .header h1 { font-size: 21px; line-height: 1.35; }
+  .header p { font-size: 12.5px; }
+  .stats-bar { gap: 10px; }
+  .stat-card { min-width: calc(50% - 6px); flex: 1 1 calc(50% - 6px); padding: 10px 8px; }
+  .stat-card .num { font-size: 20px; }
+  .stat-card .label { font-size: 11px; }
+  .section h2 { font-size: 17px; }
+  .section .subtitle { font-size: 12px; }
+  .chart-box { padding: 14px; }
+  .chart-box h3 { font-size: 13.5px; }
+  .insight, .notice, .method-box { font-size: 12.5px; padding: 13px 14px; }
+  canvas { max-height: 250px; }
+  table { font-size: 11.5px; }
+  th, td { padding: 6px 8px; }
+  .chart-box table, .table-scroll { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+  .ace-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 359px) {
+  .stat-card { min-width: 100%; flex: 1 1 100%; }
+  .header h1 { font-size: 19px; }
+}
+
+/* ---------- 모바일 가로 넘침 방지 ---------- */
+.chart-grid > *, .stat-grid > *, .criteria-grid > *, .app-grid > *,
+.ace-grid > *, .atlas > *, .chart-box, .section { min-width: 0; }
+img, svg, canvas { max-width: 100%; }
+@media (max-width: 680px) {
+  body { overflow-x: hidden; }
+  .chart-box table, .table-scroll, table { display: block; width: 100%;
+    overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+  #quad-legend, #app-quad-legend { grid-template-columns: 1fr 1fr !important; }
+  .atlas { grid-template-columns: 1fr !important; }
+  pre, code { white-space: pre-wrap; word-break: break-word; }
+}
 </style>
 </head>
 <body>

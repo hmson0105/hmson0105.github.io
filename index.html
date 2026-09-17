@@ -328,6 +328,9 @@
     .card-media.icon-lg { background: linear-gradient(135deg, var(--bg-soft) 0%, #DCE8FB 100%); }
     .card-media.icon-lg::after { display: none; }
     .card-media.icon-lg svg { width: 62%; height: 62%; opacity: 1; }
+    .card-media.cover { background: #0E2247; padding: 0; }
+    .card-media.cover::after { display: none; }
+    .card-media.cover svg { width: 100%; height: 100%; opacity: 1; display: block; }
     .card-body { padding: 22px 22px 24px; display: flex; flex-direction: column; flex-grow: 1; }
     .card-meta {
       font-size: 0.72rem; font-weight: 600;
@@ -410,6 +413,33 @@
       clip: rect(0,0,0,0); white-space: nowrap; border: 0;
     }
     :focus-visible { outline: 2px solid var(--secondary); outline-offset: 3px; border-radius: 4px; }
+
+    /* ---------- 모바일 대응 ---------- */
+    @media (max-width: 680px) {
+      .container { padding: 0 16px; }
+      section { padding: 52px 0; }
+      .hero { padding: 48px 0 52px; }
+      h1 { font-size: 1.85rem; }
+      h2 { font-size: 1.42rem; }
+      .hero .lead { font-size: .97rem; }
+      .section-sub { margin-bottom: 28px; font-size: .93rem; }
+      .hero-avatar { max-width: 260px; padding: 14px; }
+      .interests-grid, .card-grid { grid-template-columns: 1fr; gap: 16px; }
+      .interest-card { padding: 20px 18px; }
+      .card-body { padding: 18px 18px 20px; }
+      .card-title { font-size: 1rem; }
+      .card-desc { font-size: .88rem; }
+      .about-grid { gap: 24px; }
+      .about-card { padding: 20px; }
+      .contact-inner { padding: 22px 18px; gap: 20px; }
+      .contact-channels { min-width: 0; }
+      .footer-inner { font-size: .8rem; }
+      .nav-brand { font-size: .92rem; }
+    }
+    @media (max-width: 400px) {
+      h1 { font-size: 1.6rem; }
+      .hero-tag { font-size: .72rem; }
+    }
   </style>
 </head>
 
@@ -608,19 +638,36 @@
         <div class="card-grid" id="projects-grid">
 
           <article class="card">
-            <div class="card-media icon-lg" aria-hidden="true">
-              <svg viewBox="0 0 64 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <g transform="translate(0,4)">
-                  <path d="M2 15 L3.5 10 C3.8 9 4.7 8.3 5.8 8.3 H17.2 C18.3 8.3 19.2 9 19.5 10 L21 15" />
-                  <path d="M2 15 H21 V19 C21 19.6 20.6 20 20 20 H19 C18.4 20 18 19.6 18 19 V18 H5 V19 C5 19.6 4.6 20 4 20 H3 C2.4 20 2 19.6 2 19 Z" />
-                  <circle cx="6.5" cy="20" r="1.7" fill="currentColor" stroke="none"/>
-                  <circle cx="16.5" cy="20" r="1.7" fill="currentColor" stroke="none"/>
-                  <path d="M14 0 L10.5 7 H13 L11.5 12.5 L17 5.5 H14.2 Z" fill="var(--secondary)" stroke="none"/>
+            <div class="card-media cover" aria-hidden="true">
+              <svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <linearGradient id="c1bg" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#0E2247"/><stop offset="55%" stop-color="#16376E"/><stop offset="100%" stop-color="#1E40AF"/>
+                  </linearGradient>
+                  <linearGradient id="c1ac" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stop-color="#60A5FA" stop-opacity=".15"/><stop offset="100%" stop-color="#93C5FD" stop-opacity=".85"/>
+                  </linearGradient>
+                </defs>
+                <rect width="400" height="225" fill="url(#c1bg)"/>
+                <g stroke="#FFFFFF" stroke-opacity=".06" stroke-width="1">
+                  <line x1="0" y1="56" x2="400" y2="56"/><line x1="0" y1="112" x2="400" y2="112"/><line x1="0" y1="168" x2="400" y2="168"/>
+                  <line x1="100" y1="0" x2="100" y2="225"/><line x1="200" y1="0" x2="200" y2="225"/><line x1="300" y1="0" x2="300" y2="225"/>
                 </g>
-                <g transform="translate(38,1)">
-                  <path d="M12 1.5 L21 4.8 V10.5 C21 16.5 17 20.8 12 22.5 C7 20.8 3 16.5 3 10.5 V4.8 Z" />
-                  <path d="M8 12 L10.7 14.7 L16 9" stroke="var(--secondary)"/>
+                <g fill="#FFFFFF" fill-opacity=".9">
+                  <rect x="46" y="44" width="30" height="8" rx="4"/>
+                  <rect x="126" y="44" width="30" height="8" rx="4"/>
+                  <rect x="206" y="44" width="30" height="8" rx="4"/>
+                  <rect x="286" y="44" width="30" height="8" rx="4"/>
                 </g>
+                <g stroke="#93C5FD" stroke-opacity=".65" stroke-width="1.6" fill="none">
+                  <path d="M61 56 C61 100 160 110 190 148"/>
+                  <path d="M141 56 C141 105 175 118 193 148"/>
+                  <path d="M221 56 C221 105 213 118 207 148"/>
+                  <path d="M301 56 C301 100 240 110 210 148"/>
+                </g>
+                <rect x="96" y="152" width="208" height="34" rx="17" fill="url(#c1ac)"/>
+                <rect x="96" y="152" width="208" height="34" rx="17" fill="none" stroke="#DBEAFE" stroke-opacity=".5"/>
+                <circle cx="200" cy="169" r="5" fill="#FFFFFF"/>
               </svg>
             </div>
             <div class="card-body">
@@ -640,12 +687,30 @@
           </article>
 
           <article class="card">
-            <div class="card-media icon-lg" aria-hidden="true">
-              <svg viewBox="0 0 40 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 24 A16 16 0 0 1 36 24" />
-                <path d="M4 24 H2 M36 24 H38 M20 6 V4 M9.5 9.5 L8 8 M30.5 9.5 L32 8" stroke-width="1.4"/>
-                <path d="M20 24 L28 13" stroke="var(--secondary)" stroke-width="2"/>
-                <circle cx="20" cy="24" r="2" fill="var(--primary)" stroke="none"/>
+            <div class="card-media cover" aria-hidden="true">
+              <svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <linearGradient id="c2bg" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#0E2247"/><stop offset="55%" stop-color="#16376E"/><stop offset="100%" stop-color="#1E40AF"/>
+                  </linearGradient>
+                  <linearGradient id="c2ac" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stop-color="#60A5FA" stop-opacity=".15"/><stop offset="100%" stop-color="#93C5FD" stop-opacity=".85"/>
+                  </linearGradient>
+                </defs>
+                <rect width="400" height="225" fill="url(#c2bg)"/>
+                <g stroke="#FFFFFF" stroke-opacity=".06" stroke-width="1">
+                  <line x1="0" y1="56" x2="400" y2="56"/><line x1="0" y1="112" x2="400" y2="112"/><line x1="0" y1="168" x2="400" y2="168"/>
+                  <line x1="100" y1="0" x2="100" y2="225"/><line x1="200" y1="0" x2="200" y2="225"/><line x1="300" y1="0" x2="300" y2="225"/>
+                </g>
+                <path d="M20 150 C60 150 60 118 100 118 C140 118 140 138 180 138 C220 138 220 104 260 104 C300 104 300 126 340 126 L380 126 L380 190 L20 190 Z"
+                      fill="#FFFFFF" fill-opacity=".10"/>
+                <path d="M20 150 C60 150 60 118 100 118 C140 118 140 138 180 138 C220 138 220 104 260 104 C300 104 300 126 340 126 L380 126"
+                      fill="none" stroke="#DBEAFE" stroke-opacity=".55" stroke-width="1.8"/>
+                <path d="M20 96 C60 96 60 52 100 52 C140 52 140 78 180 78 C220 78 220 38 260 38 C300 38 300 66 340 66 L380 66 L380 116 L20 116 Z"
+                      fill="url(#c2ac)" fill-opacity=".55"/>
+                <path d="M20 96 C60 96 60 52 100 52 C140 52 140 78 180 78 C220 78 220 38 260 38 C300 38 300 66 340 66 L380 66"
+                      fill="none" stroke="#FFFFFF" stroke-width="2.4"/>
+                <line x1="20" y1="112" x2="380" y2="112" stroke="#60A5FA" stroke-width="1.2" stroke-dasharray="5 5" stroke-opacity=".8"/>
               </svg>
             </div>
             <div class="card-body">
@@ -665,35 +730,32 @@
           </article>
 
           <article class="card">
-            <div class="card-media" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="3" y1="21" x2="21" y2="21"/><rect x="4" y="12" width="4" height="7"/>
-                <rect x="10" y="7" width="4" height="12"/><rect x="16" y="3" width="4" height="16"/>
-              </svg>
-            </div>
-            <div class="card-body">
-              <span class="card-meta">[기간] · [수업명 / 협력 기관]</span>
-              <h3 class="card-title">기술혁신과 기업부실 (Innovation &amp; Corporate Distress)</h3>
-              <p class="card-desc">
-                R&amp;D 투자와 부실 발생 사이의 관계를 기업 단위 패널로 검증합니다.
-                [데이터 출처와 표본 규모], [분석 방법]을 적어 주세요.
-              </p>
-              <div class="card-footer">
-                <span class="card-badge">진행 중</span>
-                <a class="card-link" href="#" aria-disabled="true">자세히 보기 →</a>
-              </div>
-            </div>
-          </article>
-
-          <article class="card">
-            <div class="card-media" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 3v18h18"/>
-                <path d="M7 14l3-4 3 3 4-6" stroke-dasharray="1 3"/>
-                <circle cx="7" cy="14" r="1" fill="currentColor" stroke="none"/>
-                <circle cx="10" cy="10" r="1" fill="currentColor" stroke="none"/>
-                <circle cx="13" cy="13" r="1" fill="currentColor" stroke="none"/>
-                <circle cx="17" cy="7" r="1" fill="currentColor" stroke="none"/>
+            <div class="card-media cover" aria-hidden="true">
+              <svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <linearGradient id="c3bg" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#0E2247"/><stop offset="55%" stop-color="#16376E"/><stop offset="100%" stop-color="#1E40AF"/>
+                  </linearGradient>
+                  <linearGradient id="c3ac" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stop-color="#60A5FA" stop-opacity=".15"/><stop offset="100%" stop-color="#93C5FD" stop-opacity=".85"/>
+                  </linearGradient>
+                </defs>
+                <rect width="400" height="225" fill="url(#c3bg)"/>
+                <g stroke="#FFFFFF" stroke-opacity=".06" stroke-width="1">
+                  <line x1="0" y1="56" x2="400" y2="56"/><line x1="0" y1="112" x2="400" y2="112"/><line x1="0" y1="168" x2="400" y2="168"/>
+                  <line x1="100" y1="0" x2="100" y2="225"/><line x1="200" y1="0" x2="200" y2="225"/><line x1="300" y1="0" x2="300" y2="225"/>
+                </g>
+                <path d="M34 176 C120 168 210 150 380 44 L380 188 L34 188 Z" fill="#FFFFFF" fill-opacity=".07"/>
+                <path d="M34 176 C120 172 210 166 380 96 L380 188 L34 188 Z" fill="#60A5FA" fill-opacity=".18"/>
+                <g fill="none" stroke="#93C5FD" stroke-opacity=".45" stroke-width="1.3">
+                  <path d="M34 176 C130 166 220 140 380 44"/>
+                  <path d="M34 176 C130 170 220 152 380 74"/>
+                  <path d="M34 176 C130 174 220 168 380 120"/>
+                  <path d="M34 176 C130 176 220 176 380 150"/>
+                </g>
+                <path d="M34 176 C130 172 220 158 380 96" fill="none" stroke="#FFFFFF" stroke-width="2.6"/>
+                <circle cx="34" cy="176" r="5" fill="#FFFFFF"/>
+                <circle cx="380" cy="96" r="5" fill="#FFFFFF"/>
               </svg>
             </div>
             <div class="card-body">
@@ -711,11 +773,31 @@
           </article>
 
           <article class="card">
-            <div class="card-media icon-lg" aria-hidden="true">
-              <svg viewBox="0 0 40 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 4 L36 28 H4 Z" stroke="var(--bad)"/>
-                <line x1="20" y1="14" x2="20" y2="20" stroke="var(--bad)"/>
-                <circle cx="20" cy="24" r="1" fill="var(--bad)" stroke="none"/>
+            <div class="card-media cover" aria-hidden="true">
+              <svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <linearGradient id="c4bg" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#0E2247"/><stop offset="55%" stop-color="#16376E"/><stop offset="100%" stop-color="#1E40AF"/>
+                  </linearGradient>
+                  <linearGradient id="c4ac" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stop-color="#60A5FA" stop-opacity=".15"/><stop offset="100%" stop-color="#93C5FD" stop-opacity=".85"/>
+                  </linearGradient>
+                </defs>
+                <rect width="400" height="225" fill="url(#c4bg)"/>
+                <g stroke="#FFFFFF" stroke-opacity=".06" stroke-width="1">
+                  <line x1="0" y1="56" x2="400" y2="56"/><line x1="0" y1="112" x2="400" y2="112"/><line x1="0" y1="168" x2="400" y2="168"/>
+                  <line x1="100" y1="0" x2="100" y2="225"/><line x1="200" y1="0" x2="200" y2="225"/><line x1="300" y1="0" x2="300" y2="225"/>
+                </g>
+                <line x1="24" y1="92" x2="376" y2="92" stroke="#F87171" stroke-width="1.5" stroke-dasharray="6 5"/>
+                <path d="M24 162 L74 156 L124 164 L174 142 L224 130 L274 118 L324 78 L376 52"
+                      fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+                <path d="M24 162 L74 156 L124 164 L174 142 L224 130 L274 118 L324 78 L376 52 L376 190 L24 190 Z"
+                      fill="#FFFFFF" fill-opacity=".08"/>
+                <g fill="#DBEAFE">
+                  <circle cx="124" cy="164" r="3.4"/><circle cx="224" cy="130" r="3.4"/><circle cx="324" cy="78" r="3.8"/>
+                </g>
+                <circle cx="376" cy="52" r="7" fill="#F87171"/>
+                <circle cx="376" cy="52" r="13" fill="none" stroke="#F87171" stroke-opacity=".45" stroke-width="2"/>
               </svg>
             </div>
             <div class="card-body">
@@ -733,15 +815,41 @@
           </article>
 
           <article class="card">
-            <div class="card-media icon-lg" aria-hidden="true">
-              <svg viewBox="0 0 44 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 22 C6 13 12 7 20 6 C29 5 37 10 40 18 C41.5 22 39 27 34 27.5 C26 28.4 14 28 8 26.5 C5 25.8 3.6 24 4 22 Z"/>
-                <path d="M9 21 C12 15 17 11.5 23 11 C29 10.5 34 13.5 36 18" stroke-dasharray="2.5 2.5" opacity=".7"/>
-                <circle cx="16" cy="18" r="1.9" fill="var(--secondary)" stroke="none"/>
-                <circle cx="23" cy="15" r="1.9" fill="var(--primary)" stroke="none"/>
-                <circle cx="29" cy="19" r="1.9" fill="var(--accent)" stroke="none"/>
-                <circle cx="20" cy="22" r="1.5" fill="var(--secondary)" stroke="none" opacity=".8"/>
-                <circle cx="33" cy="23" r="1.5" fill="var(--primary)" stroke="none" opacity=".8"/>
+            <div class="card-media cover" aria-hidden="true">
+              <svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <linearGradient id="c5bg" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#0E2247"/><stop offset="55%" stop-color="#16376E"/><stop offset="100%" stop-color="#1E40AF"/>
+                  </linearGradient>
+                  <linearGradient id="c5ac" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stop-color="#60A5FA" stop-opacity=".15"/><stop offset="100%" stop-color="#93C5FD" stop-opacity=".85"/>
+                  </linearGradient>
+                </defs>
+                <rect width="400" height="225" fill="url(#c5bg)"/>
+                <g stroke="#FFFFFF" stroke-opacity=".06" stroke-width="1">
+                  <line x1="0" y1="56" x2="400" y2="56"/><line x1="0" y1="112" x2="400" y2="112"/><line x1="0" y1="168" x2="400" y2="168"/>
+                  <line x1="100" y1="0" x2="100" y2="225"/><line x1="200" y1="0" x2="200" y2="225"/><line x1="300" y1="0" x2="300" y2="225"/>
+                </g>
+                <g fill="none" stroke="#93C5FD" stroke-opacity=".28" stroke-width="1.2">
+                  <ellipse cx="150" cy="120" rx="108" ry="62"/>
+                  <ellipse cx="150" cy="120" rx="74" ry="42"/>
+                  <ellipse cx="288" cy="76" rx="52" ry="30"/>
+                </g>
+                <g stroke="#BFDBFE" stroke-opacity=".3" stroke-width="1">
+                  <line x1="118" y1="104" x2="164" y2="132"/><line x1="164" y1="132" x2="196" y2="106"/>
+                  <line x1="196" y1="106" x2="272" y2="80"/><line x1="118" y1="104" x2="96" y2="142"/>
+                  <line x1="272" y1="80" x2="306" y2="66"/>
+                </g>
+                <g fill="#FFFFFF">
+                  <circle cx="118" cy="104" r="4.6"/><circle cx="164" cy="132" r="4"/><circle cx="196" cy="106" r="3.4"/>
+                  <circle cx="96" cy="142" r="3.4"/><circle cx="140" cy="88" r="3"/><circle cx="176" cy="158" r="3"/>
+                </g>
+                <g fill="#60A5FA">
+                  <circle cx="272" cy="80" r="5"/><circle cx="306" cy="66" r="3.6"/><circle cx="292" cy="98" r="3.2"/>
+                </g>
+                <g fill="#BFDBFE" fill-opacity=".75">
+                  <circle cx="82" cy="106" r="2.4"/><circle cx="210" cy="140" r="2.4"/><circle cx="238" cy="112" r="2.4"/>
+                </g>
               </svg>
             </div>
             <div class="card-body">
@@ -759,16 +867,33 @@
           </article>
 
           <article class="card">
-            <div class="card-media icon-lg" aria-hidden="true">
-              <svg viewBox="0 0 44 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M11 27 V17 a5 5 0 0 1 5-5 h1"/>
-                <path d="M17 12 h9 a4 4 0 0 1 4 4 v3"/>
-                <rect x="26" y="19" width="9" height="7" rx="2.2"/>
-                <path d="M30.5 19 v-2"/>
-                <circle cx="30.5" cy="22.5" r="1.4" fill="var(--secondary)" stroke="none"/>
-                <path d="M7 27 h9" />
-                <path d="M33 11 q3 -2.5 6 0" opacity=".55"/>
-                <path d="M31 7.5 q4.5 -3.8 9 0" opacity=".35"/>
+            <div class="card-media cover" aria-hidden="true">
+              <svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <linearGradient id="c6bg" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#0E2247"/><stop offset="55%" stop-color="#16376E"/><stop offset="100%" stop-color="#1E40AF"/>
+                  </linearGradient>
+                  <linearGradient id="c6ac" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stop-color="#60A5FA" stop-opacity=".15"/><stop offset="100%" stop-color="#93C5FD" stop-opacity=".85"/>
+                  </linearGradient>
+                </defs>
+                <rect width="400" height="225" fill="url(#c6bg)"/>
+                <g stroke="#FFFFFF" stroke-opacity=".06" stroke-width="1">
+                  <line x1="0" y1="56" x2="400" y2="56"/><line x1="0" y1="112" x2="400" y2="112"/><line x1="0" y1="168" x2="400" y2="168"/>
+                  <line x1="100" y1="0" x2="100" y2="225"/><line x1="200" y1="0" x2="200" y2="225"/><line x1="300" y1="0" x2="300" y2="225"/>
+                </g>
+                <g fill="none" stroke="#93C5FD" stroke-opacity=".35" stroke-width="1.4">
+                  <path d="M318 112 a30 30 0 0 1 0 1"/>
+                  <circle cx="318" cy="112" r="22"/><circle cx="318" cy="112" r="38"/><circle cx="318" cy="112" r="54"/>
+                </g>
+                <circle cx="318" cy="112" r="7" fill="#60A5FA"/>
+                <g>
+                  <rect x="112" y="46" width="96" height="20" rx="6" fill="#FFFFFF" fill-opacity=".22"/>
+                  <rect x="76" y="74" width="168" height="24" rx="7" fill="#FFFFFF" fill-opacity=".9"/>
+                  <rect x="112" y="106" width="96" height="20" rx="6" fill="#FFFFFF" fill-opacity=".22"/>
+                  <rect x="112" y="134" width="96" height="20" rx="6" fill="#FFFFFF" fill-opacity=".22"/>
+                  <rect x="134" y="162" width="52" height="22" rx="7" fill="#F87171"/>
+                </g>
               </svg>
             </div>
             <div class="card-body">

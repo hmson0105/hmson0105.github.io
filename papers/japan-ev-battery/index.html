@@ -125,6 +125,47 @@
 
   footer { border-top: 1px solid var(--border); padding: 32px 0 44px; }
   .footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; font-size: .84rem; color: var(--text-secondary); }
+
+  /* ---------- 모바일 대응 ---------- */
+  @media (max-width: 680px) {
+    .container { padding: 0 16px; }
+    h1 { font-size: 1.32rem !important; }
+    h2 { font-size: 1.1rem; }
+    .subtitle { font-size: .92rem; }
+    .en-title { font-size: .76rem; }
+    .nav-links { gap: 12px; }
+    .nav-links a { font-size: .75rem; }
+    .nav-inner { height: auto; padding: 10px 0; gap: 8px; }
+    section.block { padding: 30px 0; }
+    .hero { padding: 30px 0 4px; }
+    .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .stat-num { font-size: 1.05rem; }
+    .stat-label { font-size: .72rem; }
+    .chart-panel { padding: 13px; }
+    .chart-panel canvas { max-height: 240px; }
+    .meta-callout, .note-box, .insight { font-size: .86rem; padding: 13px 14px; }
+    table.tbl { font-size: .78rem; display: block; overflow-x: auto; white-space: nowrap; }
+    table.tbl th, table.tbl td { padding: 6px 9px; }
+    .diagram-panel, .biblio-card, .info-card { padding: 14px; }
+    .citation-box { font-size: .74rem; }
+    .finding-card { padding: 14px 15px; }
+  }
+  @media (max-width: 420px) {
+    .stat-grid { grid-template-columns: 1fr; }
+  }
+
+/* ---------- 모바일 가로 넘침 방지 ---------- */
+.chart-grid > *, .stat-grid > *, .criteria-grid > *, .app-grid > *,
+.ace-grid > *, .atlas > *, .chart-box, .section { min-width: 0; }
+img, svg, canvas { max-width: 100%; }
+@media (max-width: 680px) {
+  body { overflow-x: hidden; }
+  .chart-box table, .table-scroll, table { display: block; width: 100%;
+    overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+  #quad-legend, #app-quad-legend { grid-template-columns: 1fr 1fr !important; }
+  .atlas { grid-template-columns: 1fr !important; }
+  pre, code { white-space: pre-wrap; word-break: break-word; }
+}
 </style>
 </head>
 <body>
