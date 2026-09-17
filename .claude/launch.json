@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kiet-notes",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8765",
+        "--directory",
+        "/Users/home/Desktop/KIET_SUMMARY"
+      ],
+      "port": 8765
+    },
+    {
+      "name": "hyemi-finance",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8790",
+        "--directory",
+        "/Users/home/Desktop/hyemi-finance"
+      ],
+      "port": 8790
+    }
+  ]
+}
