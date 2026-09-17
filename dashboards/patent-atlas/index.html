@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>반도체 식각공정 특허 분석 · Patent Atlas | 손혜미</title>
+<meta name="description" content="미국 등록 반도체 식각·플라즈마 공정 특허 8,993건의 기술 클러스터 지도와 출원인 경쟁 구도 분석.">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #1a2332; }
+.jk-topbar { display: flex; align-items: center; gap: 8px; padding: 12px 40px; background: #fff; border-bottom: 1px solid #e0e7ef; font-size: 13px; color: #94a3b8; }
+.jk-topbar a { color: #334155; text-decoration: none; font-weight: 500; }
+.jk-topbar a:hover { color: #1d4ed8; }
+.jk-topbar .here { color: #1a2332; font-weight: 500; }
+.header { background: linear-gradient(135deg, #1B3A5C 0%, #2E75B6 100%); color: white; padding: 32px 40px; }
+.header h1 { font-size: 28px; margin-bottom: 8px; }
+.header p { font-size: 14px; opacity: 0.85; }
+.stats-bar { display: flex; gap: 16px; padding: 20px 40px; background: white; border-bottom: 1px solid #e0e7ef; flex-wrap: wrap; }
+.stat-card { flex: 1; min-width: 120px; text-align: center; padding: 12px; border-radius: 8px; background: #f7fafc; }
+.stat-card .num { font-size: 28px; font-weight: 700; color: #2E75B6; }
+.stat-card .label { font-size: 12px; color: #666; margin-top: 4px; }
+.container { max-width: 1240px; margin: 0 auto; padding: 24px 40px; }
+.section { margin-bottom: 32px; }
+.section h2 { font-size: 20px; color: #1B3A5C; margin-bottom: 4px; border-left: 4px solid #2E75B6; padding-left: 12px; }
+.section .subtitle { font-size: 13px; color: #888; margin-bottom: 16px; padding-left: 16px; }
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.chart-box { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.chart-box.full { grid-column: 1 / -1; }
+.chart-box h3 { font-size: 15px; color: #444; margin-bottom: 12px; }
+.insight { background: #EBF2F8; border-radius: 8px; padding: 16px; margin-top: 12px; font-size: 13px; line-height: 1.6; color: #333; }
+.insight strong { color: #1B3A5C; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: #1B3A5C; color: white; padding: 8px 12px; text-align: center; }
+td { padding: 7px 12px; border-bottom: 1px solid #e8ecf0; text-align: center; }
+td.left { text-align: left; }
+tr:nth-child(even) { background: #f7fafc; }
+canvas { max-height: 320px; }
+
+/* ---- Atlas map ---- */
+.atlas { display: grid; grid-template-columns: 270px 1fr; background: #16222e; border-radius: 12px; overflow: hidden;
+         box-shadow: 0 4px 16px rgba(0,0,0,.14); }
+.atlas-side { background: #1b2a38; color: #cbd8e4; padding: 16px 0; max-height: 620px; overflow-y: auto; }
+.atlas-side h4 { font-size: 13px; color: #fff; padding: 0 18px 10px; display: flex; justify-content: space-between;
+                 border-bottom: 1px solid #2b3d4f; margin-bottom: 8px; }
+.atlas-side h4 span { color: #7f95ab; font-weight: 400; }
+.cl-item { display: flex; gap: 10px; padding: 9px 18px; cursor: pointer; border-left: 3px solid transparent; }
+.cl-item:hover { background: #22323f; }
+.cl-item.active { background: #24384a; border-left-color: currentColor; }
+.cl-dot { width: 11px; height: 11px; border-radius: 3px; margin-top: 4px; flex: none; }
+.cl-name { font-size: 12.5px; font-weight: 600; color: #eaf1f8; }
+.cl-desc { font-size: 11px; color: #8ba3b8; margin-top: 2px; line-height: 1.4; }
+.cl-n { font-size: 11px; color: #6f8ba3; margin-top: 3px; }
+.atlas-stage { position: relative; background: #a9cfe0; min-height: 620px; }
+.atlas-stage svg { width: 100%; height: 620px; display: block; }
+.atlas-tip { position: absolute; pointer-events: none; background: rgba(12,22,32,.93); color: #eaf1f8;
+             padding: 8px 11px; border-radius: 7px; font-size: 11.5px; max-width: 280px; line-height: 1.45;
+             opacity: 0; transition: opacity .12s; z-index: 5; }
+.atlas-tip b { color: #7ec8f0; }
+.atlas-legend { position: absolute; right: 14px; bottom: 14px; background: rgba(255,255,255,.88);
+                border-radius: 8px; padding: 9px 12px; font-size: 11px; color: #33475c; line-height: 1.6; }
+.pt { cursor: pointer; }
+@media (max-width: 900px) {
+  .chart-grid { grid-template-columns: 1fr; }
+  .atlas { grid-template-columns: 1fr; }
+  .atlas-side { max-height: 260px; }
+  .container, .header, .stats-bar, .jk-topbar { padding-left: 18px; padding-right: 18px; }
+}
+.footer { padding: 24px 40px 48px; text-align: center; font-size: 12px; color: #8a9ab0; }
+</style>
+</head>
+<body>
+
+<div class="jk-topbar">
+  <a href="../../index.html">손혜미 포트폴리오</a> <span>/</span>
+  <a href="../../index.html#projects">연구 프로젝트</a> <span>/</span>
+  <span class="here">반도체 식각공정 특허분석</span>
+</div>
+
+<div class="header">
+  <h1>반도체 식각·플라즈마 공정 특허 분석</h1>
+  <p>미국 등록특허 8,993건의 기술 클러스터 지도와 출원인 경쟁 구도 | KAIST 이노베이션 경영 (2025.2학기)</p>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-card"><div class="num">8,993</div><div class="label">분석 대상 미국 등록특허</div></div>
+  <div class="stat-card"><div class="num">703</div><div class="label">출원인 (표준화 후)</div></div>
+  <div class="stat-card"><div class="num">16</div><div class="label">기술 클러스터</div></div>
+  <div class="stat-card"><div class="num">139</div><div class="label">IPC 서브클래스</div></div>
+  <div class="stat-card"><div class="num">7.95</div><div class="label">평균 피인용 수</div></div>
+</div>
+
+<div class="container">
+
+  <!-- Atlas -->
+  <div class="section">
+    <h2>기술 지형도: Patent Atlas</h2>
+    <div class="subtitle">특허 초록·명칭 TF-IDF → SVD(50차원) → t-SNE 2D 투영 · 색상은 K-means 클러스터, 지형 음영은 특허 밀도(KDE)</div>
+    <div class="atlas">
+      <div class="atlas-side">
+        <h4>기술 클러스터 <span id="cl-count">16개</span></h4>
+        <div id="cluster-list"></div>
+      </div>
+      <div class="atlas-stage">
+        <svg id="atlas-svg" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid slice"></svg>
+        <div class="atlas-tip" id="atlas-tip"></div>
+        <div class="atlas-legend">
+          점 1개 = 특허 1건 (1,800건 표본)<br>
+          지형 음영 = 특허 밀도 (높을수록 진함)<br>
+          <span style="color:#6a7f93">클러스터를 클릭하면 강조됩니다</span>
+        </div>
+      </div>
+    </div>
+    <div class="insight">
+      <strong>핵심 발견:</strong> 8,993건을 16개 기술 클러스터로 분해한 결과, <strong>챔버 공정·증착(2,316건, 25.8%)</strong>이
+      지형의 중심 고지대를 형성하고, 그 주변에 <strong>기판 지지 부재(965건)</strong>, <strong>플라즈마 처리 장치(769건)</strong>,
+      <strong>유전막 패터닝(667건)</strong>이 배치된다. 반면 <strong>CMP 연마(222건)</strong>와 <strong>식각액 조성물(140건)</strong>은
+      본류에서 떨어진 독립 섬을 이루는데, 이는 장비·공정 중심 기술군과 소재 중심 기술군이 서로 다른 지식 기반 위에 있음을 보여준다.
+    </div>
+  </div>
+
+  <!-- 분석 1 -->
+  <div class="section">
+    <h2>분석 1: 출원 동향과 기술 분류</h2>
+    <div class="subtitle">RQ1: 이 기술 영역은 어떤 속도로, 어떤 기술 분류를 중심으로 성장하고 있는가?</div>
+    <div class="chart-grid">
+      <div class="chart-box">
+        <h3>연도별 등록 특허 수</h3>
+        <canvas id="ch-year"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>IPC 서브클래스 분포 (Top 8)</h3>
+        <canvas id="ch-ipc"></canvas>
+      </div>
+      <div class="chart-box full">
+        <h3>연도별 주요 IPC 구성 변화</h3>
+        <canvas id="ch-year-ipc"></canvas>
+        <div class="insight">
+          <strong>핵심 발견:</strong> 등록 건수는 2021년 779건에서 2025년 <strong>1,116건으로 43% 증가</strong>하며 꾸준한 확장세를 보인다.
+          기술 분류는 <strong>H01L(반도체 소자, 44.7%)</strong>와 <strong>H01J(플라즈마·방전관, 26.5%)</strong> 두 축이 지배하며,
+          이 둘의 합이 전체의 71%를 차지한다. 소재 계열인 C23C(표면 코팅, 772건)가 3위인 점은 식각 공정 경쟁이
+          <strong>장비 구조에서 소재·표면 처리로 확장</strong>되고 있음을 시사한다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 분석 2 -->
+  <div class="section">
+    <h2>분석 2: 출원인 경쟁 구도</h2>
+    <div class="subtitle">RQ2: 누가 어떤 기술 영역을 점유하고 있는가?</div>
+    <div class="chart-grid">
+      <div class="chart-box">
+        <h3>상위 출원인 특허 보유 수</h3>
+        <canvas id="ch-app"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>주요 출원인 × IPC 포트폴리오</h3>
+        <canvas id="ch-matrix"></canvas>
+      </div>
+      <div class="chart-box full">
+        <div class="insight" style="margin-top:0">
+          <strong>핵심 발견:</strong> <strong>Applied Materials(1,397건)</strong>가 최대 출원인이며,
+          TSMC(1,034건)·삼성전자(909건)·Tokyo Electron(812건)이 뒤를 잇는다. 주목할 점은 <strong>포트폴리오 구성의 차이</strong>다.
+          TSMC는 H01L(소자) 비중이 88%로 <strong>소자 제조 중심</strong>인 반면, Applied Materials는 H01L 41%·H01J 29%·C23C 13%로
+          <strong>장비·플라즈마·코팅에 고르게 분산</strong>되어 있다. SEMES는 H01J(267건)가 H01L(136건)보다 많아
+          <strong>플라즈마 장비에 특화</strong>된 구조를 보인다. 즉 같은 식각 영역 안에서도 소자 제조사와 장비사의
+          기술 포지션이 뚜렷하게 갈린다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 분석 3 -->
+  <div class="section">
+    <h2>분석 3: IP 전략맵 — 영향력 × 기술융합도</h2>
+    <div class="subtitle">RQ3: 각 기업의 특허는 "많이 인용되는가(영향력)"와 "여러 기술을 엮는가(융합도)"에서 어떻게 다른가?</div>
+    <div class="chart-grid">
+      <div class="chart-box full">
+        <h3>출원인 전략 포지셔닝 (X: 평균 피인용 수, Y: 평균 IPC 융합도, 버블 크기: 특허 수)</h3>
+        <canvas id="ch-strategy" style="max-height:400px"></canvas>
+        <div class="insight">
+          <strong>핵심 발견:</strong> 특허 <em>수</em>와 <em>영향력</em>은 비례하지 않는다.
+          <strong>Lam Research(평균 피인용 4.48, 융합도 2.09)</strong>와 <strong>Applied Materials(4.32, 2.08)</strong>는
+          영향력·융합도 모두 높은 <strong>기술 리더 포지션</strong>에 있다. 반면 특허 수 2위인 <strong>TSMC는 피인용 1.86,
+          융합도 1.32</strong>로 좌하단에 위치하는데, 이는 자사 공정 보호를 위한 <strong>방어적 출원 전략</strong>으로 해석된다.
+          삼성전자(1.26, 1.80)와 SEMES(0.70, 1.68)도 같은 영역에 있다.
+          <br><br>
+          <strong>주의:</strong> ASM International은 평균 피인용 108.9로 극단값이라 차트에서 제외했다. 소수의 초고인용
+          기반특허(최대 620회 피인용)가 평균을 끌어올린 경우로, 중앙값 기반 재분석이 필요하다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 분석 4 -->
+  <div class="section">
+    <h2>분석 4: IPC 융합 네트워크와 인용 구조</h2>
+    <div class="subtitle">RQ4: 어떤 기술 분류가 함께 출현하며, 인용은 어떻게 분포하는가?</div>
+    <div class="chart-grid">
+      <div class="chart-box">
+        <h3>IPC 공동출현 네트워크 (Top 10 연결)</h3>
+        <svg id="net-svg" viewBox="0 0 520 330" style="width:100%;height:330px"></svg>
+      </div>
+      <div class="chart-box">
+        <h3>피인용 횟수 분포</h3>
+        <canvas id="ch-cit"></canvas>
+      </div>
+      <div class="chart-box full">
+        <h3>클러스터별 영향력·융합도 비교</h3>
+        <table>
+          <thead>
+            <tr><th style="width:190px">기술 클러스터</th><th>특허 수</th><th>평균 피인용</th><th>평균 융합도</th><th>주요 IPC</th><th style="text-align:left">대표 키워드</th></tr>
+          </thead>
+          <tbody id="cl-table"></tbody>
+        </table>
+        <div class="insight">
+          <strong>핵심 발견:</strong> IPC 공동출현에서 <strong>H01J–H01L 연결이 2,202건</strong>으로 압도적이다.
+          플라즈마 장비(H01J)와 반도체 소자(H01L)가 사실상 하나의 기술 복합체로 작동한다는 뜻이다.
+          C23C(표면코팅)도 H01J·H01L 양쪽과 각각 1,306건·1,200건으로 강하게 연결되어 <strong>3각 핵심 구조</strong>를 형성한다.
+          <br><br>
+          인용 분포는 전형적인 <strong>멱함수(power-law) 형태</strong>로, 전체의 50.3%(4,525건)가 피인용 0회인 반면
+          상위 6.7%(602건)가 10회 이상을 기록한다. 클러스터별로는 <strong>박막 형성(평균 21.6회)</strong>과
+          <strong>가스 공급·유량 제어(15.2회)</strong>가 가장 높은 영향력을 보여, 장비 하드웨어보다
+          <strong>공정 레시피·제어 기술이 후속 연구에 더 많이 참조</strong>되고 있음을 시사한다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 방법론 -->
+  <div class="section">
+    <h2>분석 방법론</h2>
+    <div class="subtitle">재현 가능성을 위한 파이프라인 기록</div>
+    <div class="chart-box full">
+      <div class="insight" style="margin-top:0">
+        <strong>1) 데이터:</strong> WIPS 검색으로 수집한 반도체 식각·플라즈마 공정 관련 미국 등록특허 8,993건
+        (등록연도 2020~2025). 컬럼 71개(인용/피인용 문헌 수, IPC/CPC, 출원인, 청구항 수, 패밀리 정보 등).<br><br>
+        <strong>2) 전처리:</strong> 출원인 명칭을 정규식으로 표준화해 703개로 정리(예: "APPLIED MATERIALS, INC."와
+        "Applied Materials, Inc."를 동일 주체로 통합). IPC는 서브클래스 4자리(예: H01L)로 정규화하고,
+        특허별 고유 IPC 개수를 <strong>기술 융합도</strong> 지표로 산출.<br><br>
+        <strong>3) 기술 지형:</strong> 발명의 명칭 + 요약(600자)에 TF-IDF(6,000 피처, 1~2gram) 적용 →
+        TruncatedSVD 50차원 축소 → K-means(k=16) 클러스터링 → t-SNE 2D 투영(1,800건 표본) →
+        가우시안 KDE로 밀도 등고선 생성.<br><br>
+        <strong>4) 한계:</strong> 등록일 기준 분석이라 출원 시점의 기술 트렌드와는 2~3년의 시차가 있다.
+        피인용 수는 등록 후 경과 기간에 비례하므로 최근 특허가 과소평가된다(citation lag).
+        후속 분석에서는 출원연도 정규화와 특허 나이 보정이 필요하다.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  반도체 식각·플라즈마 공정 특허 분석 | 손혜미 (KAIST I&amp;TM 20254340) |
+  Data: WIPS 미국 등록특허 8,993건 | 이노베이션 경영 (2025.2학기) |
+  <a href="../../index.html#projects" style="color:#2E75B6">← 포트폴리오로 돌아가기</a>
+</div>
+
+<script>
+const colors = {
+  blue: '#2E75B6', navy: '#1B3A5C', teal: '#4CA1AF', orange: '#FF8C42',
+  red: '#E74C3C', green: '#27AE60', purple: '#8E44AD', pink: '#E91E63',
+  yellow: '#F39C12', gray: '#95A5A6'
+};
+
+// 클러스터 한글 라벨
+const CL_META = [
+  { name: 'CMP 연마',            desc: '화학기계연마 패드·슬러리',        color: '#E91E63' },
+  { name: '가스 공급·유량 제어',  desc: '공정가스 공급·플로우 제어',      color: '#FF8C42' },
+  { name: '실리콘막 식각',        desc: '실리콘·질화막 선택적 식각',      color: '#27AE60' },
+  { name: '유전막 패터닝',        desc: '유전층·마스크 형성 및 식각',      color: '#2E75B6' },
+  { name: '정전척(ESC)',          desc: '웨이퍼 정전 척·전극 구조',        color: '#8E44AD' },
+  { name: '식각액 조성물',        desc: '습식 식각 화학 조성',             color: '#F39C12' },
+  { name: 'RF 전원·주파수',       desc: '플라즈마 RF 파워·정합',           color: '#E74C3C' },
+  { name: '반도체 적층 구조',     desc: '다층 반도체 층 형성',             color: '#4CA1AF' },
+  { name: '기판 지지 부재',       desc: '지지 플레이트·챔버 부재',         color: '#7E57C2' },
+  { name: '게이트 구조',          desc: '게이트 스택 형성',                color: '#26A69A' },
+  { name: '플라즈마 처리 장치',   desc: '플라즈마 챔버·전극 장치',         color: '#EF5350' },
+  { name: '박막 형성',            desc: '박막 증착·성막 공정',             color: '#5C6BC0' },
+  { name: 'FinFET 소스/드레인',   desc: '핀 구조 소스·드레인',             color: '#66BB6A' },
+  { name: '기판 처리 유닛',       desc: '기판 이송·처리 유닛',             color: '#FFA726' },
+  { name: '챔버 공정·증착 (코어)', desc: '챔버 내 공정·증착 전반',         color: '#42A5F5' },
+  { name: '포커스 링·에지 링',    desc: '에지 링·소모성 부품',             color: '#AB47BC' }
+];
+
+const TERRAIN = ['#cfe8bd', '#b4d99c', '#93c47d', '#7ba362', '#9c8b6e'];
+
+fetch('data/patent_atlas.json').then(r => r.json()).then(D => {
+  buildAtlas(D);
+  buildCharts(D);
+  buildNetwork(D);
+  buildTable(D);
+});
+
+/* ---------------- Atlas 지도 ---------------- */
+function buildAtlas(D) {
+  const svg = document.getElementById('atlas-svg');
+  const tip = document.getElementById('atlas-tip');
+  const W = 1000, H = 620, pad = 40;
+  const b = D.bounds;
+  const sx = v => pad + (v - b.x0) / (b.x1 - b.x0) * (W - pad * 2);
+  const sy = v => H - pad - (v - b.y0) / (b.y1 - b.y0) * (H - pad * 2);
+
+  let html = '';
+  // 지형(등고선 폴리곤) — 바깥쪽부터
+  D.contours.forEach((c, i) => {
+    c.paths.forEach(p => {
+      const d = p.map((pt, j) => `${j ? 'L' : 'M'}${sx(pt[0]).toFixed(1)},${sy(pt[1]).toFixed(1)}`).join('') + 'Z';
+      html += `<path d="${d}" fill="${TERRAIN[i]}" stroke="rgba(255,255,255,.35)" stroke-width="1"/>`;
+    });
+  });
+  // 특허 점
+  D.points.forEach((p, i) => {
+    const m = CL_META[p.c] || { color: '#999' };
+    html += `<circle class="pt" data-i="${i}" cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="3.6"
+      fill="${m.color}" fill-opacity=".92" stroke="#fff" stroke-width="1"/>`;
+  });
+  // 클러스터 라벨
+  D.clusters.forEach(c => {
+    const m = CL_META[c.id]; if (!m || !c.n_map) return;
+    html += `<text x="${sx(c.cx).toFixed(1)}" y="${sy(c.cy).toFixed(1)}" text-anchor="middle"
+      font-size="13" font-weight="700" fill="#fff" stroke="rgba(20,35,50,.75)" stroke-width="3"
+      paint-order="stroke" style="pointer-events:none">${m.name}</text>`;
+  });
+  svg.innerHTML = html;
+
+  // 사이드바
+  document.getElementById('cluster-list').innerHTML = D.clusters
+    .slice().sort((a, b2) => b2.n - a.n).map(c => {
+      const m = CL_META[c.id];
+      return `<div class="cl-item" data-c="${c.id}" style="color:${m.color}">
+        <span class="cl-dot" style="background:${m.color}"></span>
+        <div><div class="cl-name">${m.name}</div><div class="cl-desc">${m.desc}</div>
+        <div class="cl-n">${c.n.toLocaleString()}건 · 평균 피인용 ${c.fwd_mean}</div></div></div>`;
+    }).join('');
+
+  // 상호작용
+  let active = null;
+  document.querySelectorAll('.cl-item').forEach(el => {
+    el.onclick = () => {
+      const c = +el.dataset.c;
+      active = (active === c) ? null : c;
+      document.querySelectorAll('.cl-item').forEach(e => e.classList.toggle('active', +e.dataset.c === active));
+      svg.querySelectorAll('.pt').forEach(ci => {
+        const p = D.points[+ci.dataset.i];
+        const on = (active === null || p.c === active);
+        ci.setAttribute('fill-opacity', on ? .92 : .12);
+        ci.setAttribute('r', (active !== null && p.c === active) ? 5 : 3.6);
+      });
+    };
+  });
+  const stage = svg.parentElement;
+  svg.addEventListener('mousemove', e => {
+    const t = e.target;
+    if (t.classList && t.classList.contains('pt')) {
+      const p = D.points[+t.dataset.i];
+      const m = CL_META[p.c];
+      tip.innerHTML = `<b>${m.name}</b><br>${p.t}<br>
+        <span style="color:#9fb6cb">${p.a} · ${p.y2}년 · IPC ${p.ipc} · 피인용 ${p.f}회</span>`;
+      const r = stage.getBoundingClientRect();
+      tip.style.left = Math.min(e.clientX - r.left + 14, r.width - 300) + 'px';
+      tip.style.top = (e.clientY - r.top + 14) + 'px';
+      tip.style.opacity = 1;
+    } else tip.style.opacity = 0;
+  });
+  svg.addEventListener('mouseleave', () => tip.style.opacity = 0);
+}
+
+/* ---------------- 차트 ---------------- */
+function buildCharts(D) {
+  // 연도별
+  new Chart(document.getElementById('ch-year'), {
+    type: 'bar',
+    data: { labels: D.year_count.map(v => v[0]),
+      datasets: [{ label: '등록 특허 수', data: D.year_count.map(v => v[1]),
+        backgroundColor: D.year_count.map(v => v[0] >= 2024 ? colors.blue : '#90BDE0'), borderRadius: 4 }] },
+    options: { responsive: true, plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, title: { display: true, text: '등록 건수' } } } }
+  });
+
+  // IPC 도넛
+  const ipc8 = D.ipc_top.slice(0, 8);
+  new Chart(document.getElementById('ch-ipc'), {
+    type: 'doughnut',
+    data: { labels: ipc8.map(v => v[0]),
+      datasets: [{ data: ipc8.map(v => v[1]),
+        backgroundColor: [colors.blue, colors.orange, colors.teal, colors.green, colors.purple, colors.yellow, colors.red, colors.gray],
+        borderWidth: 2, borderColor: '#fff' }] },
+    options: { responsive: true, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
+  });
+
+  // 연도별 IPC
+  const yrs = Object.keys(D.year_ipc).sort();
+  new Chart(document.getElementById('ch-year-ipc'), {
+    type: 'bar',
+    data: { labels: yrs,
+      datasets: D.top_ipcs.map((ipc, i) => ({ label: ipc, data: yrs.map(y => D.year_ipc[y][ipc] || 0),
+        backgroundColor: [colors.blue, colors.orange, colors.teal, colors.green, colors.purple][i], borderRadius: 3 })) },
+    options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, title: { display: true, text: '등록 건수' } } },
+      plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } } }
+  });
+
+  // 출원인
+  const apps = D.app_top.filter(a => a[0] !== 'Unknown').slice(0, 10);
+  new Chart(document.getElementById('ch-app'), {
+    type: 'bar',
+    data: { labels: apps.map(a => a[0]),
+      datasets: [{ label: '특허 수', data: apps.map(a => a[1]),
+        backgroundColor: apps.map((a, i) => i < 3 ? colors.blue : '#90BDE0'), borderRadius: 4 }] },
+    options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, title: { display: true, text: '특허 수' } },
+                y: { ticks: { autoSkip: false, font: { size: 10 } } } } }
+  });
+
+  // 출원인 × IPC
+  new Chart(document.getElementById('ch-matrix'), {
+    type: 'bar',
+    data: { labels: D.matrix.map(m => m.app),
+      datasets: D.top_ipcs.map((ipc, i) => ({ label: ipc, data: D.matrix.map(m => m[ipc] || 0),
+        backgroundColor: [colors.blue, colors.orange, colors.teal, colors.green, colors.purple][i], borderRadius: 3 })) },
+    options: { responsive: true, scales: { x: { stacked: true, ticks: { font: { size: 9 } } },
+        y: { stacked: true, beginAtZero: true, title: { display: true, text: '특허 수' } } },
+      plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } } }
+  });
+
+  // 전략맵 (ASM 극단값 제외)
+  const st = D.strategy.filter(s => s.fwd < 50);
+  new Chart(document.getElementById('ch-strategy'), {
+    type: 'bubble',
+    data: { datasets: st.map((s, i) => ({
+      label: s.name,
+      data: [{ x: s.fwd, y: s.conv, r: Math.max(6, Math.sqrt(s.n) / 2.3) }],
+      backgroundColor: [colors.blue, colors.orange, colors.teal, colors.green, colors.purple,
+                        colors.red, colors.yellow, colors.pink, colors.gray, colors.navy, '#26A69A'][i % 11] + 'cc',
+      borderColor: '#fff', borderWidth: 1.5 })) },
+    options: { responsive: true,
+      scales: { x: { title: { display: true, text: '평균 피인용 수 (기술 영향력) →' }, beginAtZero: true },
+                y: { title: { display: true, text: '평균 IPC 융합도 →' }, suggestedMin: 1.1, suggestedMax: 2.3 } },
+      plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } },
+        tooltip: { callbacks: { label: ctx => {
+          const s = st[ctx.datasetIndex];
+          return `${s.name}: ${s.n}건 · 피인용 ${s.fwd} · 융합도 ${s.conv} · 패밀리국가 ${s.fam}`;
+        } } } } }
+  });
+
+  // 피인용 분포
+  const fd = D.fwd_dist.slice().sort((a, b) => a[0] - b[0]);
+  new Chart(document.getElementById('ch-cit'), {
+    type: 'bar',
+    data: { labels: fd.map(v => v[0] >= 10 ? '10+' : String(v[0])),
+      datasets: [{ label: '특허 수', data: fd.map(v => v[1]),
+        backgroundColor: fd.map(v => v[0] === 0 ? colors.gray : (v[0] >= 10 ? colors.red : '#90BDE0')), borderRadius: 4 }] },
+    options: { responsive: true, plugins: { legend: { display: false } },
+      scales: { x: { title: { display: true, text: '피인용 횟수' } },
+                y: { beginAtZero: true, title: { display: true, text: '특허 수' } } } }
+  });
+}
+
+/* ---------------- IPC 네트워크 ---------------- */
+function buildNetwork(D) {
+  const svg = document.getElementById('net-svg');
+  const pairs = D.ipc_pairs.slice(0, 10);
+  const nodes = {};
+  pairs.forEach(p => { nodes[p.s] = (nodes[p.s] || 0) + p.w; nodes[p.t] = (nodes[p.t] || 0) + p.w; });
+  const keys = Object.keys(nodes).sort((a, b) => nodes[b] - nodes[a]);
+  const cx = 260, cy = 160;
+  const pos = {};
+  keys.forEach((k, i) => {
+    if (i === 0) { pos[k] = [cx, cy]; }
+    else {
+      const ang = (i - 1) / (keys.length - 1) * Math.PI * 2 - Math.PI / 2;
+      const rr = 115 + (i % 2) * 22;
+      pos[k] = [cx + Math.cos(ang) * rr * 1.45, cy + Math.sin(ang) * rr * 0.82];
+    }
+  });
+  const maxW = Math.max(...pairs.map(p => p.w));
+  let h = '';
+  pairs.forEach(p => {
+    const [x1, y1] = pos[p.s], [x2, y2] = pos[p.t];
+    h += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${colors.blue}"
+      stroke-opacity="${(0.18 + 0.55 * p.w / maxW).toFixed(2)}" stroke-width="${(1 + 6 * p.w / maxW).toFixed(1)}"/>`;
+  });
+  keys.forEach((k, i) => {
+    const [x, y] = pos[k];
+    const r = 14 + 20 * (nodes[k] / Math.max(...Object.values(nodes)));
+    h += `<circle cx="${x}" cy="${y}" r="${r.toFixed(1)}" fill="${i === 0 ? colors.navy : colors.blue}"
+      fill-opacity=".88" stroke="#fff" stroke-width="2"/>
+      <text x="${x}" y="${y + 4}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">${k}</text>`;
+  });
+  h += `<text x="260" y="318" text-anchor="middle" font-size="11" fill="#7f8fa0">선 굵기 = 공동출현 특허 수 (최대 ${maxW.toLocaleString()}건)</text>`;
+  svg.innerHTML = h;
+}
+
+/* ---------------- 클러스터 테이블 ---------------- */
+function buildTable(D) {
+  document.getElementById('cl-table').innerHTML = D.clusters
+    .slice().sort((a, b) => b.fwd_mean - a.fwd_mean).map(c => {
+      const m = CL_META[c.id];
+      return `<tr>
+        <td class="left"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${m.color};margin-right:6px"></span>${m.name}</td>
+        <td>${c.n.toLocaleString()}</td>
+        <td><strong>${c.fwd_mean}</strong></td>
+        <td>${c.conv_mean}</td>
+        <td>${c.ipc_top[0] ? c.ipc_top[0][0] : '-'}</td>
+        <td class="left" style="font-size:11.5px;color:#666">${c.terms.slice(0, 5).join(', ')}</td>
+      </tr>`;
+    }).join('');
+}
+</script>
+
+</body>
+</html>
