@@ -6,16 +6,17 @@
 <title>일본 전기차 배터리 산업정책의 정책조합 분석 | 손혜미</title>
 <meta name="description" content="경제안보와 탄소중립의 결합을 중심으로 — 모빌리티연구 2026 vol.6 no.2. 손혜미·박정규.">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   :root {
     --primary: #1E40AF; --secondary: #3B82F6; --accent: #60A5FA;
     --bg: #F8FAFC; --bg-elev: #FFFFFF; --bg-soft: #EFF4FB;
     --text-primary: #0F172A; --text-secondary: #475569;
-    --border: #E2E8F0; --bad: #DC2626;
+    --border: #E2E8F0; --bad: #DC2626; --warn: #D97706; --good: #16A34A;
     --shadow-sm: 0 1px 2px rgba(15,23,42,.04);
     --shadow-md: 0 4px 12px rgba(15,23,42,.06);
     --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px;
-    --max-width: 880px;
+    --max-width: 980px;
   }
   * , *::before, *::after { box-sizing: border-box; }
   html { scroll-behavior: smooth; scroll-padding-top: 72px; }
@@ -32,17 +33,17 @@
 
   header.site-nav {
     position: sticky; top: 0; z-index: 50;
-    background: rgba(248,250,252,.9); backdrop-filter: saturate(180%) blur(10px);
+    background: rgba(248,250,252,.92); backdrop-filter: saturate(180%) blur(10px);
     border-bottom: 1px solid var(--border);
   }
   .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 60px; gap: 16px; flex-wrap: wrap; }
   .nav-back { font-size: .85rem; font-weight: 600; color: var(--text-secondary); }
   .nav-back:hover { color: var(--primary); }
-  .nav-links { display: flex; gap: 20px; list-style: none; padding: 0; margin: 0; flex-wrap: wrap; }
-  .nav-links a { font-size: .82rem; font-weight: 500; color: var(--text-secondary); }
+  .nav-links { display: flex; gap: 18px; list-style: none; padding: 0; margin: 0; flex-wrap: wrap; }
+  .nav-links a { font-size: .81rem; font-weight: 500; color: var(--text-secondary); }
   .nav-links a:hover { color: var(--primary); }
 
-  .hero { padding: 56px 0 8px; }
+  .hero { padding: 52px 0 8px; }
   .paper-tag {
     display: inline-block; padding: 4px 12px; background: var(--bg-soft);
     border: 1px solid var(--border); color: var(--primary); border-radius: 999px;
@@ -61,9 +62,9 @@
   }
   .meta-callout strong { color: var(--primary); }
 
-  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 40px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 40px; }
   .stat-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; box-shadow: var(--shadow-sm); }
-  .stat-num { font-size: 1.3rem; font-weight: 700; color: var(--primary); letter-spacing: -.01em; }
+  .stat-num { font-size: 1.28rem; font-weight: 700; color: var(--primary); letter-spacing: -.01em; }
   .stat-num.warn { color: var(--bad); }
   .stat-label { font-size: .78rem; color: var(--text-secondary); margin-top: 2px; }
 
@@ -74,6 +75,17 @@
     text-transform: uppercase; color: var(--secondary); margin-bottom: 10px;
   }
   h2 { font-size: 1.35rem; margin-bottom: 16px; }
+  h3.sub { font-size: 1rem; margin: 26px 0 10px; color: var(--primary); }
+
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 760px) { .chart-grid { grid-template-columns: 1fr; } }
+  .chart-panel { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-lg);
+                 padding: 18px; box-shadow: var(--shadow-sm); margin-bottom: 18px; }
+  .chart-panel.full { grid-column: 1 / -1; }
+  .chart-panel .c-title { font-size: .92rem; font-weight: 700; margin-bottom: 2px; }
+  .chart-panel .c-desc { font-size: .78rem; color: var(--text-secondary); margin-bottom: 12px; }
+  .chart-panel canvas { max-height: 280px; }
+  .src { font-size: .72rem; color: #94a3b8; margin-top: 10px; }
 
   .finding-list { display: flex; flex-direction: column; gap: 14px; }
   .finding-card {
@@ -90,30 +102,25 @@
 
   .diagram-panel { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm); margin-top: 20px; }
   .diagram-panel figure { margin: 0; }
-  .diagram-caption { font-size: .82rem; color: var(--text-secondary); margin-top: 12px; text-align: center; }
-
+  .diagram-caption { font-size: .8rem; color: var(--text-secondary); margin-top: 12px; text-align: center; }
   .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+  table.tbl { width: 100%; border-collapse: collapse; font-size: .85rem; margin-top: 12px; }
+  table.tbl th { background: var(--primary); color: #fff; padding: 8px 12px; text-align: left; font-weight: 600; }
+  table.tbl td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text-primary); }
+  table.tbl tr:nth-child(even) td { background: var(--bg-soft); }
 
   .biblio-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm); }
   .biblio-card dl { margin: 0; display: grid; gap: 12px; }
   .biblio-card dt { font-size: .72rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 2px; }
   .biblio-card dd { margin: 0; color: var(--text-primary); font-weight: 500; font-size: .92rem; }
-  .citation-box {
-    background: var(--bg-soft); border-radius: var(--radius-sm); padding: 12px 14px;
-    font-size: .84rem; color: var(--text-secondary); margin-top: 16px; font-family: "JetBrains Mono", monospace;
-    line-height: 1.6;
-  }
-  .btn-primary {
-    display: inline-flex; align-items: center; gap: 8px; margin-top: 18px;
-    padding: 11px 20px; background: var(--primary); color: #fff; border-radius: var(--radius-md);
-    font-weight: 600; font-size: .92rem;
-  }
+  .citation-box { background: var(--bg-soft); border-radius: var(--radius-sm); padding: 12px 14px;
+    font-size: .84rem; color: var(--text-secondary); margin-top: 16px; font-family: "JetBrains Mono", monospace; line-height: 1.6; }
+  .btn-primary { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px;
+    padding: 11px 20px; background: var(--primary); color: #fff; border-radius: var(--radius-md); font-weight: 600; font-size: .92rem; }
   .btn-primary:hover { background: var(--secondary); color: #fff; }
-
-  .note-box {
-    font-size: .82rem; color: var(--text-secondary); background: var(--bg-soft);
-    border-radius: var(--radius-md); padding: 14px 16px; margin-top: 20px;
-  }
+  .note-box { font-size: .82rem; color: var(--text-secondary); background: var(--bg-soft);
+    border-radius: var(--radius-md); padding: 14px 16px; margin-top: 20px; }
 
   footer { border-top: 1px solid var(--border); padding: 32px 0 44px; }
   .footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; font-size: .84rem; color: var(--text-secondary); }
@@ -127,7 +134,11 @@
       <nav aria-label="Section">
         <ul class="nav-links">
           <li><a href="#overview">개요</a></li>
+          <li><a href="#context">배경</a></li>
           <li><a href="#framework">분석틀</a></li>
+          <li><a href="#macro">거시</a></li>
+          <li><a href="#meso">중위</a></li>
+          <li><a href="#micro">미시</a></li>
           <li><a href="#findings">주요 발견</a></li>
           <li><a href="#implications">시사점</a></li>
           <li><a href="#biblio">서지정보</a></li>
@@ -151,10 +162,11 @@
       </div>
 
       <div class="stat-grid">
-        <div class="stat-card"><div class="stat-num">2015–2023</div><div class="stat-label">분석 대상 기간</div></div>
-        <div class="stat-card"><div class="stat-num warn">51.7%→7.6%</div><div class="stat-label">일본계 기업 글로벌 점유율 변화</div></div>
+        <div class="stat-card"><div class="stat-num warn">51.7%→7.6%</div><div class="stat-label">일본계 기업 글로벌 점유율 (2015→2023)</div></div>
         <div class="stat-card"><div class="stat-num">4개</div><div class="stat-label">분석 대상 정책수단</div></div>
         <div class="stat-card"><div class="stat-num">3층위</div><div class="stat-label">거시·중위·미시 분석틀</div></div>
+        <div class="stat-card"><div class="stat-num">1.89조엔</div><div class="stat-label">경제안보기금 누적 사업총액</div></div>
+        <div class="stat-card"><div class="stat-num">+78.4%</div><div class="stat-label">2026 Q1 일본 BEV 판매 증가율</div></div>
       </div>
     </section>
 
@@ -162,7 +174,7 @@
       <span class="section-label">01 · Overview</span>
       <h2>연구 개요</h2>
       <p>
-        일본은 2022년 경제안전보장추진법(ESPA)을 제정하고 배터리를 특정중요물자로 지정하는 한편,
+        일본은 2022년 5월 경제안전보장추진법(ESPA)을 제정하고 배터리를 특정중요물자로 지정하는 한편,
         경제안보와 탄소중립을 결합한 산업정책을 추진했습니다. 이 논문은 관련 법령과 주요 지원제도를
         대상으로 거시·중위·미시 세 층위에서 <strong>목표 일관성, 기능적 상호보완성, 시간적 순차성</strong>을
         중심으로 이 정책들이 실제로 하나의 정책조합(policy mix)을 형성하는지 검토합니다.
@@ -173,92 +185,137 @@
         개별 정책수단을 따로 평가하는 대신, 이들이 생산·투자·기술·수요를 어떻게 기능적으로
         연결하는지를 살펴보는 것이 이 논문의 핵심 접근입니다.
       </p>
+      <div class="note-box">
+        <strong>연구질문</strong><br>
+        Q1. 일본의 산업정책은 어떠한 과정을 거쳐 경제안보형 정책으로 전환되었는가?<br>
+        Q2. 경제안보 목표 아래, 개별 정책수단들은 어떠한 방식으로 정책조합을 형성하였는가?
+      </div>
+    </section>
 
+    <section class="block container" id="context">
+      <span class="section-label">02 · Context</span>
+      <h2>배경 — 왜 지금 배터리인가</h2>
+      <p>
+        각국의 전동화 의무화 일정이 확정되면서 배터리 안정 공급 확보는 국가 차원의 정책과제로 부상했습니다.
+        같은 기간 일본은 시장 점유율 급락, 내수 정체, 공급망 의존이라는 세 겹의 구조적 도전에 직면했습니다.
+      </p>
+
+      <div class="chart-grid">
+        <div class="chart-panel">
+          <div class="c-title">글로벌 차량용 배터리 시장 규모</div>
+          <div class="c-desc">2015년 대비 약 55배 확대 (GWh)</div>
+          <canvas id="ch-market"></canvas>
+          <p class="src">자료: 경제산업성(2024)</p>
+        </div>
+        <div class="chart-panel">
+          <div class="c-title">국가별 EV 배터리 글로벌 점유율</div>
+          <div class="c-desc">중국의 부상과 일본의 급락 (%)</div>
+          <canvas id="ch-share"></canvas>
+          <p class="src">자료: 경제산업성(2024)</p>
+        </div>
+        <div class="chart-panel">
+          <div class="c-title">중국의 배터리 가치사슬 지배율 (2023)</div>
+          <div class="c-desc">채굴이 아닌 가공·셀 생산 단계에 집중 (%)</div>
+          <canvas id="ch-chain"></canvas>
+          <p class="src">자료: IEA(2024)</p>
+        </div>
+        <div class="chart-panel">
+          <div class="c-title">BEV 판매 비중 (2024)</div>
+          <div class="c-desc">내수 정체가 국내 생산 투자 유인을 약화 (%)</div>
+          <canvas id="ch-bev"></canvas>
+          <p class="src">자료: 경제산업성(2024)</p>
+        </div>
+      </div>
+
+      <div class="note-box">
+        <strong>세 겹의 구조적 도전.</strong> ① 배터리 점유율 급락(52%→8%), ② EV 시장 정체(BEV 판매비중 1%로
+        글로벌 평균 11%·중국 20% 대비 현저히 낮음), ③ 중국 공급망 의존. 특히 내수 부진은 국내 배터리
+        생산기반 확대 유인을 약화시키는 동시에 공급망 의존을 심화시키는 악순환 구조를 만들었습니다.
+      </div>
+
+      <h3 class="sub">공급망 집중의 지정학 — 중국의 수출통제 확대</h3>
+      <p>
+        2010년 희토류 수출 차단 사태는 공급망 집중이 지정학적 압박 수단으로 활용될 수 있음을 확인시켰습니다.
+        배터리 소재 분야에서도 통제 범위가 <strong>소재 → 기술 → 완제품</strong>으로 확대되는 추세입니다.
+      </p>
       <div class="diagram-panel">
         <figure>
-          <svg viewBox="0 0 520 290" role="img" aria-label="일본계·중국계 배터리 기업 글로벌 시장 점유율 막대그래프. 2015년 일본계 51.7퍼센트·중국계 27.4퍼센트에서 2023년 일본계 7.6퍼센트·중국계 64.1퍼센트로 역전되었다.">
-            <line x1="50" y1="220" x2="500" y2="220" stroke="var(--border)" stroke-width="1"/>
-            <line x1="50" y1="180" x2="500" y2="180" stroke="var(--border)" stroke-width="1" stroke-dasharray="2 3"/>
-            <line x1="50" y1="140" x2="500" y2="140" stroke="var(--border)" stroke-width="1" stroke-dasharray="2 3"/>
-            <line x1="50" y1="100" x2="500" y2="100" stroke="var(--border)" stroke-width="1" stroke-dasharray="2 3"/>
-            <line x1="50" y1="60" x2="500" y2="60" stroke="var(--border)" stroke-width="1" stroke-dasharray="2 3"/>
-            <text x="44" y="224" text-anchor="end" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">0%</text>
-            <text x="44" y="184" text-anchor="end" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">20%</text>
-            <text x="44" y="144" text-anchor="end" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">40%</text>
-            <text x="44" y="104" text-anchor="end" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">60%</text>
+          <svg viewBox="0 0 700 190" role="img" aria-label="중국의 수출통제 확대 타임라인. 2010년 9월 희토류 전반, 2023년 12월 흑연, 2025년 7월 LFP 양극활물질과 리튬 추출기술, 2025년 10월 고성능 리튬이온전지와 양극재·인조흑연 음극재 수출관리 예고">
+            <line x1="40" y1="95" x2="660" y2="95" stroke="var(--border)" stroke-width="2"/>
 
-            <rect x="140" y="72.3" width="55" height="147.7" rx="4" fill="var(--bad)"/>
-            <text x="167.5" y="64" text-anchor="middle" font-size="11" font-weight="700" fill="var(--bad)" font-family="Inter, sans-serif">51.7%</text>
+            <line x1="60" y1="95" x2="60" y2="82" stroke="var(--bad)" stroke-width="1.5"/>
+            <circle cx="60" cy="95" r="6" fill="var(--bad)"/>
+            <text x="60" y="58" text-anchor="middle" font-size="12" font-weight="700" fill="var(--bad)" font-family="Inter, sans-serif">2010.09</text>
+            <text x="60" y="73" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">희토류 전반</text>
 
-            <rect x="200" y="141.7" width="55" height="78.3" rx="4" fill="var(--secondary)"/>
-            <text x="227.5" y="133" text-anchor="middle" font-size="11" font-weight="700" fill="var(--secondary)" font-family="Inter, sans-serif">27.4%</text>
+            <line x1="240" y1="95" x2="240" y2="108" stroke="var(--warn)" stroke-width="1.5"/>
+            <circle cx="240" cy="95" r="6" fill="var(--warn)"/>
+            <text x="240" y="124" text-anchor="middle" font-size="12" font-weight="700" fill="var(--warn)" font-family="Inter, sans-serif">2023.12</text>
+            <text x="240" y="139" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">흑연 · 사전허가 의무화</text>
 
-            <rect x="345" y="198.3" width="55" height="21.7" rx="4" fill="var(--bad)"/>
-            <text x="372.5" y="190" text-anchor="middle" font-size="11" font-weight="700" fill="var(--bad)" font-family="Inter, sans-serif">7.6%</text>
+            <line x1="430" y1="95" x2="430" y2="82" stroke="var(--bad)" stroke-width="1.5"/>
+            <circle cx="430" cy="95" r="6" fill="var(--bad)"/>
+            <text x="430" y="58" text-anchor="middle" font-size="12" font-weight="700" fill="var(--bad)" font-family="Inter, sans-serif">2025.07</text>
+            <text x="430" y="73" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">LFP 양극활물질 · 리튬 추출기술</text>
 
-            <rect x="405" y="36.9" width="55" height="183.1" rx="4" fill="var(--secondary)"/>
-            <text x="432.5" y="29" text-anchor="middle" font-size="11" font-weight="700" fill="var(--secondary)" font-family="Inter, sans-serif">64.1%</text>
+            <line x1="620" y1="95" x2="620" y2="108" stroke="var(--bad)" stroke-width="1.5"/>
+            <circle cx="620" cy="95" r="6" fill="var(--bad)"/>
+            <text x="620" y="124" text-anchor="middle" font-size="12" font-weight="700" fill="var(--bad)" font-family="Inter, sans-serif">2025.10</text>
+            <text x="620" y="139" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">고성능 LiB · 양극재</text>
+            <text x="620" y="152" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter, sans-serif">(2026.11 연기)</text>
 
-            <text x="197.5" y="238" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text-primary)" font-family="Inter, sans-serif">2015</text>
-            <text x="402.5" y="238" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text-primary)" font-family="Inter, sans-serif">2023</text>
-
-            <rect x="175" y="260" width="12" height="12" rx="2" fill="var(--bad)"/>
-            <text x="191" y="270" font-size="10.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">일본계 기업</text>
-            <rect x="295" y="260" width="12" height="12" rx="2" fill="var(--secondary)"/>
-            <text x="311" y="270" font-size="10.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">중국계 기업</text>
+            <text x="40" y="180" font-size="9.5" fill="#94a3b8" font-family="Inter, sans-serif">소재 → 기술 → 완제품으로 통제 범위 확대</text>
           </svg>
-          <figcaption class="visually-hidden">일본계·중국계 배터리 기업 글로벌 시장 점유율. 2015년 일본계 51.7% · 중국계 27.4%에서 2023년 일본계 7.6% · 중국계 64.1%로 역전되었다.</figcaption>
+          <figcaption class="visually-hidden">중국의 배터리 핵심소재 수출통제 단계적 확대 타임라인</figcaption>
         </figure>
-        <p class="diagram-caption">그림 1. 일본계·중국계 배터리 기업 글로벌 시장 점유율 변화 (2015 → 2023)</p>
+        <p class="diagram-caption">그림 1. 중국의 배터리 핵심소재 수출통제 확대 (자료: 경제산업성 2026; Vekasi 2019)</p>
       </div>
     </section>
 
     <section class="block container" id="framework">
-      <span class="section-label">02 · Analytical Framework</span>
+      <span class="section-label">03 · Analytical Framework</span>
       <h2>분석틀 — 정책조합의 기능적 상호보완성</h2>
       <p>
         경제안보기금·GX 세제·K Program은 각각 설비투자·생산판매·연구개발 단계를 담당하며 상호보완적으로
         작동하고, CEV 보조금은 수요 측면을 담당합니다. 네 수단 모두 "국내 배터리 생산능력 확충"이라는
-        공통 목표 아래 연결되어 있습니다.
+        공통 목표 아래 연결되어 있으며, <strong>ESPA 인정체계라는 공통 선별 기제</strong>를 공유합니다.
       </p>
 
       <div class="diagram-panel">
         <figure>
           <svg viewBox="0 0 400 225" role="img" aria-label="일본 EV 배터리 정책의 4개 수단(경제안보기금·GX 세제·K Program·CEV 보조금)이 각각 설비투자·생산판매·연구개발·수요 단계를 맡아 국내 배터리 생산능력 확충이라는 공통 목표로 수렴하는 정책조합 구조도">
             <defs>
-              <marker id="policyMixArrow2" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <marker id="pmArrow" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                 <path d="M0,0 L8,4 L0,8 Z" fill="var(--primary)"/>
               </marker>
-              <linearGradient id="pmBoxGrad2" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#FFFFFF"/>
-                <stop offset="100%" stop-color="var(--bg-soft)"/>
+              <linearGradient id="pmBox" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="var(--bg-soft)"/>
               </linearGradient>
-              <linearGradient id="pmGoalGrad2" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="var(--secondary)"/>
-                <stop offset="100%" stop-color="var(--primary)"/>
+              <linearGradient id="pmGoal" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="var(--secondary)"/><stop offset="100%" stop-color="var(--primary)"/>
               </linearGradient>
             </defs>
 
             <rect x="15" y="18" width="76" height="40" rx="7" fill="#0F172A" fill-opacity="0.12"/>
-            <rect x="12" y="14" width="76" height="40" rx="7" fill="url(#pmBoxGrad2)" stroke="var(--border)"/>
+            <rect x="12" y="14" width="76" height="40" rx="7" fill="url(#pmBox)" stroke="var(--border)"/>
             <rect x="16" y="17" width="68" height="9" rx="4" fill="#FFFFFF" fill-opacity="0.6"/>
             <text x="50" y="30" text-anchor="middle" font-size="9" font-weight="700" fill="var(--primary)" font-family="Inter, sans-serif">경제안보기금</text>
             <text x="50" y="44" text-anchor="middle" font-size="7.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">(설비투자)</text>
 
             <rect x="115" y="18" width="76" height="40" rx="7" fill="#0F172A" fill-opacity="0.12"/>
-            <rect x="112" y="14" width="76" height="40" rx="7" fill="url(#pmBoxGrad2)" stroke="var(--border)"/>
+            <rect x="112" y="14" width="76" height="40" rx="7" fill="url(#pmBox)" stroke="var(--border)"/>
             <rect x="116" y="17" width="68" height="9" rx="4" fill="#FFFFFF" fill-opacity="0.6"/>
             <text x="150" y="30" text-anchor="middle" font-size="9" font-weight="700" fill="var(--primary)" font-family="Inter, sans-serif">GX 세제</text>
             <text x="150" y="44" text-anchor="middle" font-size="7.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">(생산·판매)</text>
 
             <rect x="215" y="18" width="76" height="40" rx="7" fill="#0F172A" fill-opacity="0.12"/>
-            <rect x="212" y="14" width="76" height="40" rx="7" fill="url(#pmBoxGrad2)" stroke="var(--border)"/>
+            <rect x="212" y="14" width="76" height="40" rx="7" fill="url(#pmBox)" stroke="var(--border)"/>
             <rect x="216" y="17" width="68" height="9" rx="4" fill="#FFFFFF" fill-opacity="0.6"/>
             <text x="250" y="30" text-anchor="middle" font-size="9" font-weight="700" fill="var(--primary)" font-family="Inter, sans-serif">K Program</text>
             <text x="250" y="44" text-anchor="middle" font-size="7.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">(연구개발)</text>
 
             <rect x="315" y="18" width="76" height="40" rx="7" fill="#0F172A" fill-opacity="0.12"/>
-            <rect x="312" y="14" width="76" height="40" rx="7" fill="url(#pmBoxGrad2)" stroke="var(--border)"/>
+            <rect x="312" y="14" width="76" height="40" rx="7" fill="url(#pmBox)" stroke="var(--border)"/>
             <rect x="316" y="17" width="68" height="9" rx="4" fill="#FFFFFF" fill-opacity="0.6"/>
             <text x="350" y="30" text-anchor="middle" font-size="9" font-weight="700" fill="var(--primary)" font-family="Inter, sans-serif">CEV 보조금</text>
             <text x="350" y="44" text-anchor="middle" font-size="7.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">(수요)</text>
@@ -268,16 +325,16 @@
             <line x1="250" y1="58" x2="250" y2="72" stroke="var(--primary)" stroke-width="2"/>
             <line x1="350" y1="58" x2="350" y2="72" stroke="var(--primary)" stroke-width="2"/>
 
-            <line x1="50" y1="72" x2="100" y2="110" stroke="var(--primary)" stroke-width="2" marker-end="url(#policyMixArrow2)"/>
-            <line x1="150" y1="72" x2="160" y2="110" stroke="var(--primary)" stroke-width="2" marker-end="url(#policyMixArrow2)"/>
-            <line x1="250" y1="72" x2="240" y2="110" stroke="var(--primary)" stroke-width="2" marker-end="url(#policyMixArrow2)"/>
-            <line x1="350" y1="72" x2="300" y2="110" stroke="var(--primary)" stroke-width="2" marker-end="url(#policyMixArrow2)"/>
+            <line x1="50" y1="72" x2="100" y2="110" stroke="var(--primary)" stroke-width="2" marker-end="url(#pmArrow)"/>
+            <line x1="150" y1="72" x2="160" y2="110" stroke="var(--primary)" stroke-width="2" marker-end="url(#pmArrow)"/>
+            <line x1="250" y1="72" x2="240" y2="110" stroke="var(--primary)" stroke-width="2" marker-end="url(#pmArrow)"/>
+            <line x1="350" y1="72" x2="300" y2="110" stroke="var(--primary)" stroke-width="2" marker-end="url(#pmArrow)"/>
 
             <rect x="64" y="116" width="280" height="52" rx="10" fill="#0F172A" fill-opacity="0.22"/>
-            <rect x="60" y="111" width="280" height="52" rx="10" fill="url(#pmGoalGrad2)"/>
+            <rect x="60" y="111" width="280" height="52" rx="10" fill="url(#pmGoal)"/>
             <ellipse cx="130" cy="123" rx="70" ry="9" fill="#FFFFFF" fill-opacity="0.18"/>
             <text x="200" y="134" text-anchor="middle" font-size="10.5" font-weight="700" fill="#FFFFFF" font-family="Inter, sans-serif">국내 배터리 생산능력 확충</text>
-            <text x="200" y="150" text-anchor="middle" font-size="8" fill="#DBEAFE" font-family="Inter, sans-serif">공통 정책목표 · 기능적 상호보완</text>
+            <text x="200" y="150" text-anchor="middle" font-size="8" fill="#DBEAFE" font-family="Inter, sans-serif">공통 정책목표 · ESPA 인정체계 공유</text>
 
             <text x="12" y="198" font-size="8.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">거시(법·기금) · 중위(세제·프로그램) · 미시(보조금) 3층위 정책조합</text>
           </svg>
@@ -293,7 +350,7 @@
         </div>
         <div class="criteria-card">
           <strong>기능적 상호보완성</strong>
-          <span>각 정책수단이 서로 다른 생산 단계(설비투자·생산판매·연구개발·수요)를 중복 없이 나누어 담당하는지 검토합니다.</span>
+          <span>각 정책수단이 서로 다른 단계(설비투자·생산판매·연구개발·수요)를 중복 없이 나누어 담당하는지 검토합니다.</span>
         </div>
         <div class="criteria-card">
           <strong>시간적 순차성</strong>
@@ -301,63 +358,166 @@
         </div>
       </div>
 
-      <div class="diagram-panel">
-        <figure>
-          <svg viewBox="0 0 640 175" role="img" aria-label="2015년 일본계 점유율 51.7퍼센트에서 2022년 경제안전보장추진법 제정, 2023년 점유율 7.6퍼센트로 하락, 2026년 CEV 보조금 개편으로 이어지는 시간 순서 타임라인">
-            <line x1="40" y1="85" x2="600" y2="85" stroke="var(--border)" stroke-width="2"/>
+      <div class="note-box">
+        <strong>삼중 중첩(Triple Overlap) 구조.</strong> 국내 배터리 생산투자를 확약한 기업군은
+        ① 직접보조(투자 단계) + ② 세액공제(생산 단계) + ③ 시장우대(수요 단계)를 동시에 수령합니다.
+        이 구조는 처음부터 완성된 형태로 설계된 것이 아니라, <strong>2022 → 2024 → 2026에 걸쳐 각 수단이
+        기존 정책의 제도적 기반을 참조하며 순차적으로 축적</strong>된 결과입니다.
+      </div>
+    </section>
 
-            <line x1="40" y1="85" x2="40" y2="75" stroke="var(--bad)" stroke-width="1.5"/>
-            <circle cx="40" cy="85" r="6" fill="var(--bad)"/>
-            <text x="40" y="52" text-anchor="middle" font-size="12" font-weight="700" fill="var(--bad)" font-family="Inter, sans-serif">2015</text>
-            <text x="40" y="67" text-anchor="middle" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">일본계 점유율 51.7%</text>
+    <section class="block container" id="macro">
+      <span class="section-label">04 · Macro</span>
+      <h2>거시 층위 — 경제안보 목표의 제도화</h2>
+      <p>
+        일본은 2017년 이후 미중 전략경쟁 심화와 코로나19 공급망 교란을 거치며 경제안보 정책체계를 단계적으로
+        구축했고, 2022년 5월 ESPA 제정으로 배터리를 반도체와 함께 특정중요물자로 지정했습니다. 같은 해 8월
+        발표된 축전지산업전략은 국내 LiB 생산능력 150GWh, 글로벌 시장 점유율 20%, 전고체 배터리 상용화라는
+        3대 목표를 제시했습니다.
+      </p>
+      <div class="chart-grid">
+        <div class="chart-panel">
+          <div class="c-title">일본 배터리 셀 생산능력 추이</div>
+          <div class="c-desc">정책 시행 이후 6배 확대 (GWh)</div>
+          <canvas id="ch-capacity"></canvas>
+          <p class="src">자료: 경제산업성(2024); 축전지산업전략(2022.8)</p>
+        </div>
+        <div class="chart-panel">
+          <div class="c-title">축전지산업전략 3대 목표</div>
+          <div class="c-desc">2022년 8월 발표</div>
+          <table class="tbl" style="margin-top:6px">
+            <tr><th style="width:52%">목표</th><th>수치</th></tr>
+            <tr><td>국내 LiB 생산능력</td><td><strong>150 GWh</strong></td></tr>
+            <tr><td>글로벌 시장 점유율</td><td><strong>20 %</strong></td></tr>
+            <tr><td>차세대 배터리 핵심과제</td><td><strong>전고체 상용화</strong></td></tr>
+          </table>
+          <p class="src">
+            생산능력 확대는 경제안보기금 지원사업의 진행과 병행해 이루어진 것으로, 정책효과와의
+            인과관계는 추가 검토가 필요합니다.
+          </p>
+        </div>
+      </div>
+    </section>
 
-            <line x1="397" y1="85" x2="397" y2="95" stroke="var(--primary)" stroke-width="1.5"/>
-            <circle cx="397" cy="85" r="6" fill="var(--primary)"/>
-            <text x="397" y="112" text-anchor="middle" font-size="12" font-weight="700" fill="var(--primary)" font-family="Inter, sans-serif">2022</text>
-            <text x="397" y="127" text-anchor="middle" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">ESPA 제정 · 배터리 특정중요물자 지정</text>
+    <section class="block container" id="meso">
+      <span class="section-label">05 · Meso</span>
+      <h2>중위 층위 — 공급측 정책수단의 결합</h2>
+      <p>
+        경제안보기금·GX 세제·K Program 세 수단은 ESPA 인정체계라는 공통 선별 기제를 공유하며,
+        국내 배터리 생산투자 기업은 세 정책에서 동시에 혜택을 받는 구조가 형성됩니다.
+      </p>
 
-            <line x1="447" y1="85" x2="447" y2="75" stroke="var(--bad)" stroke-width="1.5"/>
-            <circle cx="447" cy="85" r="6" fill="var(--bad)"/>
-            <text x="447" y="52" text-anchor="middle" font-size="12" font-weight="700" fill="var(--bad)" font-family="Inter, sans-serif">2023</text>
-            <text x="447" y="67" text-anchor="middle" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">일본계 점유율 7.6%로 하락</text>
+      <div class="chart-grid">
+        <div class="chart-panel">
+          <div class="c-title">① 경제안보기금 — 지원 비율</div>
+          <div class="c-desc">중소기업·기술개발에 상대적으로 높은 비율 적용 (%)</div>
+          <canvas id="ch-fund"></canvas>
+          <p class="src">자료: 경제산업성(2024, 2026)</p>
+        </div>
+        <div class="chart-panel">
+          <div class="c-title">① 경제안보기금 — 주요 인정 사례</div>
+          <div class="c-desc">2026년 3월 기준 누적 42건 · 총액 1조 8,906억엔</div>
+          <table class="tbl" style="margin-top:6px">
+            <tr><th>기업</th><th>사업규모</th><th>최대지원금</th></tr>
+            <tr><td>파나소닉에너지 · 스바루</td><td>4,630억엔</td><td>1,564억엔</td></tr>
+            <tr><td>도요타 · PPES</td><td>2,450억엔</td><td>856억엔</td></tr>
+          </table>
+          <p class="src">셀·팩 제조뿐 아니라 소재·제조장비까지 가치사슬 전반을 지원 대상으로 포괄</p>
+        </div>
+        <div class="chart-panel full">
+          <div class="c-title">② GX 세제 — EV 판매량 연동 세액공제 구조</div>
+          <div class="c-desc">초기 설비투자 이후 생산·판매 단계에서 10년간 세액공제 제공</div>
+          <table class="tbl" style="margin-top:6px">
+            <tr><th style="width:24%">구분</th><th>내용</th></tr>
+            <tr><td>공제 기준</td><td>최종재(EV·FCV 판매량)</td></tr>
+            <tr><td>공제 단가</td><td>EV·FCV <strong>40만엔/대</strong>, 경차 EV·PHEV <strong>20만엔/대</strong></td></tr>
+            <tr><td>적용 기간</td><td><strong>10년</strong> (이월 4년)</td></tr>
+            <tr><td>공제 한도</td><td>법인세 최대 40% 공제</td></tr>
+          </table>
+          <p class="src">
+            <strong>일본형(최종재 중심)</strong>: PPES(도요타-파나소닉)·GS유아사(혼다)·파나소닉에너지(스바루·마쓰다)처럼
+            완성차가 배터리 기업과 합작해 투자 주체로 기능합니다. 이는 셀 생산자에게 직접 공제하는
+            <strong>미국형(중간재 중심)</strong>과 대비되는 설계입니다.
+          </p>
+        </div>
+        <div class="chart-panel full">
+          <div class="c-title">③ K Program — 차세대 배터리 기술 R&amp;D</div>
+          <div class="c-desc">경제안전보장 중요기술 육성 프로그램</div>
+          <table class="tbl" style="margin-top:6px">
+            <tr><th style="width:24%">구분</th><th>내용</th></tr>
+            <tr><td>예산 규모</td><td><strong>5,000억엔</strong> (2022~2030년도)</td></tr>
+            <tr><td>지원 대상</td><td>차세대 전지 — 전고체(SSB) 실용화</td></tr>
+            <tr><td>법적 근거</td><td>ESPA(경제안전보장추진법)</td></tr>
+          </table>
+          <p class="src">현재 리튬이온배터리(LiB)를 가교하면서 차세대 배터리 기술 개발을 지원하는 구조</p>
+        </div>
+      </div>
+    </section>
 
-            <line x1="600" y1="85" x2="600" y2="95" stroke="var(--primary)" stroke-width="1.5"/>
-            <circle cx="600" cy="85" r="6" fill="var(--primary)"/>
-            <text x="600" y="112" text-anchor="middle" font-size="12" font-weight="700" fill="var(--primary)" font-family="Inter, sans-serif">2026</text>
-            <text x="600" y="127" text-anchor="middle" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">CEV 보조금 개편</text>
+    <section class="block container" id="micro">
+      <span class="section-label">06 · Micro</span>
+      <h2>미시 층위 — 수요정책의 재편</h2>
+      <p>
+        2026년 CEV 보조금 평가기준 개편에서 <strong>공급 안정성·사이버보안 배점이 50점에서 100점으로 확대</strong>된
+        반면, 차량 성능은 40점에서 20점, 라이프사이클 지속성은 30점에서 10점으로 축소되었습니다.
+        공급망 안보 기준이 수요측 보조금의 선별 기준으로 작동하기 시작한 것입니다.
+      </p>
 
-            <rect x="225" y="150" width="12" height="12" rx="2" fill="var(--bad)"/>
-            <text x="241" y="160" font-size="10.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">일본 배터리 시장 점유율</text>
-            <rect x="375" y="150" width="12" height="12" rx="2" fill="var(--primary)"/>
-            <text x="391" y="160" font-size="10.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">정책 이벤트</text>
-          </svg>
-          <figcaption class="visually-hidden">2015년 일본계 점유율 51.7%에서 2022년 경제안전보장추진법 제정, 2023년 점유율 7.6%로 하락, 2026년 CEV 보조금 개편으로 이어지는 시간 순서 타임라인</figcaption>
-        </figure>
-        <p class="diagram-caption">그림 3. 시간적 순차성 — 시장 변화와 정책 이벤트의 타임라인</p>
+      <div class="chart-grid">
+        <div class="chart-panel">
+          <div class="c-title">CEV 보조금 평가항목별 배점 변화</div>
+          <div class="c-desc">200점 기준 · 2025 → 2026</div>
+          <canvas id="ch-cev-score"></canvas>
+          <p class="src">자료: 경제산업성(2026); 닛케이 모빌리티(2026.5.8)</p>
+        </div>
+        <div class="chart-panel">
+          <div class="c-title">2026년 브랜드별 CEV 보조금</div>
+          <div class="c-desc">동일 정책 내 최대 격차 115만엔 (만엔)</div>
+          <canvas id="ch-cev-brand"></canvas>
+          <p class="src">자료: 닛케이 모빌리티(2026.5.7); 경제산업성(2026)</p>
+        </div>
+        <div class="chart-panel full">
+          <div class="c-title">보조금 개편 이후 시장 반응</div>
+          <div class="c-desc">주요 시점 일본 내 월별 등록대수 (대)</div>
+          <canvas id="ch-reg"></canvas>
+          <p class="src">자료: JAIA; JADA·전국경자동차협회(에코레보 집계)</p>
+        </div>
+      </div>
+
+      <div class="note-box">
+        <strong>BYD 감액의 구조.</strong> ① 배터리 국내생산 계획으로 경제안보기금 인정을 받은 기업을 우대하면서
+        외산 배터리 수입차가 불리해졌고, ② 부품·중요광물 안정 확보 항목이 확대되면서 지정학적 리스크가 높은
+        지역에 의존하는 제조사가 구조적 불이익을 받게 되었습니다. 그 결과 2026년 4월 BYD 등록대수는
+        3월 대비 <strong>66% 급락</strong>했습니다. 한편 미국 브랜드(테슬라·지프)가 증액·유지된 배경에는
+        미일 관세협의 합의 내용이 반영된 것으로 분석됩니다.
       </div>
     </section>
 
     <section class="block container" id="findings">
-      <span class="section-label">03 · Key Findings</span>
+      <span class="section-label">07 · Key Findings</span>
       <h2>주요 발견</h2>
       <div class="finding-list">
         <div class="finding-card">
           <h3>3개 정책수단의 단계별 역할 분담</h3>
-          <p>경제안보기금·GX 세제·K Program은 각각 설비투자·생산판매·연구개발 단계를 담당하며 상호보완적으로 작동하는 것으로 나타났습니다.</p>
+          <p>경제안보기금·GX 세제·K Program은 각각 설비투자·생산판매·연구개발 단계를 담당하며 상호보완적으로 작동하는 것으로 나타났습니다. 세 수단 모두 ESPA 인정체계라는 동일한 선별 기제를 공유합니다.</p>
         </div>
         <div class="finding-card">
-          <h3>CEV 보조금의 2026년 개편</h3>
-          <p>CEV 보조금은 2026년 개편을 통해 공급 안정성의 비중을 확대하고 국내 생산계획을 평가항목에 반영함으로써, 제조사 간 보조금 지급액의 차이를 확대했습니다.</p>
+          <h3>CEV 보조금의 2026년 개편 — 공급 기준의 수요측 편입</h3>
+          <p>CEV 보조금은 2026년 개편을 통해 공급 안정성의 비중을 확대(50→100점)하고 "차량용 배터리 국내 생산계획"을 평가항목에 명시함으로써, 제조사 간 보조금 지급액의 차이를 확대했습니다(도요타 130만엔 vs BYD 15만엔).</p>
+        </div>
+        <div class="finding-card">
+          <h3>공급-수요 정책의 선별 기제 공유</h3>
+          <p>경제안보기금 인정(ESPA 특정중요물자) → CEV 평가기준 편입("국내 생산계획" 명시) → 수요측 보조금 우대(최대 130만엔)로 이어지는 연결 구조가 확인됩니다. 2026년 1월 보조금 증액 이후 Q1 BEV 판매는 전년 동기 대비 78.4% 증가해 동기 사상 최고치를 기록했습니다.</p>
         </div>
         <div class="finding-card">
           <h3>공통 목표로 수렴하는 정책조합</h3>
-          <p>4개 정책수단은 국내 배터리 생산능력 확충이라는 공통 목표 아래 생산·투자·기술·수요를 기능적으로 연결하는 정책조합을 형성하는 것으로 나타났습니다.</p>
+          <p>4개 정책수단은 국내 배터리 생산능력 확충이라는 공통 목표 아래 생산·투자·기술·수요를 기능적으로 연결하는 정책조합을 형성하는 것으로 나타났습니다. 수요정책 단독 또는 공급정책 단독으로는 달성하기 어려운 산업구조 전환을 정책수단 간 연계로 동시에 추진하는 방식입니다.</p>
         </div>
       </div>
     </section>
 
     <section class="block container" id="implications">
-      <span class="section-label">04 · Implications for Korea</span>
+      <span class="section-label">08 · Implications for Korea</span>
       <h2>한국 배터리 산업정책에 대한 시사점</h2>
       <p>
         한국은 배터리 3사의 해외생산 비중이 높아 일본과 동일한 국내 생산 기준을 그대로 적용하기에는
@@ -366,16 +526,17 @@
       </p>
       <p>
         이는 향후 한국 배터리 산업정책에서도 개별 정책수단의 확대보다, <strong>정책목표와 정책수단
-        간 연계구조를 고려한 정책설계</strong>가 중요함을 시사합니다.
+        간 연계구조를 고려한 정책설계</strong>가 중요함을 시사합니다. 다만 CEV 보조금 개편에 따른
+        제조사 간 격차는 향후 무역마찰 및 통상분쟁의 쟁점이 될 가능성이 상존합니다.
       </p>
       <div class="note-box">
-        이 페이지는 논문 초록을 바탕으로 핵심 내용을 요약한 개요입니다. 선행연구 검토, 세부 데이터,
-        전체 분석 결과는 아래 KCI 원문에서 확인하실 수 있습니다.
+        이 페이지는 논문 초록과 선행 텀페이퍼(모빌리티 혁신론, 2026 상반기)의 분석 자료를 바탕으로
+        핵심 내용을 재구성한 개요입니다. 전체 분석 결과와 논증은 아래 KCI 원문에서 확인하실 수 있습니다.
       </div>
     </section>
 
     <section class="block container" id="biblio">
-      <span class="section-label">05 · Bibliographic Info</span>
+      <span class="section-label">09 · Bibliographic Info</span>
       <h2>서지정보</h2>
       <div class="biblio-card">
         <dl>
@@ -414,6 +575,115 @@
       <span>&copy; 2026 손혜미 (Hyemi Son)</span>
     </div>
   </footer>
+
+<script>
+const C = { primary: '#1E40AF', secondary: '#3B82F6', accent: '#60A5FA', light: '#BFDBFE',
+            bad: '#DC2626', warn: '#D97706', good: '#16A34A', gray: '#94A3B8', gold: '#C9A227' };
+const baseOpt = { responsive: true, plugins: { legend: { display: false } } };
+
+// 1) 배터리 시장 규모
+new Chart(document.getElementById('ch-market'), {
+  type: 'bar',
+  data: { labels: ['2015', '2017', '2019', '2021', '2023'],
+    datasets: [{ data: [13, 60, 178, 405, 721],
+      backgroundColor: ['#BFDBFE', '#93C5FD', '#60A5FA', '#3B82F6', '#1E40AF'], borderRadius: 4 }] },
+  options: { ...baseOpt, scales: { y: { beginAtZero: true, title: { display: true, text: 'GWh' } } },
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: c => c.parsed.y + ' GWh' } } } }
+});
+
+// 2) 국가별 점유율
+new Chart(document.getElementById('ch-share'), {
+  type: 'line',
+  data: { labels: ['2015', '2020', '2023'],
+    datasets: [
+      { label: '중국', data: [27.4, 37.5, 64.1], borderColor: C.bad, backgroundColor: C.bad + '20', borderWidth: 3, tension: .3, pointRadius: 5 },
+      { label: '일본', data: [51.7, 21.0, 7.6], borderColor: C.primary, backgroundColor: C.primary + '20', borderWidth: 3, tension: .3, pointRadius: 5 },
+      { label: '한국', data: [14.5, 36.0, 21.0], borderColor: C.gold, backgroundColor: C.gold + '20', borderWidth: 2.4, tension: .3, pointRadius: 4 }
+    ] },
+  options: { responsive: true, scales: { y: { beginAtZero: true, title: { display: true, text: '점유율 (%)' } } },
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+      tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y}%` } } } }
+});
+
+// 3) 중국 가치사슬 지배율
+new Chart(document.getElementById('ch-chain'), {
+  type: 'bar',
+  data: { labels: ['음극재', '흑연 공급 증가분(2030)', '양극재', '배터리 셀 생산능력'],
+    datasets: [{ data: [98, 95, 90, 85], backgroundColor: C.bad, borderRadius: 4 }] },
+  options: { ...baseOpt, indexAxis: 'y',
+    scales: { x: { beginAtZero: false, min: 75, max: 100, title: { display: true, text: '중국 비중 (%)' } },
+              y: { ticks: { font: { size: 10 } } } },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.x + '%' } } } }
+});
+
+// 4) BEV 판매비중
+new Chart(document.getElementById('ch-bev'), {
+  type: 'bar',
+  data: { labels: ['일본', '글로벌 평균', '중국'],
+    datasets: [{ data: [1, 11, 20], backgroundColor: [C.bad, C.gray, C.primary], borderRadius: 4 }] },
+  options: { ...baseOpt, scales: { y: { beginAtZero: true, title: { display: true, text: 'BEV 판매비중 (%)' } } },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.y + '%' } } } }
+});
+
+// 5) 생산능력
+new Chart(document.getElementById('ch-capacity'), {
+  type: 'bar',
+  data: { labels: ['정책 도입 이전', '2024 실적', '2030 목표'],
+    datasets: [{ data: [20, 120, 150], backgroundColor: [C.light, C.secondary, C.primary], borderRadius: 4 }] },
+  options: { ...baseOpt, scales: { y: { beginAtZero: true, title: { display: true, text: 'GWh' } } },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.y + ' GWh' } } } }
+});
+
+// 6) 경제안보기금 지원비율
+new Chart(document.getElementById('ch-fund'), {
+  type: 'bar',
+  data: { labels: ['설비투자(대기업)', '설비투자(중소기업)', '기술개발(공통)'],
+    datasets: [{ data: [33, 50, 50], backgroundColor: [C.light, C.secondary, C.primary], borderRadius: 4 }] },
+  options: { ...baseOpt, scales: { y: { beginAtZero: true, max: 60, title: { display: true, text: '지원 비율 (%)' } },
+      x: { ticks: { font: { size: 10 } } } },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.y + '%' } } } }
+});
+
+// 7) CEV 배점 변화
+new Chart(document.getElementById('ch-cev-score'), {
+  type: 'bar',
+  data: { labels: ['2025', '2026'],
+    datasets: [
+      { label: '공급 안정성·사이버보안', data: [50, 100], backgroundColor: C.bad, borderRadius: 3 },
+      { label: '차량 성능', data: [40, 20], backgroundColor: C.gray, borderRadius: 3 },
+      { label: '라이프사이클 지속성', data: [30, 10], backgroundColor: C.accent, borderRadius: 3 },
+      { label: '충전 인프라', data: [40, 40], backgroundColor: C.good, borderRadius: 3 },
+      { label: '인재육성·타분야 기여', data: [30, 30], backgroundColor: '#64748B', borderRadius: 3 }
+    ] },
+  options: { responsive: true,
+    scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, max: 200, title: { display: true, text: '배점 (200점 기준)' } } },
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 11, font: { size: 10 } } } } }
+});
+
+// 8) 브랜드별 보조금
+new Chart(document.getElementById('ch-cev-brand'), {
+  type: 'bar',
+  data: { labels: ['도요타 bZ4X', '지프', '테슬라', '캐딜락', 'BYD 아토3'],
+    datasets: [{ data: [130, 129, 127, 103, 15],
+      backgroundColor: [C.primary, C.secondary, C.secondary, C.accent, C.bad], borderRadius: 4 }] },
+  options: { ...baseOpt, scales: { y: { beginAtZero: true, title: { display: true, text: '보조금 (만엔)' } },
+      x: { ticks: { font: { size: 10 } } } },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.y + '만엔' } } } }
+});
+
+// 9) 등록대수
+new Chart(document.getElementById('ch-reg'), {
+  type: 'bar',
+  data: { labels: ['토요타 2025.03', '토요타 2026.03', 'BYD 2025.09', 'BYD 2026.03', 'BYD 2026.04'],
+    datasets: [{ data: [1882, 5140, 802, 625, 215],
+      backgroundColor: [C.light, C.primary, C.gray, '#F59E0B', C.bad], borderRadius: 4 }] },
+  options: { ...baseOpt, scales: { y: { beginAtZero: true, title: { display: true, text: '등록대수 (대)' } },
+      x: { ticks: { font: { size: 10 } } } },
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: c => c.parsed.y.toLocaleString() + '대' } } } }
+});
+</script>
 
 </body>
 </html>
