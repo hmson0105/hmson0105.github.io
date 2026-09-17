@@ -1,0 +1,586 @@
+{
+ "k": 11,
+ "years": [
+  2021,
+  2022,
+  2023,
+  2024,
+  2025
+ ],
+ "topics": [
+  {
+   "id": 0,
+   "keywords": [
+    "plasma",
+    "chamber",
+    "processing",
+    "processing chamber",
+    "methods",
+    "gas",
+    "systems",
+    "precursor",
+    "source",
+    "reaction",
+    "semiconductor",
+    "reaction chamber"
+   ],
+   "n_dom": 717,
+   "share_all": 0.0836
+  },
+  {
+   "id": 1,
+   "keywords": [
+    "surface",
+    "plate",
+    "ring",
+    "support",
+    "upper",
+    "portion",
+    "electrode",
+    "wafer",
+    "chuck",
+    "lower",
+    "body",
+    "edge"
+   ],
+   "n_dom": 1273,
+   "share_all": 0.1328
+  },
+  {
+   "id": 2,
+   "keywords": [
+    "polishing",
+    "liquid",
+    "composition",
+    "semiconductor",
+    "chemical",
+    "acid",
+    "etching",
+    "film",
+    "compound",
+    "manufacturing",
+    "group",
+    "pad"
+   ],
+   "n_dom": 637,
+   "share_all": 0.074
+  },
+  {
+   "id": 3,
+   "keywords": [
+    "semiconductor",
+    "gate",
+    "structure",
+    "fin",
+    "region",
+    "source",
+    "drain",
+    "source drain",
+    "portion",
+    "forming",
+    "channel",
+    "layer"
+   ],
+   "n_dom": 797,
+   "share_all": 0.0835
+  },
+  {
+   "id": 4,
+   "keywords": [
+    "etching",
+    "film",
+    "gas",
+    "silicon",
+    "containing",
+    "plasma",
+    "processing",
+    "step",
+    "oxide",
+    "forming",
+    "metal",
+    "nitride"
+   ],
+   "n_dom": 858,
+   "share_all": 0.0951
+  },
+  {
+   "id": 5,
+   "keywords": [
+    "layer",
+    "semiconductor",
+    "temperature",
+    "manufacturing",
+    "plurality",
+    "insulating",
+    "formed",
+    "electrode",
+    "semiconductor layer",
+    "element",
+    "heating",
+    "conductive"
+   ],
+   "n_dom": 334,
+   "share_all": 0.0526
+  },
+  {
+   "id": 6,
+   "keywords": [
+    "layer",
+    "forming",
+    "dielectric",
+    "material",
+    "etching",
+    "semiconductor",
+    "etch",
+    "mask",
+    "process",
+    "metal",
+    "formed",
+    "dielectric layer"
+   ],
+   "n_dom": 964,
+   "share_all": 0.1069
+  },
+  {
+   "id": 7,
+   "keywords": [
+    "surface",
+    "material",
+    "component",
+    "region",
+    "methods",
+    "devices",
+    "dielectric",
+    "selectively",
+    "comprises",
+    "electrochromic",
+    "formed",
+    "materials"
+   ],
+   "n_dom": 251,
+   "share_all": 0.0449
+  },
+  {
+   "id": 8,
+   "keywords": [
+    "deposition",
+    "process",
+    "film",
+    "coating",
+    "layer",
+    "methods",
+    "beam",
+    "ion",
+    "carbon",
+    "surface",
+    "atomic",
+    "thin"
+   ],
+   "n_dom": 649,
+   "share_all": 0.0755
+  },
+  {
+   "id": 9,
+   "keywords": [
+    "processing",
+    "gas",
+    "chamber",
+    "unit",
+    "process",
+    "space",
+    "supply",
+    "plasma",
+    "treating",
+    "process chamber",
+    "support",
+    "flow"
+   ],
+   "n_dom": 1518,
+   "share_all": 0.1496
+  },
+  {
+   "id": 10,
+   "keywords": [
+    "plasma",
+    "power",
+    "frequency",
+    "rf",
+    "plasma processing",
+    "processing",
+    "voltage",
+    "signal",
+    "electrode",
+    "supply",
+    "source",
+    "power supply"
+   ],
+   "n_dom": 995,
+   "share_all": 0.1014
+  }
+ ],
+ "year_share": {
+  "2021": [
+   0.0831,
+   0.1008,
+   0.0853,
+   0.1161,
+   0.0995,
+   0.0549,
+   0.1345,
+   0.0547,
+   0.0788,
+   0.1186,
+   0.0737
+  ],
+  "2022": [
+   0.0812,
+   0.131,
+   0.0997,
+   0.0997,
+   0.0933,
+   0.0478,
+   0.1145,
+   0.0495,
+   0.0736,
+   0.1159,
+   0.0939
+  ],
+  "2023": [
+   0.0923,
+   0.1208,
+   0.0777,
+   0.0879,
+   0.0854,
+   0.0599,
+   0.1188,
+   0.0488,
+   0.086,
+   0.1222,
+   0.1002
+  ],
+  "2024": [
+   0.0887,
+   0.1511,
+   0.0642,
+   0.0836,
+   0.0775,
+   0.0496,
+   0.1072,
+   0.0508,
+   0.0761,
+   0.1428,
+   0.1084
+  ],
+  "2025": [
+   0.0887,
+   0.1443,
+   0.059,
+   0.0735,
+   0.0932,
+   0.0598,
+   0.0992,
+   0.0433,
+   0.0705,
+   0.153,
+   0.1156
+  ]
+ },
+ "year_smooth": {
+  "2021": [
+   0.0831,
+   0.1008,
+   0.0853,
+   0.1161,
+   0.0995,
+   0.0549,
+   0.1345,
+   0.0547,
+   0.0788,
+   0.1186,
+   0.0737
+  ],
+  "2022": [
+   0.0822,
+   0.1159,
+   0.0925,
+   0.1079,
+   0.0964,
+   0.0514,
+   0.1245,
+   0.0521,
+   0.0762,
+   0.1172,
+   0.0838
+  ],
+  "2023": [
+   0.0855,
+   0.1175,
+   0.0876,
+   0.1012,
+   0.0927,
+   0.0542,
+   0.1226,
+   0.051,
+   0.0794,
+   0.1189,
+   0.0893
+  ],
+  "2024": [
+   0.0874,
+   0.1343,
+   0.0805,
+   0.0904,
+   0.0854,
+   0.0524,
+   0.1135,
+   0.0497,
+   0.0785,
+   0.127,
+   0.1008
+  ],
+  "2025": [
+   0.0899,
+   0.1387,
+   0.067,
+   0.0817,
+   0.0854,
+   0.0564,
+   0.1084,
+   0.0476,
+   0.0775,
+   0.1393,
+   0.1081
+  ]
+ },
+ "position": [
+  {
+   "id": 0,
+   "last": 0.0887,
+   "slope": 0.00187,
+   "first": 0.0831,
+   "quad": "breakout"
+  },
+  {
+   "id": 1,
+   "last": 0.1443,
+   "slope": 0.0107,
+   "first": 0.1008,
+   "quad": "breakout"
+  },
+  {
+   "id": 2,
+   "last": 0.059,
+   "slope": -0.00881,
+   "first": 0.0853,
+   "quad": "declining"
+  },
+  {
+   "id": 3,
+   "last": 0.0735,
+   "slope": -0.01012,
+   "first": 0.1161,
+   "quad": "declining"
+  },
+  {
+   "id": 4,
+   "last": 0.0932,
+   "slope": -0.00284,
+   "first": 0.0995,
+   "quad": "stable"
+  },
+  {
+   "id": 5,
+   "last": 0.0598,
+   "slope": 0.00115,
+   "first": 0.0549,
+   "quad": "emerging"
+  },
+  {
+   "id": 6,
+   "last": 0.0992,
+   "slope": -0.00779,
+   "first": 0.1345,
+   "quad": "stable"
+  },
+  {
+   "id": 7,
+   "last": 0.0433,
+   "slope": -0.00216,
+   "first": 0.0547,
+   "quad": "declining"
+  },
+  {
+   "id": 8,
+   "last": 0.0705,
+   "slope": -0.00141,
+   "first": 0.0788,
+   "quad": "declining"
+  },
+  {
+   "id": 9,
+   "last": 0.153,
+   "slope": 0.00957,
+   "first": 0.1186,
+   "quad": "breakout"
+  },
+  {
+   "id": 10,
+   "last": 0.1156,
+   "slope": 0.00982,
+   "first": 0.0737,
+   "quad": "breakout"
+  }
+ ],
+ "med_share": 0.0887,
+ "app_topic": [
+  {
+   "name": "Applied Materials",
+   "n": 1397,
+   "profile": [
+    0.184,
+    0.1882,
+    0.023,
+    0.0178,
+    0.0445,
+    0.0452,
+    0.0874,
+    0.0549,
+    0.1332,
+    0.1285,
+    0.0933
+   ],
+   "hhi": 0.1277,
+   "grow_w": 0.6392,
+   "top_topic": 1,
+   "quad": "diversified_growth"
+  },
+  {
+   "name": "TSMC",
+   "n": 1034,
+   "profile": [
+    0.0245,
+    0.0287,
+    0.0339,
+    0.3958,
+    0.0178,
+    0.0579,
+    0.3207,
+    0.038,
+    0.0391,
+    0.0269,
+    0.0165
+   ],
+   "hhi": 0.2697,
+   "grow_w": 0.1546,
+   "top_topic": 3,
+   "quad": "specialist_mature"
+  },
+  {
+   "name": "Samsung Electronics",
+   "n": 909,
+   "profile": [
+    0.0359,
+    0.2098,
+    0.0764,
+    0.1233,
+    0.0466,
+    0.0654,
+    0.0709,
+    0.0273,
+    0.0345,
+    0.1774,
+    0.1326
+   ],
+   "hhi": 0.1288,
+   "grow_w": 0.621,
+   "top_topic": 1,
+   "quad": "diversified_growth"
+  },
+  {
+   "name": "Tokyo Electron",
+   "n": 812,
+   "profile": [
+    0.0603,
+    0.1358,
+    0.0306,
+    0.0158,
+    0.2305,
+    0.0275,
+    0.0754,
+    0.0261,
+    0.0426,
+    0.1953,
+    0.1603
+   ],
+   "hhi": 0.1491,
+   "grow_w": 0.5791,
+   "top_topic": 4,
+   "quad": "specialist_mature"
+  },
+  {
+   "name": "Lam Research",
+   "n": 570,
+   "profile": [
+    0.156,
+    0.1417,
+    0.0187,
+    0.0083,
+    0.0869,
+    0.0581,
+    0.1295,
+    0.032,
+    0.1274,
+    0.1327,
+    0.1088
+   ],
+   "hhi": 0.1192,
+   "grow_w": 0.5973,
+   "top_topic": 0,
+   "quad": "diversified_growth"
+  },
+  {
+   "name": "SEMES",
+   "n": 487,
+   "profile": [
+    0.0201,
+    0.1722,
+    0.0504,
+    0.0062,
+    0.0438,
+    0.0297,
+    0.0131,
+    0.0121,
+    0.019,
+    0.5465,
+    0.087
+   ],
+   "hhi": 0.3424,
+   "grow_w": 0.8555,
+   "top_topic": 9,
+   "quad": "specialist_growth"
+  },
+  {
+   "name": "ASM International",
+   "n": 454,
+   "profile": [
+    0.1792,
+    0.1086,
+    0.0147,
+    0.0264,
+    0.187,
+    0.0249,
+    0.0735,
+    0.0893,
+    0.1391,
+    0.1222,
+    0.0351
+   ],
+   "hhi": 0.1293,
+   "grow_w": 0.47,
+   "top_topic": 4,
+   "quad": "specialist_mature"
+  }
+ ],
+ "med_hhi": 0.1293,
+ "med_grow": 0.5973
+}

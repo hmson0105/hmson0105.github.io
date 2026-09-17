@@ -145,10 +145,97 @@ canvas { max-height: 320px; }
     </div>
   </div>
 
-  <!-- 분석 2 -->
+  <!-- 분석 2: 토픽 궤적 -->
   <div class="section">
-    <h2>분석 2: 출원인 경쟁 구도</h2>
-    <div class="subtitle">RQ2: 누가 어떤 기술 영역을 점유하고 있는가?</div>
+    <h2>분석 2: 토픽 정의와 기술 궤적</h2>
+    <div class="subtitle">RQ2: 어떤 세부 기술 주제가 존재하며, 각 주제의 비중은 시간에 따라 어떻게 변하는가? (LDA 토픽모델링, k=11)</div>
+    <div class="chart-grid">
+      <div class="chart-box full">
+        <h3>토픽 정의 및 대표 키워드</h3>
+        <table>
+          <thead>
+            <tr><th style="width:52px">토픽</th><th style="width:170px">기술 주제</th><th style="text-align:left">대표 키워드 (LDA 상위 8)</th>
+            <th style="width:78px">평균 비중</th><th style="width:78px">2025 비중</th><th style="width:120px">궤적 유형</th></tr>
+          </thead>
+          <tbody id="topic-table"></tbody>
+        </table>
+      </div>
+      <div class="chart-box full">
+        <h3>연도별 토픽 비중 추세 (3년 이동평균)</h3>
+        <canvas id="ch-topic-trend" style="max-height:380px"></canvas>
+        <div class="insight">
+          <strong>핵심 발견:</strong> 11개 토픽의 비중을 3년 이동평균으로 추적한 결과, <strong>장비·공정 제어 계열이 확장하고
+          소자 구조 계열이 축소</strong>되는 뚜렷한 방향성이 나타난다. <strong>챔버 부품·지지 구조(T1)</strong>는
+          10.1% → 13.9%로, <strong>RF 전원·플라즈마 제어(T10)</strong>는 7.4% → 10.8%로, <strong>기판 처리 유닛(T9)</strong>은
+          11.9% → 13.9%로 늘었다. 반대로 <strong>소자 구조(T3)</strong>는 11.6% → 8.2%, <strong>CMP·습식 화학(T2)</strong>은
+          8.5% → 6.7%로 줄었다. 즉 경쟁의 무게중심이 <strong>"무엇을 만드는가(소자 구조)"에서 "어떻게 정밀하게 제어하는가
+          (장비·전원·부품)"로 이동</strong>하고 있다.
+        </div>
+      </div>
+      <div class="chart-box full">
+        <h3>토픽 포지셔닝 맵 (X: 2025년 비중, Y: 최근 5년 선형 기울기)</h3>
+        <canvas id="ch-topic-quad" style="max-height:420px"></canvas>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px" id="quad-legend"></div>
+        <div class="insight">
+          <strong>4분면 해석:</strong> 가로축은 <strong>현재 규모(2025년 토픽 비중)</strong>, 세로축은
+          <strong>성장 방향(최근 5년 비중 변화의 선형 기울기)</strong>이다. 기준선은 토픽 비중의 중앙값(8.87%)과 기울기 0이다.
+          <br><br>
+          <strong>(b) Breakout — 주류 성장 (T1·T9·T10·T0):</strong> 이미 비중이 크면서 계속 커지는, 현재 경쟁의 주전장이다.
+          챔버 부품·기판 처리 유닛·RF 제어가 모두 여기 속한다는 것은 <strong>공정 장비의 정밀 제어가 핵심 각축지</strong>임을 말한다.
+          <br>
+          <strong>(a) Emerging — 신흥 (T5 적층·열처리 제조):</strong> 비중 6.0%로 아직 작지만 기울기가 양(+)이다.
+          선점 여지가 남아 있는 관찰 대상이다.
+          <br>
+          <strong>(d) Stable — 성숙 (T4 실리콘막 식각, T6 유전막 형성):</strong> 비중은 크지만 성장은 멈췄다.
+          식각 공정의 기본기에 해당하는 영역으로, 이미 기술이 성숙해 진입 유인이 낮다.
+          <br>
+          <strong>(c) Declining — 축소 (T2·T3·T7·T8):</strong> 작아지면서 더 줄어든다. 특히 소자 구조(T3)와
+          CMP·습식 화학(T2)의 감소는 이 특허군의 초점이 <strong>소자 설계·소재에서 장비 제어로 옮겨갔음</strong>을 보여준다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 분석 3: 출원인 토픽 포트폴리오 -->
+  <div class="section">
+    <h2>분석 3: 출원인별 토픽 포트폴리오</h2>
+    <div class="subtitle">RQ3: 각 기업은 어떤 토픽에 집중하며, 성장 영역과 성숙 영역 중 어디에 베팅하고 있는가?</div>
+    <div class="chart-grid">
+      <div class="chart-box full">
+        <h3>출원인 × 토픽 평균 비중 (%)</h3>
+        <div style="overflow-x:auto"><table id="app-topic-table"></table></div>
+        <div style="font-size:11.5px;color:#8a9ab0;margin-top:8px">
+          셀 색이 진할수록 해당 출원인의 포트폴리오에서 그 토픽이 차지하는 비중이 큽니다. 굵은 값은 해당 출원인의 최대 토픽입니다.
+        </div>
+      </div>
+      <div class="chart-box full">
+        <h3>출원인 포지셔닝 맵 (X: 성장 토픽 배분 비중, Y: 포트폴리오 집중도 HHI)</h3>
+        <canvas id="ch-app-quad" style="max-height:400px"></canvas>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px" id="app-quad-legend"></div>
+        <div class="insight">
+          <strong>4분면 해석:</strong> 가로축은 <strong>성장 토픽(기울기 &gt; 0인 5개 토픽)에 배분된 비중</strong>,
+          세로축은 <strong>포트폴리오 집중도(HHI, 높을수록 소수 토픽에 몰림)</strong>다. 기준선은 각각의 중앙값이다.
+          <br><br>
+          <strong>SEMES(집중 0.342 · 성장 85.6%)</strong>는 우상단 <strong>"성장영역 특화형"</strong>의 전형이다.
+          기판 처리 유닛(T9) 한 토픽에 포트폴리오를 몰아넣었고, 그 토픽이 마침 Breakout 영역이다. 집중의 보상이 큰 대신
+          해당 토픽이 꺾이면 리스크도 그대로 노출된다.
+          <br>
+          <strong>Applied Materials(0.128 · 63.9%)·Lam Research(0.119 · 59.7%)·삼성전자(0.129 · 62.1%)</strong>는
+          좌상·좌하 경계의 <strong>"성장영역 분산형"</strong>으로, 여러 성장 토픽에 고르게 포지션을 나눠 갖는 전략이다.
+          장비 리더들이 특정 토픽에 베팅하지 않고 <strong>공정 전 단계를 넓게 커버</strong>하는 구조다.
+          <br>
+          <strong>TSMC(0.270 · 15.5%)</strong>는 우하단에서도 극단에 있다. 소자 구조(T3)라는 Declining 토픽에 포트폴리오의
+          27%를 집중했는데, 이는 <strong>파운드리로서 자사 공정을 방어하는 출원</strong>이기 때문으로, 기술 트렌드 추종이
+          목적이 아닌 구조로 해석된다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 분석 4 -->
+  <div class="section">
+    <h2>분석 4: 출원인 경쟁 구도</h2>
+    <div class="subtitle">RQ4: 누가 어떤 IPC 기술 분류를 점유하고 있는가?</div>
     <div class="chart-grid">
       <div class="chart-box">
         <h3>상위 출원인 특허 보유 수</h3>
@@ -173,8 +260,8 @@ canvas { max-height: 320px; }
 
   <!-- 분석 3 -->
   <div class="section">
-    <h2>분석 3: IP 전략맵 — 영향력 × 기술융합도</h2>
-    <div class="subtitle">RQ3: 각 기업의 특허는 "많이 인용되는가(영향력)"와 "여러 기술을 엮는가(융합도)"에서 어떻게 다른가?</div>
+    <h2>분석 5: IP 전략맵 — 영향력 × 기술융합도</h2>
+    <div class="subtitle">RQ5: 각 기업의 특허는 "많이 인용되는가(영향력)"와 "여러 기술을 엮는가(융합도)"에서 어떻게 다른가?</div>
     <div class="chart-grid">
       <div class="chart-box full">
         <h3>출원인 전략 포지셔닝 (X: 평균 피인용 수, Y: 평균 IPC 융합도, 버블 크기: 특허 수)</h3>
@@ -195,8 +282,8 @@ canvas { max-height: 320px; }
 
   <!-- 분석 4 -->
   <div class="section">
-    <h2>분석 4: IPC 융합 네트워크와 인용 구조</h2>
-    <div class="subtitle">RQ4: 어떤 기술 분류가 함께 출현하며, 인용은 어떻게 분포하는가?</div>
+    <h2>분석 6: IPC 융합 네트워크와 인용 구조</h2>
+    <div class="subtitle">RQ6: 어떤 기술 분류가 함께 출현하며, 인용은 어떻게 분포하는가?</div>
     <div class="chart-grid">
       <div class="chart-box">
         <h3>IPC 공동출현 네트워크 (Top 10 연결)</h3>
@@ -286,12 +373,200 @@ const CL_META = [
 
 const TERRAIN = ['#cfe8bd', '#b4d99c', '#93c47d', '#7ba362', '#9c8b6e'];
 
+// IPC 서브클래스 한글 명칭
+const IPC_KR = {
+  H01L: '반도체 장치·집적회로', H01J: '전자관·방전관(플라즈마 장치)', C23C: '금속 피복·증착',
+  C09K: '응용 화학재료(식각액 등)', G03F: '포토리소그래피(사진제판)', C09G: '연마·광택 조성물',
+  B24B: '연삭·연마 기계', B08B: '세정 일반', H05H: '플라즈마 기술', C23F: '금속 화학표면처리(식각)',
+  H10B: '전자 메모리 소자', G01N: '재료 분석·검사', H10D: '반도체 소자(신설)', G02F: '광학소자 제어',
+  H05B: '전기 가열', B05D: '액체 도포', H01M: '전지·연료전지', G02B: '광학 요소'
+};
+const ipcLabel = c => IPC_KR[c] ? `${c} ${IPC_KR[c]}` : c;
+
+// LDA 토픽 한글 라벨
+const TOPIC_META = [
+  { n: '플라즈마 챔버 공정',   d: '플라즈마 처리 챔버·시스템 전반' },
+  { n: '챔버 부품·지지 구조',  d: '링·플레이트·전극 등 챔버 내부 부재' },
+  { n: 'CMP·습식 화학',        d: '연마액·화학 조성물 기반 처리' },
+  { n: '소자 구조(게이트·핀)', d: '게이트·FinFET 소스/드레인 구조' },
+  { n: '실리콘막 식각',        d: '실리콘·질화막 선택적 식각 공정' },
+  { n: '적층·열처리 제조',     d: '절연층 적층 및 온도 제어 제조' },
+  { n: '유전막 형성·식각',     d: '유전층 형성과 패턴 식각' },
+  { n: '표면·소재 처리',       d: '표면 특성 및 소재 구성 요소' },
+  { n: '증착·코팅',            d: '박막 증착·코팅·빔 처리' },
+  { n: '기판 처리 유닛',       d: '기판 이송·가스 공급 처리 유닛' },
+  { n: 'RF 전원·플라즈마 제어', d: 'RF 파워·주파수·전압 제어' }
+];
+const QUAD_META = {
+  breakout:  { label: 'Breakout (주류 성장)',  color: '#27AE60', desc: '비중도 크고 계속 커지는 영역' },
+  emerging:  { label: 'Emerging (신흥)',       color: '#F39C12', desc: '아직 작지만 빠르게 크는 영역' },
+  stable:    { label: 'Stable (성숙)',         color: '#2E75B6', desc: '비중은 크지만 성장은 멈춘 영역' },
+  declining: { label: 'Declining (축소)',      color: '#95A5A6', desc: '작아지면서 더 줄어드는 영역' }
+};
+
 fetch('data/patent_atlas.json').then(r => r.json()).then(D => {
   buildAtlas(D);
   buildCharts(D);
   buildNetwork(D);
   buildTable(D);
 });
+
+fetch('data/patent_topics.json').then(r => r.json()).then(T => {
+  buildTopicTable(T);
+  buildTopicTrend(T);
+  buildTopicQuad(T);
+  buildAppTopic(T);
+  buildAppQuad(T);
+});
+
+const TOPIC_COLORS = ['#2E75B6', '#FF8C42', '#27AE60', '#E74C3C', '#8E44AD',
+                      '#F39C12', '#4CA1AF', '#E91E63', '#95A5A6', '#1B3A5C', '#7E57C2'];
+
+/* ---------------- 토픽 정의 테이블 ---------------- */
+function buildTopicTable(T) {
+  const posById = {}; T.position.forEach(p => posById[p.id] = p);
+  document.getElementById('topic-table').innerHTML = T.topics.map(t => {
+    const m = TOPIC_META[t.id], p = posById[t.id], q = QUAD_META[p.quad];
+    return `<tr>
+      <td><strong style="color:${TOPIC_COLORS[t.id]}">T${t.id}</strong></td>
+      <td class="left"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${TOPIC_COLORS[t.id]};margin-right:6px"></span>
+        <strong>${m.n}</strong><div style="font-size:11px;color:#8a9ab0;margin-top:2px">${m.d}</div></td>
+      <td class="left" style="font-size:11.5px;color:#555">${t.keywords.slice(0, 8).join(', ')}</td>
+      <td>${(t.share_all * 100).toFixed(1)}%</td>
+      <td><strong>${(p.last * 100).toFixed(1)}%</strong></td>
+      <td><span style="display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;
+        background:${q.color}22;color:${q.color};font-weight:600">${q.label.split(' ')[0]}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ---------------- 연도별 토픽 추세 ---------------- */
+function buildTopicTrend(T) {
+  const yrs = T.years;
+  new Chart(document.getElementById('ch-topic-trend'), {
+    type: 'line',
+    data: { labels: yrs,
+      datasets: T.topics.map(t => ({
+        label: `T${t.id} ${TOPIC_META[t.id].n}`,
+        data: yrs.map(y => (T.year_smooth[String(y)][t.id] * 100)),
+        borderColor: TOPIC_COLORS[t.id], backgroundColor: TOPIC_COLORS[t.id],
+        borderWidth: 2.2, tension: 0.25, pointRadius: 4, fill: false
+      })) },
+    options: { responsive: true,
+      scales: { y: { title: { display: true, text: '토픽 비중 (%, 3년 이동평균)' }, beginAtZero: false },
+                x: { title: { display: true, text: '등록 연도' } } },
+      plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y.toFixed(2)}%` } } } }
+  });
+}
+
+/* ---------------- 토픽 4분면 ---------------- */
+function quadPlugin(vx, vy, labels) {
+  return {
+    afterDraw(chart) {
+      const { ctx, scales: { x, y } } = chart;
+      const px = x.getPixelForValue(vx), py = y.getPixelForValue(vy);
+      ctx.save();
+      ctx.strokeStyle = '#2E75B6'; ctx.lineWidth = 1.2; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(px, y.top); ctx.lineTo(px, y.bottom); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x.left, py); ctx.lineTo(x.right, py); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = 'bold 12px Segoe UI, Arial'; ctx.fillStyle = '#7f95ab';
+      const pad = 10;
+      ctx.textAlign = 'left';  ctx.fillText(labels[0], x.left + pad, y.top + 18);          // 좌상
+      ctx.textAlign = 'right'; ctx.fillText(labels[1], x.right - pad, y.top + 18);         // 우상
+      ctx.textAlign = 'left';  ctx.fillText(labels[2], x.left + pad, y.bottom - pad);      // 좌하
+      ctx.textAlign = 'right'; ctx.fillText(labels[3], x.right - pad, y.bottom - pad);     // 우하
+      ctx.restore();
+    }
+  };
+}
+
+function buildTopicQuad(T) {
+  const pts = T.position.map(p => ({
+    x: p.last * 100, y: p.slope * 100, r: 13, id: p.id, quad: p.quad
+  }));
+  new Chart(document.getElementById('ch-topic-quad'), {
+    type: 'bubble',
+    data: { datasets: pts.map(p => ({
+      label: `T${p.id} ${TOPIC_META[p.id].n}`,
+      data: [p], backgroundColor: QUAD_META[p.quad].color + 'd0',
+      borderColor: '#fff', borderWidth: 2 })) },
+    options: { responsive: true,
+      scales: { x: { title: { display: true, text: '2025년 토픽 비중 (%) →' } },
+                y: { title: { display: true, text: '최근 5년 선형 기울기 (%p/년) →' } } },
+      plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } },
+        tooltip: { callbacks: { label: c => {
+          const p = c.raw;
+          return `T${p.id} ${TOPIC_META[p.id].n} · 비중 ${p.x.toFixed(2)}% · 기울기 ${p.y >= 0 ? '+' : ''}${p.y.toFixed(3)}%p/년`;
+        } } } },
+      layout: { padding: { top: 6 } } },
+    plugins: [quadPlugin(T.med_share * 100, 0,
+      ['(a) Emerging 신흥', '(b) Breakout 주류 성장', '(c) Declining 축소', '(d) Stable 성숙'])]
+  });
+  document.getElementById('quad-legend').innerHTML = Object.entries(QUAD_META).map(([k, q]) => {
+    const ids = T.position.filter(p => p.quad === k).map(p => 'T' + p.id).join(', ');
+    return `<div style="background:${q.color}14;border-left:3px solid ${q.color};border-radius:6px;padding:10px 12px">
+      <div style="font-size:12.5px;font-weight:700;color:${q.color}">${q.label}</div>
+      <div style="font-size:11px;color:#667;margin-top:3px">${q.desc}</div>
+      <div style="font-size:11.5px;color:#334;margin-top:5px;font-weight:600">${ids || '해당 없음'}</div></div>`;
+  }).join('');
+}
+
+/* ---------------- 출원인 × 토픽 히트맵 ---------------- */
+function buildAppTopic(T) {
+  const max = Math.max(...T.app_topic.flatMap(a => a.profile));
+  let h = '<thead><tr><th style="text-align:left">출원인</th>' +
+    T.topics.map(t => `<th style="font-size:11px">T${t.id}</th>`).join('') +
+    '<th style="width:62px">특허 수</th></tr></thead><tbody>';
+  T.app_topic.forEach(a => {
+    h += `<tr><td class="left" style="font-weight:600">${a.name}</td>`;
+    a.profile.forEach((v, k) => {
+      const inten = v / max;
+      const bold = (k === a.top_topic);
+      h += `<td style="background:rgba(46,117,182,${(inten * 0.72).toFixed(2)});
+        color:${inten > 0.55 ? '#fff' : '#33475c'};font-weight:${bold ? 700 : 400};font-size:11.5px">
+        ${(v * 100).toFixed(1)}</td>`;
+    });
+    h += `<td style="font-size:11.5px;color:#667">${a.n.toLocaleString()}</td></tr>`;
+  });
+  h += '</tbody>';
+  document.getElementById('app-topic-table').innerHTML = h;
+}
+
+/* ---------------- 출원인 4분면 ---------------- */
+function buildAppQuad(T) {
+  const APP_QUAD = {
+    specialist_growth:  { label: '성장영역 특화형', color: '#27AE60' },
+    diversified_growth: { label: '성장영역 분산형', color: '#2E75B6' },
+    specialist_mature:  { label: '성숙영역 특화형', color: '#E74C3C' },
+    diversified_mature: { label: '성숙영역 분산형', color: '#95A5A6' }
+  };
+  const pts = T.app_topic.map(a => ({ x: a.grow_w * 100, y: a.hhi, r: Math.max(8, Math.sqrt(a.n) / 2.4),
+                                      name: a.name, quad: a.quad, top: a.top_topic, n: a.n }));
+  new Chart(document.getElementById('ch-app-quad'), {
+    type: 'bubble',
+    data: { datasets: pts.map(p => ({
+      label: p.name, data: [p], backgroundColor: APP_QUAD[p.quad].color + 'cc',
+      borderColor: '#fff', borderWidth: 2 })) },
+    options: { responsive: true,
+      scales: { x: { title: { display: true, text: '성장 토픽 배분 비중 (%) →' } },
+                y: { title: { display: true, text: '포트폴리오 집중도 HHI →' } } },
+      plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } },
+        tooltip: { callbacks: { label: c => {
+          const p = c.raw;
+          return `${p.name}: ${p.n}건 · 성장토픽 ${p.x.toFixed(1)}% · HHI ${p.y.toFixed(3)} · 최대 T${p.top}`;
+        } } } } },
+    plugins: [quadPlugin(T.med_grow * 100, T.med_hhi,
+      ['특화 · 성숙지향', '특화 · 성장지향', '분산 · 성숙지향', '분산 · 성장지향'])]
+  });
+  document.getElementById('app-quad-legend').innerHTML = Object.entries(APP_QUAD).map(([k, q]) => {
+    const names = T.app_topic.filter(a => a.quad === k).map(a => a.name).join(', ');
+    return `<div style="background:${q.color}14;border-left:3px solid ${q.color};border-radius:6px;padding:10px 12px">
+      <div style="font-size:12.5px;font-weight:700;color:${q.color}">${q.label}</div>
+      <div style="font-size:11.5px;color:#334;margin-top:5px">${names || '해당 없음'}</div></div>`;
+  }).join('');
+}
 
 /* ---------------- Atlas 지도 ---------------- */
 function buildAtlas(D) {
@@ -383,7 +658,7 @@ function buildCharts(D) {
   const ipc8 = D.ipc_top.slice(0, 8);
   new Chart(document.getElementById('ch-ipc'), {
     type: 'doughnut',
-    data: { labels: ipc8.map(v => v[0]),
+    data: { labels: ipc8.map(v => ipcLabel(v[0])),
       datasets: [{ data: ipc8.map(v => v[1]),
         backgroundColor: [colors.blue, colors.orange, colors.teal, colors.green, colors.purple, colors.yellow, colors.red, colors.gray],
         borderWidth: 2, borderColor: '#fff' }] },
@@ -395,7 +670,7 @@ function buildCharts(D) {
   new Chart(document.getElementById('ch-year-ipc'), {
     type: 'bar',
     data: { labels: yrs,
-      datasets: D.top_ipcs.map((ipc, i) => ({ label: ipc, data: yrs.map(y => D.year_ipc[y][ipc] || 0),
+      datasets: D.top_ipcs.map((ipc, i) => ({ label: ipcLabel(ipc), data: yrs.map(y => D.year_ipc[y][ipc] || 0),
         backgroundColor: [colors.blue, colors.orange, colors.teal, colors.green, colors.purple][i], borderRadius: 3 })) },
     options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, title: { display: true, text: '등록 건수' } } },
       plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } } }
@@ -417,7 +692,7 @@ function buildCharts(D) {
   new Chart(document.getElementById('ch-matrix'), {
     type: 'bar',
     data: { labels: D.matrix.map(m => m.app),
-      datasets: D.top_ipcs.map((ipc, i) => ({ label: ipc, data: D.matrix.map(m => m[ipc] || 0),
+      datasets: D.top_ipcs.map((ipc, i) => ({ label: ipcLabel(ipc), data: D.matrix.map(m => m[ipc] || 0),
         backgroundColor: [colors.blue, colors.orange, colors.teal, colors.green, colors.purple][i], borderRadius: 3 })) },
     options: { responsive: true, scales: { x: { stacked: true, ticks: { font: { size: 9 } } },
         y: { stacked: true, beginAtZero: true, title: { display: true, text: '특허 수' } } },
