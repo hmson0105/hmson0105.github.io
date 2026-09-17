@@ -111,8 +111,9 @@
 
     <div class="notice">
       <strong>연구 설계 안내.</strong> 이 페이지는 지표 체계와 대시보드 구성을 시각화한 파일럿 개념입니다.
-      표시된 수치는 실제 뉴스 크롤링이나 공공데이터 수집 없이, 설계 의도를 보여주기 위해 구성한
-      예시(mock) 데이터입니다.
+      "실제 데이터로 본 최근 동향" 섹션의 수치는 언론·공공기관이 발표한 실제 통계(출처 표기)를
+      반영했으며, "예시 시각화" 섹션은 아직 뉴스 크롤링·API 연동을 하지 않아 설계 의도를 보여주기
+      위해 구성한 예시(mock) 데이터입니다.
     </div>
 
     <div class="stat-grid">
@@ -173,6 +174,142 @@
             <li>벤처투자 위축지수</li>
             <li>신용보증기금 대위변제율</li>
           </ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="real-data">
+      <div class="section-tag"><span class="bar"></span><h2>실제 데이터로 본 최근 동향</h2></div>
+      <p class="section-sub">공개된 통계·보도자료를 기반으로 한 실제 수치입니다. 20개 지표 중 일부(연체율·폐업률)를 우선 반영했습니다.</p>
+
+      <div class="chart-row">
+        <div class="chart-panel">
+          <div class="chart-title">중소기업 대출 연체율 추이 (2021~2026)</div>
+          <div class="chart-desc">국내은행 원화대출 기준 · 11년 만에 최고치 경신</div>
+          <svg viewBox="0 0 620 300" role="img" aria-label="중소기업 대출 연체율은 2021년말 0.27퍼센트에서 꾸준히 상승해 2025년 8월 0.89퍼센트까지 올랐다가 연말 0.72퍼센트로 조정된 뒤 2026년 5월 1.00퍼센트로 11년 만에 최고치를 기록했다">
+            <line x1="50" y1="20" x2="50" y2="230" stroke="var(--border)"/>
+            <line x1="50" y1="230" x2="600" y2="230" stroke="var(--border)"/>
+            <line x1="50" y1="177.5" x2="600" y2="177.5" stroke="var(--border)" stroke-dasharray="2 3"/>
+            <line x1="50" y1="125" x2="600" y2="125" stroke="var(--border)" stroke-dasharray="2 3"/>
+            <line x1="50" y1="72.5" x2="600" y2="72.5" stroke="var(--border)" stroke-dasharray="2 3"/>
+            <text x="44" y="234" text-anchor="end" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">0%</text>
+            <text x="44" y="181.5" text-anchor="end" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">0.3%</text>
+            <text x="44" y="129" text-anchor="end" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">0.6%</text>
+            <text x="44" y="76.5" text-anchor="end" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">0.9%</text>
+
+            <rect x="66" y="182.75" width="50" height="47.25" rx="3" fill="var(--secondary)"/>
+            <text x="91" y="175" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--secondary)" font-family="Inter, sans-serif">0.27%</text>
+            <text x="91" y="245" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">21년말</text>
+
+            <rect x="144" y="174" width="50" height="56" rx="3" fill="var(--secondary)"/>
+            <text x="169" y="166" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--secondary)" font-family="Inter, sans-serif">0.32%</text>
+            <text x="169" y="245" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">22년말</text>
+
+            <rect x="222" y="146" width="50" height="84" rx="3" fill="var(--secondary)"/>
+            <text x="247" y="138" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--secondary)" font-family="Inter, sans-serif">0.48%</text>
+            <text x="247" y="245" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">23년말</text>
+
+            <rect x="300" y="121.5" width="50" height="108.5" rx="3" fill="var(--secondary)"/>
+            <text x="325" y="113.5" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--secondary)" font-family="Inter, sans-serif">0.62%</text>
+            <text x="325" y="245" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">24년말</text>
+
+            <rect x="378" y="74.25" width="50" height="155.75" rx="3" fill="var(--warn)"/>
+            <text x="403" y="66.25" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--warn)" font-family="Inter, sans-serif">0.89%</text>
+            <text x="403" y="245" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">25.8월</text>
+
+            <rect x="456" y="104" width="50" height="126" rx="3" fill="var(--secondary)"/>
+            <text x="481" y="96" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--secondary)" font-family="Inter, sans-serif">0.72%</text>
+            <text x="481" y="245" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">25년말</text>
+
+            <rect x="534" y="55" width="50" height="175" rx="3" fill="var(--bad)"/>
+            <text x="559" y="47" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--bad)" font-family="Inter, sans-serif">1.00%</text>
+            <text x="559" y="245" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">26.5월</text>
+            <text x="559" y="259" text-anchor="middle" font-size="8.5" fill="var(--bad)" font-family="Inter, sans-serif">11년만에 최고</text>
+          </svg>
+          <p class="diagram-caption" style="font-size:.76rem;text-align:left;margin-top:10px">
+            자료: <a href="https://www.hankookilbo.com/News/Read/A2025102410450003351" target="_blank" rel="noopener">한국일보</a>,
+            <a href="https://www.mt.co.kr/amp/finance/2025/10/24/2025102316310035289" target="_blank" rel="noopener">머니투데이</a> 등 보도 종합
+          </p>
+        </div>
+
+        <div class="chart-panel">
+          <div class="chart-title">중소기업·소상공인 폐업률 추이</div>
+          <div class="chart-desc">2025년 반짝 개선 후 2026년 다시 고착화 추세</div>
+          <svg viewBox="0 0 300 260" role="img" aria-label="중소기업 소상공인 폐업률은 2024년 9.04퍼센트에서 2025년 8.64퍼센트로 개선되었으나 2026년 상반기 9퍼센트대 중후반으로 다시 상승했다">
+            <line x1="40" y1="20" x2="40" y2="170" stroke="var(--border)"/>
+            <line x1="40" y1="170" x2="280" y2="170" stroke="var(--border)"/>
+            <line x1="40" y1="95" x2="280" y2="95" stroke="var(--border)" stroke-dasharray="2 3"/>
+            <text x="34" y="174" text-anchor="end" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">0%</text>
+            <text x="34" y="99" text-anchor="end" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">5%</text>
+            <text x="34" y="24" text-anchor="end" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">10%</text>
+
+            <rect x="55" y="61.5" width="50" height="108.5" rx="3" fill="var(--secondary)"/>
+            <text x="80" y="53.5" text-anchor="middle" font-size="11" font-weight="700" fill="var(--secondary)" font-family="Inter, sans-serif">9.04%</text>
+            <text x="80" y="185" text-anchor="middle" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">2024</text>
+
+            <rect x="135" y="66.3" width="50" height="103.7" rx="3" fill="var(--good)"/>
+            <text x="160" y="58.3" text-anchor="middle" font-size="11" font-weight="700" fill="var(--good)" font-family="Inter, sans-serif">8.64%</text>
+            <text x="160" y="185" text-anchor="middle" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">2025</text>
+
+            <rect x="215" y="56" width="50" height="114" rx="3" fill="var(--bad)"/>
+            <text x="240" y="48" text-anchor="middle" font-size="11" font-weight="700" fill="var(--bad)" font-family="Inter, sans-serif">~9.5%</text>
+            <text x="240" y="185" text-anchor="middle" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">2026(추정)</text>
+          </svg>
+          <p class="diagram-caption" style="font-size:.76rem;text-align:left;margin-top:10px">
+            자료: <a href="https://wowtale.net/2026/06/30/260852/" target="_blank" rel="noopener">와우테일</a>,
+            <a href="https://www.threads.com/@morninginvestors/post/DWcoFneEqu3" target="_blank" rel="noopener">중기부 통계 인용 보도</a> 종합. 2026년은 상반기 흐름 기준 추정치.
+          </p>
+        </div>
+      </div>
+
+      <div class="chart-panel">
+        <div class="chart-title">거시 충격과 위기 지표 타임라인 (2024.12 ~ 2026.07)</div>
+        <div class="chart-desc">홈플러스 사태·중동 정세 악화와 중소기업 대출연체율의 흐름</div>
+        <svg viewBox="0 0 620 275" role="img" aria-label="2025년 3월 홈플러스 회생절차 신청과 6월 중동정세 악화 이후 중소기업 대출연체율이 상승세를 이어가 2026년 5월 1.00퍼센트로 11년만에 최고치를 기록했고, 2026년 7월 홈플러스는 결국 회생절차가 폐지되며 파산 수순을 밟았다">
+          <line x1="60" y1="20" x2="60" y2="200" stroke="var(--border)"/>
+          <line x1="60" y1="200" x2="580" y2="200" stroke="var(--border)"/>
+
+          <line x1="142.1" y1="20" x2="142.1" y2="200" stroke="var(--warn)" stroke-width="1.3" stroke-dasharray="4 3"/>
+          <text x="142.1" y="14" text-anchor="middle" font-size="9.5" font-weight="700" fill="var(--warn)" font-family="Inter, sans-serif">2025.03</text>
+
+          <line x1="224.2" y1="20" x2="224.2" y2="200" stroke="var(--bad)" stroke-width="1.3" stroke-dasharray="4 3"/>
+          <text x="224.2" y="34" text-anchor="middle" font-size="9.5" font-weight="700" fill="var(--bad)" font-family="Inter, sans-serif">2025.06</text>
+
+          <line x1="580" y1="20" x2="580" y2="200" stroke="var(--bad)" stroke-width="1.3" stroke-dasharray="4 3"/>
+          <text x="580" y="14" text-anchor="middle" font-size="9.5" font-weight="700" fill="var(--bad)" font-family="Inter, sans-serif">2026.07</text>
+
+          <polyline points="60,107 279,66.5 388.4,92 525.3,50" fill="none" stroke="var(--primary)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+          <circle cx="60" cy="107" r="4.5" fill="var(--primary)"/>
+          <circle cx="279" cy="66.5" r="4.5" fill="var(--warn)"/>
+          <circle cx="388.4" cy="92" r="4.5" fill="var(--primary)"/>
+          <circle cx="525.3" cy="50" r="5.5" fill="var(--bad)"/>
+
+          <text x="60" y="220" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">2024.12</text>
+          <text x="279" y="220" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">2025.08</text>
+          <text x="388.4" y="220" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">2025.12</text>
+          <text x="525.3" y="220" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">2026.05</text>
+
+          <text x="60" y="122" text-anchor="middle" font-size="9.5" font-weight="700" fill="var(--primary)" font-family="Inter, sans-serif">0.62%</text>
+          <text x="279" y="56.5" text-anchor="middle" font-size="9.5" font-weight="700" fill="var(--warn)" font-family="Inter, sans-serif">0.89%</text>
+          <text x="388.4" y="107" text-anchor="middle" font-size="9.5" font-weight="700" fill="var(--primary)" font-family="Inter, sans-serif">0.72%</text>
+          <text x="525.3" y="40" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--bad)" font-family="Inter, sans-serif">1.00%</text>
+
+          <text x="142.1" y="243" text-anchor="middle" font-size="9" fill="var(--warn)" font-family="Inter, sans-serif">홈플러스</text>
+          <text x="142.1" y="255" text-anchor="middle" font-size="9" fill="var(--warn)" font-family="Inter, sans-serif">회생절차 신청</text>
+          <text x="224.2" y="243" text-anchor="middle" font-size="9" fill="var(--bad)" font-family="Inter, sans-serif">중동정세</text>
+          <text x="224.2" y="255" text-anchor="middle" font-size="9" fill="var(--bad)" font-family="Inter, sans-serif">악화(이란 사태)</text>
+          <text x="580" y="243" text-anchor="middle" font-size="9" fill="var(--bad)" font-family="Inter, sans-serif">홈플러스</text>
+          <text x="580" y="255" text-anchor="middle" font-size="9" fill="var(--bad)" font-family="Inter, sans-serif">회생절차 폐지</text>
+        </svg>
+        <p class="diagram-caption" style="font-size:.76rem;text-align:left;margin-top:10px">
+          자료: 대출연체율 — 한국일보·머니투데이 보도 종합. 홈플러스 회생절차 — <a href="https://www.etoday.co.kr/news/view/2600059" target="_blank" rel="noopener">이투데이</a>,
+          <a href="https://www.thedailyeconomy.kr/news/articleView.html?idxno=6230" target="_blank" rel="noopener">The Daily Economy</a>. 중동 정세·환율 — PwC 삼일회계법인 이슈브리프.
+        </p>
+        <div class="finding-box" style="margin-top:16px">
+          <strong>해석.</strong> 2025년 3월 홈플러스 회생절차 신청과 6월 중동 정세 악화(이란 사태로 인한 유가·환율 충격)
+          이후 중소기업 대출연체율은 낮아지지 않고 오히려 2026년 5월 1.00%로 11년 만의 최고치를 기록했습니다.
+          같은 시기 홈플러스는 결국 회생절차가 폐지(2026.07)되며 파산 수순을 밟아, <strong>개별 기업 위기가
+          업종 전반의 신용 리스크로 전이되는 패턴</strong>을 보여줍니다.
         </div>
       </div>
     </section>
