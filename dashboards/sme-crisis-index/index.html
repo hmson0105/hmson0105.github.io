@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>중소기업 위기 조기경보 지표 대시보드 | 손혜미</title>
+<meta name="description" content="뉴스 텍스트·거시경제·중소기업 재무·신용시장 데이터를 결합한 20개 지표로 기업 위기 신호를 조기에 포착하는 연구 설계(파일럿 컨셉).">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #1E40AF; --secondary: #3B82F6; --accent: #60A5FA;
+    --bg: #F8FAFC; --bg-elev: #FFFFFF; --bg-soft: #EFF4FB;
+    --text-primary: #0F172A; --text-secondary: #475569;
+    --border: #E2E8F0; --bad: #DC2626; --warn: #D97706; --good: #16A34A;
+    --shadow-sm: 0 1px 2px rgba(15,23,42,.04);
+    --shadow-md: 0 4px 12px rgba(15,23,42,.07);
+    --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px;
+    --max-width: 1040px;
+  }
+  * , *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; font-family: "Inter","Noto Sans KR",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-size: 16px; line-height: 1.65; color: var(--text-primary); background: var(--bg);
+    word-break: keep-all; -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { color: var(--secondary); }
+  h1, h2, h3 { color: var(--text-primary); line-height: 1.3; margin: 0 0 .5em; font-weight: 700; }
+  p { margin: 0 0 1em; color: var(--text-secondary); }
+  .container { max-width: var(--max-width); margin: 0 auto; padding: 0 24px; }
+
+  .crumb {
+    font-size: .82rem; color: rgba(255,255,255,.75); padding: 14px 0 0;
+  }
+  .crumb a { color: rgba(255,255,255,.85); }
+  .crumb a:hover { color: #fff; }
+
+  header.hero-banner {
+    background: linear-gradient(135deg, #1E293B 0%, var(--primary) 100%);
+    padding-bottom: 32px;
+  }
+  header.hero-banner h1 { color: #fff; font-size: clamp(1.6rem, 4vw, 2.2rem); margin: 10px 0 8px; }
+  header.hero-banner .subtitle { color: rgba(255,255,255,.82); font-size: .98rem; max-width: 720px; margin: 0; }
+
+  main { padding: 32px 0 60px; }
+
+  .notice {
+    background: #FEF3C7; border: 1px solid #FDE68A; color: #78350F;
+    padding: 12px 16px; border-radius: var(--radius-sm); font-size: .86rem; margin-bottom: 28px;
+  }
+  .notice strong { color: #78350F; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 40px; }
+  .stat-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 18px; box-shadow: var(--shadow-sm); text-align: center; }
+  .stat-num { font-size: 1.6rem; font-weight: 700; color: var(--primary); letter-spacing: -.01em; }
+  .stat-label { font-size: .8rem; color: var(--text-secondary); margin-top: 4px; }
+
+  section.block { padding: 40px 0; }
+  section.block + section.block { border-top: 1px solid var(--border); }
+  .section-tag {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 4px;
+  }
+  .section-tag .bar { width: 4px; height: 20px; background: var(--primary); border-radius: 2px; }
+  .section-tag h2 { margin: 0; font-size: 1.25rem; }
+  .section-sub { font-size: .88rem; color: var(--text-secondary); margin: 4px 0 20px; }
+
+  .cat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .cat-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm); }
+  .cat-card .cat-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .cat-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .cat-card h3 { font-size: 1rem; margin: 0; }
+  .cat-card .cat-desc { font-size: .82rem; color: var(--text-secondary); margin-bottom: 12px; }
+  .cat-card ol { margin: 0; padding-left: 18px; font-size: .86rem; color: var(--text-primary); }
+  .cat-card ol li { margin-bottom: 6px; }
+  .cat-card ol li:last-child { margin-bottom: 0; }
+
+  .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  @media (max-width: 860px) { .chart-row { grid-template-columns: 1fr; } }
+  .chart-panel { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm); }
+  .chart-panel .chart-title { font-size: .95rem; font-weight: 700; margin-bottom: 2px; }
+  .chart-panel .chart-desc { font-size: .8rem; color: var(--text-secondary); margin-bottom: 12px; }
+  .chart-panel svg { width: 100%; height: auto; display: block; }
+
+  .finding-box {
+    background: var(--bg-soft); border-left: 3px solid var(--primary); border-radius: var(--radius-md);
+    padding: 14px 18px; font-size: .88rem; color: var(--text-primary); margin-top: 4px;
+  }
+  .finding-box strong { color: var(--primary); }
+
+  .notes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 16px; }
+  .note-card { background: var(--bg-soft); border-radius: var(--radius-md); padding: 16px; border-left: 3px solid var(--accent); }
+  .note-card strong { display: block; color: var(--primary); font-size: .88rem; margin-bottom: 6px; }
+  .note-card span { font-size: .82rem; color: var(--text-secondary); line-height: 1.55; }
+
+  footer { border-top: 1px solid var(--border); padding: 28px 0 44px; }
+  .footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; font-size: .84rem; color: var(--text-secondary); }
+</style>
+</head>
+<body>
+
+  <header class="hero-banner">
+    <div class="container">
+      <p class="crumb"><a href="../../index.html">손혜미 포트폴리오</a> / 관심분야 / 중소기업 위기분석</p>
+      <h1>중소기업 위기 조기경보 지표 대시보드</h1>
+      <p class="subtitle">뉴스 텍스트·거시경제·중소기업 재무·신용시장 데이터를 결합한 20개 지표로, 개별 기업이 아닌 <strong>업종·거시 국면 단위의 위기 신호</strong>를 조기에 포착하는 연구 설계입니다. | Pilot Concept</p>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <div class="notice">
+      <strong>연구 설계 안내.</strong> 이 페이지는 지표 체계와 대시보드 구성을 시각화한 파일럿 개념입니다.
+      표시된 수치는 실제 뉴스 크롤링이나 공공데이터 수집 없이, 설계 의도를 보여주기 위해 구성한
+      예시(mock) 데이터입니다.
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-num">20개</div><div class="stat-label">위기 판별 지표</div></div>
+      <div class="stat-card"><div class="stat-num">4개</div><div class="stat-label">지표 유형</div></div>
+      <div class="stat-card"><div class="stat-num">3종</div><div class="stat-label">데이터 소스 (뉴스·공공통계·금융)</div></div>
+      <div class="stat-card"><div class="stat-num">Pilot</div><div class="stat-label">현재 단계</div></div>
+    </div>
+
+    <section class="block" id="taxonomy">
+      <div class="section-tag"><span class="bar"></span><h2>지표 체계 — 4개 유형 20개 지표</h2></div>
+      <p class="section-sub">뉴스에 먼저 드러나는 "인식된 위기"부터, 거시 국면, 중소기업 현장 재무, 금융시장의 신용 반응까지 — 위기가 전이되는 경로를 따라 지표를 설계했습니다.</p>
+
+      <div class="cat-grid">
+        <div class="cat-card">
+          <div class="cat-head"><span class="cat-dot" style="background:var(--bad)"></span><h3>위기인식지수 (뉴스·텍스트)</h3></div>
+          <p class="cat-desc">뉴스기사 크롤링·텍스트마이닝 기반. 통계에 잡히기 전 "인식"의 변화를 가장 먼저 포착합니다.</p>
+          <ol>
+            <li>위기 키워드 언급빈도 (부도·폐업·유동성위기 등)</li>
+            <li>뉴스 감성지수 (부정 톤 비중)</li>
+            <li>위기 이슈 확산속도 (전주 대비 기사량 증가율)</li>
+            <li>업종별 위기언급 집중도</li>
+            <li>정책·구제 뉴스 노출빈도 (역지표)</li>
+          </ol>
+        </div>
+
+        <div class="cat-card">
+          <div class="cat-head"><span class="cat-dot" style="background:var(--warn)"></span><h3>거시경제지표</h3></div>
+          <p class="cat-desc">한국은행 ECOS·통계청 등 공공데이터. 중소기업이 놓인 거시 국면을 나타냅니다.</p>
+          <ol>
+            <li>기준금리</li>
+            <li>원/달러 환율 변동성</li>
+            <li>생산자물가지수(PPI) 변화율</li>
+            <li>소비자심리지수(CCSI)</li>
+            <li>제조업 가동률(산업생산지수)</li>
+          </ol>
+        </div>
+
+        <div class="cat-card">
+          <div class="cat-head"><span class="cat-dot" style="background:var(--primary)"></span><h3>중소기업 재무·경영지표</h3></div>
+          <p class="cat-desc">중소벤처기업부·중진공 등 현장 데이터. 위기가 실제 재무 상태로 전이되는 단계입니다.</p>
+          <ol>
+            <li>중소기업 대출연체율</li>
+            <li>중소기업 폐업률</li>
+            <li>중소기업 자금사정 BSI</li>
+            <li>어음부도율</li>
+            <li>중소기업 평균 영업이익률</li>
+          </ol>
+        </div>
+
+        <div class="cat-card">
+          <div class="cat-head"><span class="cat-dot" style="background:var(--secondary)"></span><h3>금융시장·신용지표</h3></div>
+          <p class="cat-desc">금융시장이 위기를 가격·신용으로 반영하는 마지막 단계의 지표입니다.</p>
+          <ol>
+            <li>회사채 신용스프레드</li>
+            <li>중소기업 신용등급 강등 비율</li>
+            <li>은행권 중소기업대출 증가율</li>
+            <li>벤처투자 위축지수</li>
+            <li>신용보증기금 대위변제율</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="visualization">
+      <div class="section-tag"><span class="bar"></span><h2>예시 시각화 (Mock 데이터)</h2></div>
+      <p class="section-sub">각 지표 유형이 실제로 대시보드에서 어떻게 표현될지 보여주는 샘플 화면입니다.</p>
+
+      <div class="chart-row">
+        <div class="chart-panel">
+          <div class="chart-title">위기 키워드 언급빈도 추이 (예시)</div>
+          <div class="chart-desc">최근 12개월 · 뉴스기사 내 위기 키워드 건수</div>
+          <svg viewBox="0 0 560 260" role="img" aria-label="위기 키워드 언급빈도가 최근 12개월간 32건에서 82건으로 꾸준히 증가해 경고 임계선 60건을 초과한 예시 추세선 그래프">
+            <line x1="55" y1="20" x2="55" y2="210" stroke="var(--border)"/>
+            <line x1="55" y1="210" x2="540" y2="210" stroke="var(--border)"/>
+            <line x1="55" y1="83.3" x2="540" y2="83.3" stroke="var(--bad)" stroke-width="1.3" stroke-dasharray="4 3"/>
+            <text x="545" y="87" font-size="9.5" fill="var(--bad)" font-family="Inter, sans-serif">경고 임계선(60건)</text>
+
+            <text x="48" y="24" text-anchor="end" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">90</text>
+            <text x="48" y="87" text-anchor="end" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">60</text>
+            <text x="48" y="150" text-anchor="end" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">30</text>
+            <text x="48" y="213" text-anchor="end" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">0</text>
+
+            <polyline points="55,142.4 99.1,150.9 143.2,136.1 187.3,146.7 231.4,129.8 275.5,115 319.5,121.3 363.6,104.4 407.7,87.6 451.8,70.7 495.9,53.9 540,36.9"
+                      fill="none" stroke="var(--primary)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+            <circle cx="540" cy="36.9" r="5" fill="var(--bad)"/>
+            <text x="500" y="26" text-anchor="middle" font-size="10" font-weight="700" fill="var(--bad)" font-family="Inter, sans-serif">82건 (최근월)</text>
+
+            <text x="55" y="225" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">1월</text>
+            <text x="143.2" y="225" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">3월</text>
+            <text x="231.4" y="225" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">5월</text>
+            <text x="319.5" y="225" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">7월</text>
+            <text x="407.7" y="225" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">9월</text>
+            <text x="495.9" y="225" text-anchor="middle" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">11월</text>
+          </svg>
+        </div>
+
+        <div class="chart-panel">
+          <div class="chart-title">업종별 중소기업 대출연체율 (예시)</div>
+          <div class="chart-desc">2026년 2분기 · 업종별 비교</div>
+          <svg viewBox="0 0 520 260" role="img" aria-label="업종별 중소기업 대출연체율 예시. 제조업 2.1퍼센트, 도소매업 3.4퍼센트, 건설업 4.8퍼센트, 숙박음식업 5.6퍼센트로 가장 높음, 운수업 3.0퍼센트">
+            <line x1="50" y1="190" x2="500" y2="190" stroke="var(--border)"/>
+            <line x1="50" y1="140" x2="500" y2="140" stroke="var(--border)" stroke-dasharray="2 3"/>
+            <line x1="50" y1="90" x2="500" y2="90" stroke="var(--border)" stroke-dasharray="2 3"/>
+            <line x1="50" y1="40" x2="500" y2="40" stroke="var(--border)" stroke-dasharray="2 3"/>
+            <text x="44" y="194" text-anchor="end" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">0%</text>
+            <text x="44" y="144" text-anchor="end" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">2%</text>
+            <text x="44" y="94" text-anchor="end" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">4%</text>
+            <text x="44" y="44" text-anchor="end" font-size="9.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">6%</text>
+
+            <rect x="65" y="139" width="60" height="51" rx="4" fill="var(--secondary)"/>
+            <text x="95" y="131" text-anchor="middle" font-size="11" font-weight="700" fill="var(--secondary)" font-family="Inter, sans-serif">2.1%</text>
+            <text x="95" y="205" text-anchor="middle" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">제조업</text>
+
+            <rect x="155" y="107" width="60" height="83" rx="4" fill="var(--secondary)"/>
+            <text x="185" y="99" text-anchor="middle" font-size="11" font-weight="700" fill="var(--secondary)" font-family="Inter, sans-serif">3.4%</text>
+            <text x="185" y="205" text-anchor="middle" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">도소매업</text>
+
+            <rect x="245" y="73" width="60" height="117" rx="4" fill="var(--secondary)"/>
+            <text x="275" y="65" text-anchor="middle" font-size="11" font-weight="700" fill="var(--secondary)" font-family="Inter, sans-serif">4.8%</text>
+            <text x="275" y="205" text-anchor="middle" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">건설업</text>
+
+            <rect x="335" y="54" width="60" height="136" rx="4" fill="var(--bad)"/>
+            <text x="365" y="46" text-anchor="middle" font-size="11" font-weight="700" fill="var(--bad)" font-family="Inter, sans-serif">5.6%</text>
+            <text x="365" y="205" text-anchor="middle" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">숙박음식업</text>
+
+            <rect x="425" y="117" width="60" height="73" rx="4" fill="var(--secondary)"/>
+            <text x="455" y="109" text-anchor="middle" font-size="11" font-weight="700" fill="var(--secondary)" font-family="Inter, sans-serif">3.0%</text>
+            <text x="455" y="205" text-anchor="middle" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">운수업</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="chart-panel" style="max-width:420px; margin: 0 auto;">
+        <div class="chart-title" style="text-align:center">종합 위기지수 (예시)</div>
+        <div class="chart-desc" style="text-align:center">4개 유형 지표를 가중합산한 0~100점 종합 지수</div>
+        <svg viewBox="0 0 320 210" role="img" aria-label="종합 위기지수 게이지, 0에서 100점 중 63점으로 주의 구간에 위치한 예시">
+          <path d="M 40,170 A120,120 0 0,1 122.9,55.9" fill="none" stroke="var(--good)" stroke-width="20"/>
+          <path d="M 122.9,55.9 A120,120 0 0,1 230.6,72.9" fill="none" stroke="var(--warn)" stroke-width="20"/>
+          <path d="M 230.6,72.9 A120,120 0 0,1 280,170" fill="none" stroke="var(--bad)" stroke-width="20"/>
+          <line x1="160" y1="170" x2="199.7" y2="78.2" stroke="var(--text-primary)" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="160" cy="170" r="8" fill="var(--text-primary)"/>
+          <text x="40" y="192" text-anchor="middle" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">0</text>
+          <text x="160" y="38" text-anchor="middle" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">50</text>
+          <text x="280" y="192" text-anchor="middle" font-size="10" fill="var(--text-secondary)" font-family="Inter, sans-serif">100</text>
+          <text x="160" y="150" text-anchor="middle" font-size="26" font-weight="700" fill="var(--warn)" font-family="Inter, sans-serif">63</text>
+          <text x="160" y="205" text-anchor="middle" font-size="11" font-weight="600" fill="var(--warn)" font-family="Inter, sans-serif">주의 구간</text>
+        </svg>
+      </div>
+
+      <div class="finding-box" style="margin-top:20px">
+        <strong>예시 해석.</strong> 위 샘플에서는 위기인식지수(뉴스 언급)가 임계선을 넘어 상승하고 숙박음식업의
+        연체율이 두드러지는 상황을 가정했습니다. 실제 운영 시에는 4개 유형 지표가 동시에 악화되는지,
+        아니면 뉴스 인식만 앞서가고 재무·신용 지표는 안정적인지를 비교해 <strong>과잉경보와 실제 위기를
+        구분</strong>하는 것이 대시보드의 핵심 기능이 됩니다.
+      </div>
+    </section>
+
+    <section class="block" id="design-notes">
+      <div class="section-tag"><span class="bar"></span><h2>연구 설계 노트</h2></div>
+      <div class="notes-grid">
+        <div class="note-card">
+          <strong>데이터 소스 계획</strong>
+          <span>뉴스: 언론사 API·크롤링 + 형태소분석/감성분석. 거시: 한국은행 ECOS, 통계청 KOSIS. 재무: 중소벤처기업부, 중진공 내부 통계. 신용: 신용보증기금, 금융투자협회.</span>
+        </div>
+        <div class="note-card">
+          <strong>합성 방법</strong>
+          <span>지표별 업종·기간 표준화(z-score) 후 유형별 가중합산 → 4개 유형지수 → 종합 위기지수(0~100)로 집계하는 구조를 검토 중입니다.</span>
+        </div>
+        <div class="note-card">
+          <strong>다음 단계</strong>
+          <span>공개 가능한 지표부터 실제 데이터로 파일럿 계산을 해보고, 과거 위기 사례(업종별 구조조정 시기 등)에 지수가 선행 반응하는지 백테스트할 계획입니다.</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <a href="../../index.html#interests">← 손혜미 포트폴리오로 돌아가기</a>
+      <span>&copy; 2026 손혜미 (Hyemi Son)</span>
+    </div>
+  </footer>
+
+</body>
+</html>
