@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>촉각센서 특허전략 분석 | 손혜미</title>
+<meta name="description" content="촉각센서 특허 2,786건 분석과 ETRI 전방위 촉각감지 로봇핸드 포트폴리오 강화전략 — 2026 특허 유니버시아드 출품작.">
+<link rel="icon" href="../../assets/kitty.svg" type="image/svg+xml">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #1a2332; }
+.jk-topbar { display: flex; align-items: center; gap: 8px; padding: 10px 40px; background: #fff; border-bottom: 1px solid #e0e7ef; font-size: 13px; color: #94a3b8; }
+.jk-topbar a { color: #334155; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; }
+.jk-topbar a:hover { color: #1d4ed8; }
+.jk-topbar img { height: 26px; width: 26px; display: block; }
+.jk-topbar .here { color: #1a2332; font-weight: 500; }
+.header { background: linear-gradient(135deg, #1B3A5C 0%, #2E75B6 100%); color: white; padding: 30px 40px; }
+.header h1 { font-size: 27px; margin-bottom: 8px; }
+.header p { font-size: 14px; opacity: 0.85; }
+.badge-live { display: inline-block; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.35);
+  padding: 3px 11px; border-radius: 999px; font-size: 12px; margin-bottom: 10px; }
+.stats-bar { display: flex; gap: 16px; padding: 20px 40px; background: white; border-bottom: 1px solid #e0e7ef; flex-wrap: wrap; }
+.stat-card { flex: 1; min-width: 118px; text-align: center; padding: 12px; border-radius: 8px; background: #f7fafc; }
+.stat-card .num { font-size: 27px; font-weight: 700; color: #2E75B6; }
+.stat-card .label { font-size: 12px; color: #666; margin-top: 4px; }
+.container { max-width: 1200px; margin: 0 auto; padding: 24px 40px; }
+.section { margin-bottom: 32px; }
+.section h2 { font-size: 20px; color: #1B3A5C; margin-bottom: 4px; border-left: 4px solid #2E75B6; padding-left: 12px; }
+.section .subtitle { font-size: 13px; color: #888; margin-bottom: 16px; padding-left: 16px; }
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.chart-box { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.chart-box.full { grid-column: 1 / -1; }
+.chart-box h3 { font-size: 15px; color: #444; margin-bottom: 12px; }
+.insight { background: #EBF2F8; border-radius: 8px; padding: 16px; margin-top: 12px; font-size: 13px; line-height: 1.6; color: #333; }
+.insight strong { color: #1B3A5C; }
+.notice { background: #FFF4E5; border-left: 4px solid #FF8C42; border-radius: 8px; padding: 14px 16px;
+  font-size: 13px; line-height: 1.6; color: #6b4423; margin-bottom: 24px; }
+.notice strong { color: #b35309; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: #1B3A5C; color: white; padding: 8px 12px; text-align: center; }
+td { padding: 7px 12px; border-bottom: 1px solid #e8ecf0; text-align: center; }
+td.left { text-align: left; }
+tr:nth-child(even) { background: #f7fafc; }
+canvas { max-height: 320px; }
+.ace-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 14px; }
+@media (max-width: 900px) { .chart-grid, .ace-grid { grid-template-columns: 1fr; }
+  .container, .header, .stats-bar, .jk-topbar { padding-left: 18px; padding-right: 18px; } }
+.ace-card { border-radius: 10px; padding: 18px; color: #fff; }
+.ace-card .ace-k { font-size: 30px; font-weight: 800; opacity: .35; line-height: 1; }
+.ace-card h4 { font-size: 15px; margin: 6px 0 4px; }
+.ace-card .term { font-size: 11.5px; opacity: .85; margin-bottom: 8px; }
+.ace-card ul { margin: 0; padding-left: 16px; font-size: 12.5px; line-height: 1.65; }
+.footer { padding: 24px 40px 48px; text-align: center; font-size: 12px; color: #8a9ab0; }
+</style>
+</head>
+<body>
+
+<div class="jk-topbar">
+  <a href="../../index.html"><img src="../../assets/kitty.svg" alt=""> 손혜미 포트폴리오</a> <span>/</span>
+  <a href="../../index.html#projects">연구 프로젝트</a> <span>/</span>
+  <span class="here">촉각센서 특허전략</span>
+</div>
+
+<div class="header">
+  <span class="badge-live">2026 특허 유니버시아드 · 서류심사 통과 · 최종결과 10월 13일</span>
+  <h1>촉각센서 기술 특허전략 수립</h1>
+  <p>ETRI 전방위 촉각감지 로봇핸드 포트폴리오 강화전략 | 한·미·일·EU·중국 촉각센서 특허 2,786건 분석 (2007–2025)</p>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-card"><div class="num">2,786</div><div class="label">분석 유효특허</div></div>
+  <div class="stat-card"><div class="num">5개국</div><div class="label">한·미·일·EU·중국</div></div>
+  <div class="stat-card"><div class="num">8개</div><div class="label">감지방식 분류</div></div>
+  <div class="stat-card"><div class="num">91.5%</div><div class="label">2015년 이후 출원 비중</div></div>
+  <div class="stat-card"><div class="num">8건</div><div class="label">ETRI 핵심특허</div></div>
+</div>
+
+<div class="container">
+
+  <div class="notice">
+    <strong>진행 상태.</strong> 2026년 특허 유니버시아드(CPU) 특허전략 수립 부문 출품작(기술분야 A8 촉각센서,
+    접수번호 617)으로, 2026년 7월 31일 제출 후 <strong>서류심사를 통과</strong>해 최종 결과 발표를 앞두고 있습니다.
+    이 페이지는 99쪽 보고서의 핵심 분석만 요약한 개요입니다.
+  </div>
+
+  <!-- 분석 1 -->
+  <div class="section">
+    <h2>분석 1: 출원 동향 — 신생 분산형 성장시장</h2>
+    <div class="subtitle">RQ1: 촉각센서 기술은 어느 단계에 있으며, 경쟁 구조는 어떠한가?</div>
+    <div class="chart-grid">
+      <div class="chart-box">
+        <h3>시기별 출원 분포 (2007–2025)</h3>
+        <canvas id="ch-phase"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>감지방식별 출원 비중</h3>
+        <canvas id="ch-method"></canvas>
+      </div>
+      <div class="chart-box full">
+        <h3>누적 비중 vs 최근 3년(2023–2025) 비중 — 기술 무게중심 이동</h3>
+        <canvas id="ch-shift"></canvas>
+        <div class="insight">
+          <strong>핵심 발견:</strong> 전체 특허의 <strong>91.5%(2,550건)가 2015년 이후</strong>에 집중되고,
+          출원인 집중도 <strong>HHI 0.003</strong>(최다 출원인 점유율 1.79%)으로 지배적 사업자나 표준기술이
+          확립되지 않은 <strong>분산형 성장시장</strong>이다. 주목할 점은 무게중심의 이동인데, 누적 물량은
+          압저항(40.3%)에 몰려 있지만 최근 3년 비중은 <strong>자기 51.0% · 하이브리드 39.5% · 광학 35.5%</strong>로
+          신흥·융합 방식이 압저항(27.2%)을 크게 앞선다. 성숙 소자에서 복합 방식으로 경쟁이 옮겨가는 국면이다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 분석 2 -->
+  <div class="section">
+    <h2>분석 2: 국가별 경쟁 구도 — 양(중국) vs 질(미국)</h2>
+    <div class="subtitle">RQ2: 각국은 어떤 방식으로 경쟁하며, 한국은 어디에 특화되어 있는가?</div>
+    <div class="chart-grid">
+      <div class="chart-box">
+        <h3>국가별 양–질 포지셔닝</h3>
+        <canvas id="ch-country"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>주요 3개국 RTA 분포 (1.0 초과 = 특화)</h3>
+        <canvas id="ch-rta"></canvas>
+      </div>
+      <div class="chart-box full">
+        <h3>국가별 핵심지표 비교</h3>
+        <table>
+          <thead><tr><th>국가</th><th>건수</th><th>점유율</th><th>평균 피인용</th><th>평균 패밀리</th><th>평균 청구항</th><th>등록률</th></tr></thead>
+          <tbody>
+            <tr><td><strong>중국</strong></td><td>2,165</td><td><strong>77.7%</strong></td><td>1.64</td><td>1.46</td><td>8.55</td><td>44.3%</td></tr>
+            <tr><td><strong>미국</strong></td><td>224</td><td>8.0%</td><td><strong style="color:#E74C3C">11.97</strong></td><td><strong style="color:#E74C3C">10.12</strong></td><td><strong style="color:#E74C3C">17.20</strong></td><td>62.1%</td></tr>
+            <tr><td><strong>일본</strong></td><td>197</td><td>7.1%</td><td>2.96</td><td>4.20</td><td>11.39</td><td>47.7%</td></tr>
+            <tr><td><strong>한국</strong></td><td>161</td><td>5.8%</td><td>3.98</td><td>1.42</td><td>12.43</td><td><strong style="color:#27AE60">72.7%</strong></td></tr>
+            <tr><td><strong>유럽</strong></td><td>39</td><td>1.4%</td><td>0.97</td><td>4.62</td><td>8.21</td><td>38.5%</td></tr>
+          </tbody>
+        </table>
+        <div class="insight">
+          <strong>핵심 발견:</strong> 촉각센서 경쟁은 <strong>양(중국) – 질(미국)의 이원 구도</strong>다.
+          중국은 2,165건(77.7%)으로 물량을 압도하지만 평균 피인용 1.64회에 그치고, 미국은 224건(8.0%)에 불과하나
+          평균 피인용 11.97회·패밀리 10.12개국·청구항 17.2개로 질적 우위가 뚜렷하다.
+          <br><br>
+          한국은 161건(5.8%)으로 규모는 작지만 <strong>등록률 72.7%로 5개국 최고</strong>이고,
+          RTA에서 <strong>마찰전기 1.90 · 전방위 1.59</strong>로 특화가 확인된다. 이 두 축이 바로
+          ETRI의 360° 전방위 촉각센서 개발 방향과 일치한다는 점이 이번 전략의 출발점이다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 분석 3 -->
+  <div class="section">
+    <h2>분석 3: 특허 품질 — 규모와 영향력의 괴리</h2>
+    <div class="subtitle">RQ3: 물량이 많은 방식이 실제로 영향력도 큰가?</div>
+    <div class="chart-grid">
+      <div class="chart-box">
+        <h3>감지방식별 특허영향력지수(PII)</h3>
+        <canvas id="ch-pii"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>국가 × 감지방식 출원 분포</h3>
+        <canvas id="ch-heat"></canvas>
+      </div>
+      <div class="chart-box full">
+        <div class="insight" style="margin-top:0">
+          <strong>핵심 발견:</strong> PII(특허당 피인용수 ÷ 전체 평균)에서 <strong>마찰전기 1.20 · 압저항 1.16 ·
+          하이브리드 1.11</strong>이 평균을 넘는다. 공개시점 편향을 보정한 코호트 정규화 피인용에서도
+          마찰전기가 7.12로 최고여서, <strong>물량은 작아도(73건) 최근 출원이 활발히 인용되는 질적 강세</strong>가
+          확인된다. 반대로 자기는 PII 0.43으로 최저인데, 최근 3년 출원 비중은 51.0%로 가장 높다 —
+          <strong>이제 막 진입이 시작된 초기 영역</strong>이라는 뜻이다.
+          <br><br>
+          CPC 기술지형에서는 힘·압력 측정이 62.0%로 지배적인 반면 <strong>AI·기계학습은 2.0%에 그쳐</strong>,
+          촉각 신호를 해석하는 지능 계층이 비어 있음을 보여준다. 이 공백이 뒤에 나올 전략의 핵심 근거가 된다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 분석 4: 핵심 시각화 -->
+  <div class="section">
+    <h2>분석 4: ETRI 포트폴리오 진단 — 역피라미드 구조</h2>
+    <div class="subtitle">RQ4: ETRI의 권리는 촉각 가치사슬의 어느 계층에 분포하는가?</div>
+    <div class="chart-grid">
+      <div class="chart-box full">
+        <h3>촉각 인터랙션 가치사슬 계층별 ETRI 핵심특허 분포 (총 8건)</h3>
+        <svg viewBox="0 0 860 380" role="img" style="width:100%;height:auto"
+             aria-label="ETRI 핵심특허 8건의 기술계층별 분포. 출력·재현 계층 4건으로 가장 넓고, 감지 원천 계층은 1건에 불과한 역피라미드 구조">
+          <defs>
+            <linearGradient id="gStrong" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#2E75B6"/><stop offset="100%" stop-color="#1B3A5C"/>
+            </linearGradient>
+            <linearGradient id="gWeak" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#E74C3C"/><stop offset="100%" stop-color="#C0392B"/>
+            </linearGradient>
+          </defs>
+
+          <!-- 제어·응용 (1) -->
+          <rect x="325" y="26" width="210" height="52" rx="8" fill="#95A5A6"/>
+          <text x="430" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">제어 · 응용</text>
+          <text x="430" y="68" text-anchor="middle" font-size="11.5" fill="#eef3f7">1건 · 6자유도 햅틱 핸드 (2027 만료 예정)</text>
+
+          <!-- 출력·재현 (4) -->
+          <rect x="130" y="90" width="600" height="58" rx="8" fill="url(#gStrong)"/>
+          <text x="430" y="115" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">출력 · 재현</text>
+          <text x="430" y="134" text-anchor="middle" font-size="12" fill="#dbeafe">4건 · 초음파 트랜스듀서 · 햅틱 액추에이터 · 압전 구동소자 — ETRI 강점</text>
+
+          <!-- 신호처리·해석 (1) -->
+          <rect x="325" y="160" width="210" height="52" rx="8" fill="#7E9AAF"/>
+          <text x="430" y="184" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">신호처리 · 해석</text>
+          <text x="430" y="202" text-anchor="middle" font-size="11.5" fill="#eef3f7">1건 · 물리량 해석 계층 부재</text>
+
+          <!-- 소재·소자 (1) -->
+          <rect x="325" y="224" width="210" height="52" rx="8" fill="#7E9AAF"/>
+          <text x="430" y="248" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">소재 · 소자</text>
+          <text x="430" y="266" text-anchor="middle" font-size="11.5" fill="#eef3f7">1건 · 유연 압전 복합소재</text>
+
+          <!-- 감지 (1) - 취약 -->
+          <rect x="352" y="288" width="156" height="58" rx="8" fill="url(#gWeak)"/>
+          <text x="430" y="312" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">감지 (원천)</text>
+          <text x="430" y="330" text-anchor="middle" font-size="11.5" fill="#ffe3e0">1건 · 앵커특허 단일 의존</text>
+
+          <!-- 화살표: 가치사슬 방향 -->
+          <text x="60" y="320" font-size="12" font-weight="700" fill="#E74C3C">기반</text>
+          <text x="60" y="118" font-size="12" font-weight="700" fill="#1B3A5C">응용</text>
+          <line x1="72" y1="300" x2="72" y2="140" stroke="#b8c6d3" stroke-width="2" stroke-dasharray="4 4"/>
+          <polygon points="72,128 67,140 77,140" fill="#b8c6d3"/>
+
+          <!-- 우측 주석 -->
+          <text x="760" y="119" font-size="11.5" font-weight="700" fill="#1B3A5C">← 가장 넓음</text>
+          <text x="760" y="318" font-size="11.5" font-weight="700" fill="#E74C3C">← 가장 좁음</text>
+          <text x="430" y="368" text-anchor="middle" font-size="12" fill="#8a9ab0">
+            기반(감지)이 좁고 상단(출력·재현)이 넓은 top-heavy 구조 — 원천 권리 보강이 시급
+          </text>
+        </svg>
+        <div class="insight">
+          <strong>핵심 발견:</strong> ETRI 핵심특허 8건 중 <strong>4건(50%)이 출력·재현 계층</strong>에 집중된 반면,
+          물리적 촉각을 직접 감지하는 <strong>원천 권리는 앵커특허 1건(10-2024-0109398, 심사 중)</strong>뿐이다.
+          사용자에게 촉감을 "주는" 기술은 두텁지만, 로봇이 외부 자극을 "받아 해석하고 제어하는" 계층으로 갈수록
+          권리 밀도가 낮아지는 역피라미드 구조다.
+          <br><br>
+          더구나 이 앵커특허는 방향무관 압력감지라는 차별성을 확보했으나 <strong>일부 핵심 구성이 종속항에
+          한정</strong>되어 있어 권리범위 보강이 필요하다. 경쟁 핵심특허 14건(S급 5·A급 8·B급 1)의 청구범위를
+          검토한 결과 전단력 분리·에어챔버 구조·센서 어레이·촉각정보 기반 로봇제어 영역에서
+          <strong>선행 권리와의 중첩 가능성(FTO 리스크)</strong>도 확인되었다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 분석 5 -->
+  <div class="section">
+    <h2>분석 5: ACE 특허전략</h2>
+    <div class="subtitle">RQ5: 진단 결과를 어떤 권리화 로드맵으로 연결할 것인가?</div>
+    <div class="chart-box full">
+      <h3>P2S 분석 → 4대 혁신축 → ACE 전략</h3>
+      <p style="font-size:13px;color:#555;line-height:1.7;margin-bottom:6px">
+        포트폴리오 진단에서 도출한 7개 기술·권리문제(P0–P6)를 ▲감지·피부형 통합 ▲촉각신호 복원
+        ▲감각 인공지능 ▲로봇행동 연계의 <strong>4대 혁신 축</strong>으로 재편하고, 이를
+        Anchor·Connect·Expand 3단계 로드맵으로 구성했습니다.
+      </p>
+      <div class="ace-grid">
+        <div class="ace-card" style="background:linear-gradient(135deg,#E74C3C,#C0392B)">
+          <div class="ace-k">A</div>
+          <h4>Anchor — 핵심기술 권리화 기반 구축</h4>
+          <div class="term">단기</div>
+          <ul>
+            <li>전방위 감지원천 보강 (기체압 감지원리 독립항化)</li>
+            <li>앵커특허 분할·개량출원</li>
+            <li>에어챔버·방향무관 출력 보호</li>
+          </ul>
+        </div>
+        <div class="ace-card" style="background:linear-gradient(135deg,#2E75B6,#1B3A5C)">
+          <div class="ace-k">C</div>
+          <h4>Connect — AI 기반 촉각제어 권리 확장</h4>
+          <div class="term">중기</div>
+          <ul>
+            <li>신호복원 로봇스킨 (압력장 복원 결합청구항)</li>
+            <li>AI 기반 힘·물성 분리 (멀티모달 물성분류)</li>
+            <li>촉각피드백 기반 폐루프 제어</li>
+          </ul>
+        </div>
+        <div class="ace-card" style="background:linear-gradient(135deg,#27AE60,#1E8449)">
+          <div class="ace-k">E</div>
+          <h4>Expand — 플랫폼 선도형 생태계 구축</h4>
+          <div class="term">장기</div>
+          <ul>
+            <li>센서–AI–제어 통합 플랫폼화</li>
+            <li>「감지–해석–제어–응용」 전 주기 권리망</li>
+            <li>피지컬 AI·첨단로봇 기술경쟁력 연계</li>
+          </ul>
+        </div>
+      </div>
+      <div class="insight">
+        <strong>전략의 논리:</strong> 정량분석에서 확인한 <strong>AI·기계학습 CPC 2.0%</strong>라는 공백과,
+        한국이 이미 특화(RTA 전방위 1.59)한 영역이 만나는 지점이 바로 Connect 단계다. 즉
+        <strong>"이미 잘하는 감지 기술(Anchor)을 비어 있는 해석·제어 계층(Connect)으로 연결하고,
+        최종적으로 플랫폼으로 확장(Expand)"</strong>하는 구조로, 개별 특허 중심에서 전 주기 통합
+        권리망으로 포트폴리오를 재편하는 것이 목표다.
+      </div>
+    </div>
+  </div>
+
+  <!-- 방법론 -->
+  <div class="section">
+    <h2>분석 방법론</h2>
+    <div class="subtitle">검색식 설계부터 전략 도출까지</div>
+    <div class="chart-box full">
+      <div class="insight" style="margin-top:0">
+        <strong>1) 모집단 구축:</strong> 한·미·일·EU·중국 2007–2025년 출원 촉각센서 특허를 검색·스크리닝해
+        <strong>유효특허 2,786건</strong> 확정. 압저항·정전용량·압전·마찰전기·광학·자기 6개 감지원리와
+        하이브리드·전방위 2개 복합·기능 유형으로 분류.<br><br>
+        <strong>2) 정량분석:</strong> 출원동향·주요출원인·기술영역·특허품질·국가별 경쟁력·기술 길목의 6개 축.
+        품질 지표는 특허가치지수(PVI: 피인용 28.3%·패밀리 23.6%·독립항 18.9%·총청구항 14.2%·등록여부 15%
+        가중결합), 특허영향력지수(PII), 시장확보지수(PFS), 기술력지수(TS), 현시기술우위지수(RTA)를 사용.
+        모든 지표는 로그변환(log(1+x)) 후 최소–최대 정규화.<br><br>
+        <strong>3) ETRI 포트폴리오 진단:</strong> WIPS ON에서 ETRI 전체 특허 약 8만 건 → IPC(G01L, H10N30,
+        B25J13/08) 적용 442건 → 수동 소팅 279건 → 전수 판정 후 24건 후보군 → 대표청구항 검토로
+        <strong>최종 핵심특허 8건</strong> 선정. 대표청구항의 최종 산출물 기준으로 기술계층 판정.<br><br>
+        <strong>4) 전략 도출:</strong> P2S(Problem to Solution) 분석 → 대표권리 청구항 구성요소 분석 →
+        경쟁특허 14건 FTO 검토 및 회피설계 → ACE 전략체계 수립.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  촉각센서 기술 특허전략 수립 | 손혜미 (KAIST I&amp;TM) | 2026 특허 유니버시아드 출품 (A8 촉각센서 · 접수번호 617) |
+  <a href="../../index.html#projects" style="color:#2E75B6">← 포트폴리오로 돌아가기</a>
+</div>
+
+<script>
+const C = { blue: '#2E75B6', navy: '#1B3A5C', teal: '#4CA1AF', orange: '#FF8C42',
+            red: '#E74C3C', green: '#27AE60', purple: '#8E44AD', yellow: '#F39C12',
+            gray: '#95A5A6', light: '#90BDE0' };
+
+// 1) 시기별
+new Chart(document.getElementById('ch-phase'), {
+  type: 'bar',
+  data: { labels: ['도입기 2007–2014', '성장기 2015–2019', '확산기 2020–2025'],
+    datasets: [{ data: [236, 942, 1608], backgroundColor: ['#90BDE0', C.blue, C.navy], borderRadius: 4 }] },
+  options: { responsive: true, plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: c => {
+        const pct = [8.5, 33.8, 57.7][c.dataIndex];
+        return `${c.parsed.y.toLocaleString()}건 (${pct}%)`; } } } },
+    scales: { y: { beginAtZero: true, title: { display: true, text: '출원 건수' } },
+              x: { ticks: { font: { size: 10.5 } } } } }
+});
+
+// 2) 방식별 도넛
+new Chart(document.getElementById('ch-method'), {
+  type: 'doughnut',
+  data: { labels: ['압저항 (40.3%)', '정전용량 (15.8%)', '전방위 (10.9%)', '광학 (7.8%)',
+                   '하이브리드 (7.4%)', '압전 (5.7%)', '자기 (3.7%)', '마찰전기 (2.6%)', '불명 (5.8%)'],
+    datasets: [{ data: [1124, 439, 304, 217, 205, 160, 102, 73, 162],
+      backgroundColor: [C.navy, C.blue, C.red, C.teal, C.orange, C.purple, C.yellow, C.green, C.gray],
+      borderWidth: 2, borderColor: '#fff' }] },
+  options: { responsive: true, plugins: { legend: { position: 'right', labels: { boxWidth: 11, font: { size: 10.5 } } },
+    tooltip: { callbacks: { label: c => c.parsed.toLocaleString() + '건' } } } }
+});
+
+// 3) 누적 vs 최근3년
+new Chart(document.getElementById('ch-shift'), {
+  type: 'bar',
+  data: { labels: ['자기', '하이브리드', '광학', '정전용량', '전방위', '압전', '마찰전기', '압저항'],
+    datasets: [
+      { label: '누적 비중 (%)', data: [3.7, 7.4, 7.8, 15.8, 10.9, 5.7, 2.6, 40.3],
+        backgroundColor: '#90BDE0', borderRadius: 3 },
+      { label: '최근 3년(2023–25) 해당 방식 내 비중 (%)', data: [51.0, 39.5, 35.5, 33.5, 30.0, 28.0, 30.0, 27.2],
+        backgroundColor: C.red, borderRadius: 3 }
+    ] },
+  options: { responsive: true, plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+    scales: { y: { beginAtZero: true, title: { display: true, text: '비중 (%)' } } } }
+});
+
+// 4) 국가 양-질
+new Chart(document.getElementById('ch-country'), {
+  type: 'bubble',
+  data: { datasets: [
+    { label: '중국', data: [{ x: 2165, y: 1.64, r: 24 }], backgroundColor: C.red + 'cc', borderColor: '#fff', borderWidth: 2 },
+    { label: '미국', data: [{ x: 224, y: 11.97, r: 16 }], backgroundColor: C.navy + 'cc', borderColor: '#fff', borderWidth: 2 },
+    { label: '일본', data: [{ x: 197, y: 2.96, r: 15 }], backgroundColor: C.orange + 'cc', borderColor: '#fff', borderWidth: 2 },
+    { label: '한국', data: [{ x: 161, y: 3.98, r: 14 }], backgroundColor: C.green + 'cc', borderColor: '#fff', borderWidth: 2 },
+    { label: '유럽', data: [{ x: 39, y: 0.97, r: 10 }], backgroundColor: C.gray + 'cc', borderColor: '#fff', borderWidth: 2 }
+  ] },
+  options: { responsive: true,
+    scales: { x: { type: 'logarithmic', title: { display: true, text: '출원 건수 (로그) →' } },
+              y: { beginAtZero: true, title: { display: true, text: '평균 피인용 수 (질) →' } } },
+    plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 11 } } },
+      tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.x.toLocaleString()}건 · 평균 피인용 ${c.parsed.y}` } } } }
+});
+
+// 5) RTA 레이더
+new Chart(document.getElementById('ch-rta'), {
+  type: 'radar',
+  data: { labels: ['압저항', '정전용량', '압전', '마찰전기', '광학', '자기', '하이브리드', '전방위'],
+    datasets: [
+      { label: '한국', data: [0.88, 1.14, 0.54, 1.90, 0.80, 0.68, 1.18, 1.59],
+        borderColor: C.green, backgroundColor: C.green + '33', borderWidth: 2.4, pointRadius: 3 },
+      { label: '미국', data: [0.84, 0.96, 1.17, 0.34, 1.95, 1.34, 0.91, 1.02],
+        borderColor: C.navy, backgroundColor: C.navy + '26', borderWidth: 2.4, pointRadius: 3 },
+      { label: '일본', data: [0.57, 0.55, 2.83, 0.00, 1.89, 1.25, 0.34, 0.98],
+        borderColor: C.orange, backgroundColor: C.orange + '26', borderWidth: 2.4, pointRadius: 3 }
+    ] },
+  options: { responsive: true,
+    scales: { r: { beginAtZero: true, suggestedMax: 3, ticks: { stepSize: 1, font: { size: 9 } },
+                   pointLabels: { font: { size: 11 } } } },
+    plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } } }
+});
+
+// 6) PII
+new Chart(document.getElementById('ch-pii'), {
+  type: 'bar',
+  data: { labels: ['마찰전기', '압저항', '하이브리드', '전방위', '압전', '정전용량', '광학', '자기'],
+    datasets: [{ data: [1.20, 1.16, 1.11, 0.98, 0.95, 0.87, 0.79, 0.43],
+      backgroundColor: [C.green, C.navy, C.blue, C.teal, '#90BDE0', '#90BDE0', '#90BDE0', C.gray], borderRadius: 4 }] },
+  options: { responsive: true, plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: c => 'PII ' + c.parsed.y } } },
+    scales: { y: { beginAtZero: true, title: { display: true, text: 'PII (전체 평균 = 1.0)' } } } },
+  plugins: [{ afterDraw(chart) {
+    const { ctx, scales: { x, y } } = chart;
+    const py = y.getPixelForValue(1.0);
+    ctx.save(); ctx.strokeStyle = C.red; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(x.left, py); ctx.lineTo(x.right, py); ctx.stroke();
+    ctx.setLineDash([]); ctx.font = 'bold 10px Segoe UI, Arial'; ctx.fillStyle = C.red;
+    ctx.textAlign = 'right'; ctx.fillText('전체 평균 1.0', x.right - 6, py - 6); ctx.restore();
+  } }]
+});
+
+// 7) 국가×방식 스택
+new Chart(document.getElementById('ch-heat'), {
+  type: 'bar',
+  data: { labels: ['압저항', '정전용량', '전방위', '광학', '하이브리드', '압전', '자기', '마찰전기'],
+    datasets: [
+      { label: '중국', data: [927, 353, 228, 141, 170, 107, 78, 62], backgroundColor: C.red, borderRadius: 2 },
+      { label: '미국', data: [76, 34, 25, 34, 15, 15, 11, 2], backgroundColor: C.navy, borderRadius: 2 },
+      { label: '일본', data: [45, 17, 21, 29, 5, 32, 9, 0], backgroundColor: C.orange, borderRadius: 2 },
+      { label: '한국', data: [57, 29, 28, 10, 14, 5, 4, 8], backgroundColor: C.green, borderRadius: 2 },
+      { label: '유럽', data: [19, 6, 2, 3, 1, 1, 0, 1], backgroundColor: C.gray, borderRadius: 2 }
+    ] },
+  options: { responsive: true,
+    scales: { x: { stacked: true, ticks: { font: { size: 10 } } },
+              y: { stacked: true, beginAtZero: true, title: { display: true, text: '출원 건수' } } },
+    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } } }
+});
+</script>
+
+</body>
+</html>

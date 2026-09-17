@@ -6,6 +6,7 @@
   <title>손혜미 | Hyemi Son — 기술혁신 · 경제안보 · 기업 리스크</title>
   <meta name="description" content="중소벤처기업진흥공단 리스크준법실 × KAIST 기술경영전문대학원(I&TM). 기술혁신과 기업 리스크를 정책·현장 데이터로 분석하는 손혜미의 포트폴리오.">
   <meta name="theme-color" content="#1E40AF">
+  <link rel="icon" href="assets/kitty.svg" type="image/svg+xml">
 
   <meta property="og:type" content="profile">
   <meta property="og:title" content="손혜미 | Hyemi Son — 기술혁신 · 경제안보 · 기업 리스크">
@@ -83,15 +84,13 @@
       font-weight: 700; font-size: 1rem; color: var(--text-primary);
       letter-spacing: -0.01em; text-decoration: none;
     }
-    .nav-brand .monogram {
-      width: 32px; height: 32px; border-radius: 50%;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
-      background: linear-gradient(135deg, var(--primary), #0F2E7A);
-      color: #fff;
-      display: inline-flex; align-items: center; justify-content: center;
-      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em;
-      flex: none;
+    .nav-brand .mascot {
+      width: 34px; height: 34px; border-radius: 50%;
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.16);
+      display: block; flex: none;
+      transition: transform .18s ease;
     }
+    .nav-brand:hover .mascot { transform: scale(1.08) rotate(-4deg); }
     .nav-brand span { color: var(--primary); }
     .nav-links { display: flex; gap: 28px; list-style: none; padding: 0; margin: 0; }
     .nav-links a {
@@ -420,7 +419,7 @@
   <header class="site-nav">
     <div class="container nav-inner">
       <a href="#top" class="nav-brand">
-        <span class="monogram" aria-hidden="true">HS</span>
+        <img class="mascot" src="assets/kitty.svg" alt="" aria-hidden="true" width="34" height="34">
         손혜미<span>.</span>
       </a>
 
@@ -755,6 +754,33 @@
               <div class="card-footer">
                 <span class="card-badge">특허 분석</span>
                 <a class="card-link" href="dashboards/patent-atlas/index.html">지도 보기 →</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-media icon-lg" aria-hidden="true">
+              <svg viewBox="0 0 44 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 27 V17 a5 5 0 0 1 5-5 h1"/>
+                <path d="M17 12 h9 a4 4 0 0 1 4 4 v3"/>
+                <rect x="26" y="19" width="9" height="7" rx="2.2"/>
+                <path d="M30.5 19 v-2"/>
+                <circle cx="30.5" cy="22.5" r="1.4" fill="var(--secondary)" stroke="none"/>
+                <path d="M7 27 h9" />
+                <path d="M33 11 q3 -2.5 6 0" opacity=".55"/>
+                <path d="M31 7.5 q4.5 -3.8 9 0" opacity=".35"/>
+              </svg>
+            </div>
+            <div class="card-body">
+              <span class="card-meta">2026 특허 유니버시아드 · 서류심사 통과</span>
+              <h3 class="card-title">촉각센서 기술 특허전략 수립</h3>
+              <p class="card-desc">
+                한·미·일·EU·중국 촉각센서 특허 2,786건을 분석해 ETRI 전방위 촉각감지 로봇핸드의
+                포트폴리오 취약점을 진단하고 ACE(Anchor·Connect·Expand) 권리화 전략을 도출했습니다.
+              </p>
+              <div class="card-footer">
+                <span class="card-badge">심사 진행 중</span>
+                <a class="card-link" href="dashboards/tactile-sensor-ip/index.html">분석 보기 →</a>
               </div>
             </div>
           </article>
