@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>일본 전기차 배터리 산업정책의 정책조합 분석 | 손혜미</title>
+<meta name="description" content="경제안보와 탄소중립의 결합을 중심으로 — 모빌리티연구 2026 vol.6 no.2. 손혜미·박정규.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #1E40AF; --secondary: #3B82F6; --accent: #60A5FA;
+    --bg: #F8FAFC; --bg-elev: #FFFFFF; --bg-soft: #EFF4FB;
+    --text-primary: #0F172A; --text-secondary: #475569;
+    --border: #E2E8F0; --bad: #DC2626;
+    --shadow-sm: 0 1px 2px rgba(15,23,42,.04);
+    --shadow-md: 0 4px 12px rgba(15,23,42,.06);
+    --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px;
+    --max-width: 880px;
+  }
+  * , *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+  body {
+    margin: 0; font-family: "Inter","Noto Sans KR",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-size: 16px; line-height: 1.65; color: var(--text-primary); background: var(--bg);
+    word-break: keep-all; -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { color: var(--secondary); }
+  h1, h2, h3 { color: var(--text-primary); line-height: 1.3; margin: 0 0 .5em; font-weight: 700; }
+  p { margin: 0 0 1em; color: var(--text-secondary); }
+  .container { max-width: var(--max-width); margin: 0 auto; padding: 0 24px; }
+
+  header.site-nav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(248,250,252,.9); backdrop-filter: saturate(180%) blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 60px; gap: 16px; flex-wrap: wrap; }
+  .nav-back { font-size: .85rem; font-weight: 600; color: var(--text-secondary); }
+  .nav-back:hover { color: var(--primary); }
+  .nav-links { display: flex; gap: 20px; list-style: none; padding: 0; margin: 0; flex-wrap: wrap; }
+  .nav-links a { font-size: .82rem; font-weight: 500; color: var(--text-secondary); }
+  .nav-links a:hover { color: var(--primary); }
+
+  .hero { padding: 56px 0 8px; }
+  .paper-tag {
+    display: inline-block; padding: 4px 12px; background: var(--bg-soft);
+    border: 1px solid var(--border); color: var(--primary); border-radius: 999px;
+    font-size: .78rem; font-weight: 600; margin-bottom: 18px;
+  }
+  h1 { font-size: clamp(1.6rem, 4vw, 2.15rem); letter-spacing: -.01em; }
+  .subtitle { font-size: 1.02rem; color: var(--text-secondary); margin-bottom: 4px; }
+  .en-title { font-size: .84rem; color: var(--text-secondary); font-style: italic; margin-bottom: 20px; }
+  .authors { font-size: .88rem; color: var(--text-primary); margin-bottom: 24px; }
+  .authors .aff { color: var(--text-secondary); font-size: .82rem; }
+
+  .meta-callout {
+    background: linear-gradient(135deg, #EFF4FB 0%, #DBEAFE 100%);
+    border-left: 3px solid var(--primary); border-radius: var(--radius-md);
+    padding: 16px 20px; margin: 0 0 28px; font-size: .95rem; color: var(--text-primary);
+  }
+  .meta-callout strong { color: var(--primary); }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 40px; }
+  .stat-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; box-shadow: var(--shadow-sm); }
+  .stat-num { font-size: 1.3rem; font-weight: 700; color: var(--primary); letter-spacing: -.01em; }
+  .stat-num.warn { color: var(--bad); }
+  .stat-label { font-size: .78rem; color: var(--text-secondary); margin-top: 2px; }
+
+  section.block { padding: 44px 0; }
+  section.block + section.block { border-top: 1px solid var(--border); }
+  .section-label {
+    display: inline-block; font-size: .72rem; font-weight: 600; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--secondary); margin-bottom: 10px;
+  }
+  h2 { font-size: 1.35rem; margin-bottom: 16px; }
+
+  .finding-list { display: flex; flex-direction: column; gap: 14px; }
+  .finding-card {
+    background: var(--bg-elev); border: 1px solid var(--border); border-left: 3px solid var(--secondary);
+    border-radius: var(--radius-md); padding: 16px 20px; box-shadow: var(--shadow-sm);
+  }
+  .finding-card h3 { font-size: .98rem; margin-bottom: 6px; color: var(--primary); }
+  .finding-card p { margin: 0; font-size: .9rem; }
+
+  .criteria-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-top: 20px; }
+  .criteria-card { background: var(--bg-soft); border-radius: var(--radius-md); padding: 16px; border-left: 3px solid var(--accent); }
+  .criteria-card strong { display: block; color: var(--primary); font-size: .88rem; margin-bottom: 4px; }
+  .criteria-card span { font-size: .82rem; color: var(--text-secondary); line-height: 1.5; }
+
+  .diagram-panel { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm); margin-top: 20px; }
+  .diagram-panel figure { margin: 0; }
+  .diagram-caption { font-size: .82rem; color: var(--text-secondary); margin-top: 12px; text-align: center; }
+
+  .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+  .biblio-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm); }
+  .biblio-card dl { margin: 0; display: grid; gap: 12px; }
+  .biblio-card dt { font-size: .72rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 2px; }
+  .biblio-card dd { margin: 0; color: var(--text-primary); font-weight: 500; font-size: .92rem; }
+  .citation-box {
+    background: var(--bg-soft); border-radius: var(--radius-sm); padding: 12px 14px;
+    font-size: .84rem; color: var(--text-secondary); margin-top: 16px; font-family: "JetBrains Mono", monospace;
+    line-height: 1.6;
+  }
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px; margin-top: 18px;
+    padding: 11px 20px; background: var(--primary); color: #fff; border-radius: var(--radius-md);
+    font-weight: 600; font-size: .92rem;
+  }
+  .btn-primary:hover { background: var(--secondary); color: #fff; }
+
+  .note-box {
+    font-size: .82rem; color: var(--text-secondary); background: var(--bg-soft);
+    border-radius: var(--radius-md); padding: 14px 16px; margin-top: 20px;
+  }
+
+  footer { border-top: 1px solid var(--border); padding: 32px 0 44px; }
+  .footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; font-size: .84rem; color: var(--text-secondary); }
+</style>
+</head>
+<body>
+
+  <header class="site-nav">
+    <div class="container nav-inner">
+      <a class="nav-back" href="../../index.html#projects">← 손혜미 포트폴리오</a>
+      <nav aria-label="Section">
+        <ul class="nav-links">
+          <li><a href="#overview">개요</a></li>
+          <li><a href="#framework">분석틀</a></li>
+          <li><a href="#findings">주요 발견</a></li>
+          <li><a href="#implications">시사점</a></li>
+          <li><a href="#biblio">서지정보</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero container">
+      <span class="paper-tag">모빌리티연구 · 2026 vol.6 no.2 · KCI 등재지</span>
+      <h1>일본 전기차 배터리 산업정책의 정책조합 분석</h1>
+      <p class="subtitle">경제안보와 탄소중립의 결합을 중심으로</p>
+      <p class="en-title">Analyzing the Policy Mix of Japan's EV Battery Industrial Policy: Integrating Economic Security and Carbon Neutrality</p>
+      <p class="authors">손혜미<sup>1</sup>, 박정규<sup>2</sup> · <span class="aff">한국과학기술원(KAIST)</span></p>
+
+      <div class="meta-callout">
+        2015~2023년 사이 <strong>일본계 배터리 기업의 글로벌 시장 점유율은 51.7%에서 7.6%로 급락</strong>한
+        반면, 중국계 기업은 27.4%에서 64.1%로 확대되었습니다. 이 논문은 일본이 이 위기에 대응해
+        추진한 산업정책을 <strong>정책조합(policy mix)</strong>의 관점에서 분석합니다.
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-num">2015–2023</div><div class="stat-label">분석 대상 기간</div></div>
+        <div class="stat-card"><div class="stat-num warn">51.7%→7.6%</div><div class="stat-label">일본계 기업 글로벌 점유율 변화</div></div>
+        <div class="stat-card"><div class="stat-num">4개</div><div class="stat-label">분석 대상 정책수단</div></div>
+        <div class="stat-card"><div class="stat-num">3층위</div><div class="stat-label">거시·중위·미시 분석틀</div></div>
+      </div>
+    </section>
+
+    <section class="block container" id="overview">
+      <span class="section-label">01 · Overview</span>
+      <h2>연구 개요</h2>
+      <p>
+        일본은 2022년 경제안전보장추진법(ESPA)을 제정하고 배터리를 특정중요물자로 지정하는 한편,
+        경제안보와 탄소중립을 결합한 산업정책을 추진했습니다. 이 논문은 관련 법령과 주요 지원제도를
+        대상으로 거시·중위·미시 세 층위에서 <strong>목표 일관성, 기능적 상호보완성, 시간적 순차성</strong>을
+        중심으로 이 정책들이 실제로 하나의 정책조합(policy mix)을 형성하는지 검토합니다.
+      </p>
+      <p>
+        분석 대상은 경제안보기금, 전략분야 국내생산촉진세제(GX 세제), 경제안전보장 중요기술 육성
+        프로그램(K Program), 클린에너지자동차 도입촉진 보조금(CEV 보조금) 4개 정책수단입니다.
+        개별 정책수단을 따로 평가하는 대신, 이들이 생산·투자·기술·수요를 어떻게 기능적으로
+        연결하는지를 살펴보는 것이 이 논문의 핵심 접근입니다.
+      </p>
+    </section>
+
+    <section class="block container" id="framework">
+      <span class="section-label">02 · Analytical Framework</span>
+      <h2>분석틀 — 정책조합의 기능적 상호보완성</h2>
+      <p>
+        경제안보기금·GX 세제·K Program은 각각 설비투자·생산판매·연구개발 단계를 담당하며 상호보완적으로
+        작동하고, CEV 보조금은 수요 측면을 담당합니다. 네 수단 모두 "국내 배터리 생산능력 확충"이라는
+        공통 목표 아래 연결되어 있습니다.
+      </p>
+
+      <div class="diagram-panel">
+        <figure>
+          <svg viewBox="0 0 400 225" role="img" aria-label="일본 EV 배터리 정책의 4개 수단(경제안보기금·GX 세제·K Program·CEV 보조금)이 각각 설비투자·생산판매·연구개발·수요 단계를 맡아 국내 배터리 생산능력 확충이라는 공통 목표로 수렴하는 정책조합 구조도">
+            <defs>
+              <marker id="policyMixArrow2" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0,0 L8,4 L0,8 Z" fill="var(--primary)"/>
+              </marker>
+              <linearGradient id="pmBoxGrad2" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#FFFFFF"/>
+                <stop offset="100%" stop-color="var(--bg-soft)"/>
+              </linearGradient>
+              <linearGradient id="pmGoalGrad2" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="var(--secondary)"/>
+                <stop offset="100%" stop-color="var(--primary)"/>
+              </linearGradient>
+            </defs>
+
+            <rect x="15" y="18" width="76" height="40" rx="7" fill="#0F172A" fill-opacity="0.12"/>
+            <rect x="12" y="14" width="76" height="40" rx="7" fill="url(#pmBoxGrad2)" stroke="var(--border)"/>
+            <rect x="16" y="17" width="68" height="9" rx="4" fill="#FFFFFF" fill-opacity="0.6"/>
+            <text x="50" y="30" text-anchor="middle" font-size="9" font-weight="700" fill="var(--primary)" font-family="Inter, sans-serif">경제안보기금</text>
+            <text x="50" y="44" text-anchor="middle" font-size="7.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">(설비투자)</text>
+
+            <rect x="115" y="18" width="76" height="40" rx="7" fill="#0F172A" fill-opacity="0.12"/>
+            <rect x="112" y="14" width="76" height="40" rx="7" fill="url(#pmBoxGrad2)" stroke="var(--border)"/>
+            <rect x="116" y="17" width="68" height="9" rx="4" fill="#FFFFFF" fill-opacity="0.6"/>
+            <text x="150" y="30" text-anchor="middle" font-size="9" font-weight="700" fill="var(--primary)" font-family="Inter, sans-serif">GX 세제</text>
+            <text x="150" y="44" text-anchor="middle" font-size="7.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">(생산·판매)</text>
+
+            <rect x="215" y="18" width="76" height="40" rx="7" fill="#0F172A" fill-opacity="0.12"/>
+            <rect x="212" y="14" width="76" height="40" rx="7" fill="url(#pmBoxGrad2)" stroke="var(--border)"/>
+            <rect x="216" y="17" width="68" height="9" rx="4" fill="#FFFFFF" fill-opacity="0.6"/>
+            <text x="250" y="30" text-anchor="middle" font-size="9" font-weight="700" fill="var(--primary)" font-family="Inter, sans-serif">K Program</text>
+            <text x="250" y="44" text-anchor="middle" font-size="7.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">(연구개발)</text>
+
+            <rect x="315" y="18" width="76" height="40" rx="7" fill="#0F172A" fill-opacity="0.12"/>
+            <rect x="312" y="14" width="76" height="40" rx="7" fill="url(#pmBoxGrad2)" stroke="var(--border)"/>
+            <rect x="316" y="17" width="68" height="9" rx="4" fill="#FFFFFF" fill-opacity="0.6"/>
+            <text x="350" y="30" text-anchor="middle" font-size="9" font-weight="700" fill="var(--primary)" font-family="Inter, sans-serif">CEV 보조금</text>
+            <text x="350" y="44" text-anchor="middle" font-size="7.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">(수요)</text>
+
+            <line x1="50" y1="58" x2="50" y2="72" stroke="var(--primary)" stroke-width="2"/>
+            <line x1="150" y1="58" x2="150" y2="72" stroke="var(--primary)" stroke-width="2"/>
+            <line x1="250" y1="58" x2="250" y2="72" stroke="var(--primary)" stroke-width="2"/>
+            <line x1="350" y1="58" x2="350" y2="72" stroke="var(--primary)" stroke-width="2"/>
+
+            <line x1="50" y1="72" x2="100" y2="110" stroke="var(--primary)" stroke-width="2" marker-end="url(#policyMixArrow2)"/>
+            <line x1="150" y1="72" x2="160" y2="110" stroke="var(--primary)" stroke-width="2" marker-end="url(#policyMixArrow2)"/>
+            <line x1="250" y1="72" x2="240" y2="110" stroke="var(--primary)" stroke-width="2" marker-end="url(#policyMixArrow2)"/>
+            <line x1="350" y1="72" x2="300" y2="110" stroke="var(--primary)" stroke-width="2" marker-end="url(#policyMixArrow2)"/>
+
+            <rect x="64" y="116" width="280" height="52" rx="10" fill="#0F172A" fill-opacity="0.22"/>
+            <rect x="60" y="111" width="280" height="52" rx="10" fill="url(#pmGoalGrad2)"/>
+            <ellipse cx="130" cy="123" rx="70" ry="9" fill="#FFFFFF" fill-opacity="0.18"/>
+            <text x="200" y="134" text-anchor="middle" font-size="10.5" font-weight="700" fill="#FFFFFF" font-family="Inter, sans-serif">국내 배터리 생산능력 확충</text>
+            <text x="200" y="150" text-anchor="middle" font-size="8" fill="#DBEAFE" font-family="Inter, sans-serif">공통 정책목표 · 기능적 상호보완</text>
+
+            <text x="12" y="198" font-size="8.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">거시(법·기금) · 중위(세제·프로그램) · 미시(보조금) 3층위 정책조합</text>
+          </svg>
+          <figcaption class="visually-hidden">일본 EV 배터리 산업정책의 4개 정책수단이 각각 다른 생산 단계를 맡아 국내 생산능력 확충이라는 공통 목표로 수렴하는 정책조합 구조도</figcaption>
+        </figure>
+        <p class="diagram-caption">그림 1. 일본 EV 배터리 정책조합의 기능적 상호보완 구조</p>
+      </div>
+
+      <div class="criteria-grid">
+        <div class="criteria-card">
+          <strong>목표 일관성</strong>
+          <span>거시(법·기금)·중위(세제·프로그램)·미시(보조금) 층위 전체가 "국내 배터리 생산능력 확충"이라는 하나의 목표를 공유하는지 검토합니다.</span>
+        </div>
+        <div class="criteria-card">
+          <strong>기능적 상호보완성</strong>
+          <span>각 정책수단이 서로 다른 생산 단계(설비투자·생산판매·연구개발·수요)를 중복 없이 나누어 담당하는지 검토합니다.</span>
+        </div>
+        <div class="criteria-card">
+          <strong>시간적 순차성</strong>
+          <span>정책수단들이 도입·개편되는 시점이 산업 전개 단계와 맞물려 순차적으로 작동하는지 검토합니다.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="block container" id="findings">
+      <span class="section-label">03 · Key Findings</span>
+      <h2>주요 발견</h2>
+      <div class="finding-list">
+        <div class="finding-card">
+          <h3>3개 정책수단의 단계별 역할 분담</h3>
+          <p>경제안보기금·GX 세제·K Program은 각각 설비투자·생산판매·연구개발 단계를 담당하며 상호보완적으로 작동하는 것으로 나타났습니다.</p>
+        </div>
+        <div class="finding-card">
+          <h3>CEV 보조금의 2026년 개편</h3>
+          <p>CEV 보조금은 2026년 개편을 통해 공급 안정성의 비중을 확대하고 국내 생산계획을 평가항목에 반영함으로써, 제조사 간 보조금 지급액의 차이를 확대했습니다.</p>
+        </div>
+        <div class="finding-card">
+          <h3>공통 목표로 수렴하는 정책조합</h3>
+          <p>4개 정책수단은 국내 배터리 생산능력 확충이라는 공통 목표 아래 생산·투자·기술·수요를 기능적으로 연결하는 정책조합을 형성하는 것으로 나타났습니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="block container" id="implications">
+      <span class="section-label">04 · Implications for Korea</span>
+      <h2>한국 배터리 산업정책에 대한 시사점</h2>
+      <p>
+        한국은 배터리 3사의 해외생산 비중이 높아 일본과 동일한 국내 생산 기준을 그대로 적용하기에는
+        한계가 있습니다. 그러나 구매보조금에 국내 산업생태계 기여도를 반영하거나, 세액공제와
+        직접보조를 연계하는 정책은 충분히 검토할 수 있습니다.
+      </p>
+      <p>
+        이는 향후 한국 배터리 산업정책에서도 개별 정책수단의 확대보다, <strong>정책목표와 정책수단
+        간 연계구조를 고려한 정책설계</strong>가 중요함을 시사합니다.
+      </p>
+      <div class="note-box">
+        이 페이지는 논문 초록을 바탕으로 핵심 내용을 요약한 개요입니다. 선행연구 검토, 세부 데이터,
+        전체 분석 결과는 아래 KCI 원문에서 확인하실 수 있습니다.
+      </div>
+    </section>
+
+    <section class="block container" id="biblio">
+      <span class="section-label">05 · Bibliographic Info</span>
+      <h2>서지정보</h2>
+      <div class="biblio-card">
+        <dl>
+          <div>
+            <dt>제목</dt>
+            <dd>일본 전기차 배터리 산업정책의 정책조합 분석: 경제안보와 탄소중립의 결합을 중심으로</dd>
+          </div>
+          <div>
+            <dt>저자</dt>
+            <dd>손혜미, 박정규 (한국과학기술원)</dd>
+          </div>
+          <div>
+            <dt>수록 학술지</dt>
+            <dd>모빌리티연구, 2026 vol.6, no.2, pp.65–98</dd>
+          </div>
+          <div>
+            <dt>발행기관</dt>
+            <dd>한국모빌리티학회</dd>
+          </div>
+          <div>
+            <dt>DOI</dt>
+            <dd>10.23257/mobile.6.2.202609003</dd>
+          </div>
+        </dl>
+        <div class="citation-box">
+          손혜미, 박정규. (2026). 일본 전기차 배터리 산업정책의 정책조합 분석: 경제안보와 탄소중립의 결합을 중심으로. 모빌리티연구, 6(2), 65-98.
+        </div>
+        <a class="btn-primary" href="https://www.kci.go.kr/kciportal/landing/article.kci?arti_id=ART003381288" target="_blank" rel="noopener">KCI 원문 보기 →</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <a href="../../index.html#projects">← 손혜미 포트폴리오로 돌아가기</a>
+      <span>&copy; 2026 손혜미 (Hyemi Son)</span>
+    </div>
+  </footer>
+
+</body>
+</html>

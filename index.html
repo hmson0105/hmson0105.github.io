@@ -610,41 +610,59 @@
                 <svg viewBox="0 0 400 225" role="img" aria-label="일본 EV 배터리 정책의 4개 수단(경제안보기금·GX 세제·K Program·CEV 보조금)이 각각 설비투자·생산판매·연구개발·수요 단계를 맡아 국내 배터리 생산능력 확충이라는 공통 목표로 수렴하는 정책조합 구조도">
                   <defs>
                     <marker id="policyMixArrow" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                      <path d="M0,0 L8,4 L0,8 Z" fill="var(--secondary)"/>
+                      <path d="M0,0 L8,4 L0,8 Z" fill="var(--primary)"/>
                     </marker>
+                    <linearGradient id="pmBoxGrad" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="#FFFFFF"/>
+                      <stop offset="100%" stop-color="var(--bg-soft)"/>
+                    </linearGradient>
+                    <linearGradient id="pmGoalGrad" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="var(--secondary)"/>
+                      <stop offset="100%" stop-color="var(--primary)"/>
+                    </linearGradient>
                   </defs>
 
-                  <rect x="12" y="14" width="76" height="40" rx="4" fill="var(--bg-soft)" stroke="var(--border)"/>
+                  <rect x="15" y="18" width="76" height="40" rx="7" fill="#0F172A" fill-opacity="0.12"/>
+                  <rect x="12" y="14" width="76" height="40" rx="7" fill="url(#pmBoxGrad)" stroke="var(--border)"/>
+                  <rect x="16" y="17" width="68" height="9" rx="4" fill="#FFFFFF" fill-opacity="0.6"/>
                   <text x="50" y="30" text-anchor="middle" font-size="9" font-weight="700" fill="var(--primary)" font-family="Inter, sans-serif">경제안보기금</text>
                   <text x="50" y="44" text-anchor="middle" font-size="7.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">(설비투자)</text>
 
-                  <rect x="112" y="14" width="76" height="40" rx="4" fill="var(--bg-soft)" stroke="var(--border)"/>
+                  <rect x="115" y="18" width="76" height="40" rx="7" fill="#0F172A" fill-opacity="0.12"/>
+                  <rect x="112" y="14" width="76" height="40" rx="7" fill="url(#pmBoxGrad)" stroke="var(--border)"/>
+                  <rect x="116" y="17" width="68" height="9" rx="4" fill="#FFFFFF" fill-opacity="0.6"/>
                   <text x="150" y="30" text-anchor="middle" font-size="9" font-weight="700" fill="var(--primary)" font-family="Inter, sans-serif">GX 세제</text>
                   <text x="150" y="44" text-anchor="middle" font-size="7.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">(생산·판매)</text>
 
-                  <rect x="212" y="14" width="76" height="40" rx="4" fill="var(--bg-soft)" stroke="var(--border)"/>
+                  <rect x="215" y="18" width="76" height="40" rx="7" fill="#0F172A" fill-opacity="0.12"/>
+                  <rect x="212" y="14" width="76" height="40" rx="7" fill="url(#pmBoxGrad)" stroke="var(--border)"/>
+                  <rect x="216" y="17" width="68" height="9" rx="4" fill="#FFFFFF" fill-opacity="0.6"/>
                   <text x="250" y="30" text-anchor="middle" font-size="9" font-weight="700" fill="var(--primary)" font-family="Inter, sans-serif">K Program</text>
                   <text x="250" y="44" text-anchor="middle" font-size="7.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">(연구개발)</text>
 
-                  <rect x="312" y="14" width="76" height="40" rx="4" fill="var(--bg-soft)" stroke="var(--border)"/>
+                  <rect x="315" y="18" width="76" height="40" rx="7" fill="#0F172A" fill-opacity="0.12"/>
+                  <rect x="312" y="14" width="76" height="40" rx="7" fill="url(#pmBoxGrad)" stroke="var(--border)"/>
+                  <rect x="316" y="17" width="68" height="9" rx="4" fill="#FFFFFF" fill-opacity="0.6"/>
                   <text x="350" y="30" text-anchor="middle" font-size="9" font-weight="700" fill="var(--primary)" font-family="Inter, sans-serif">CEV 보조금</text>
                   <text x="350" y="44" text-anchor="middle" font-size="7.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">(수요)</text>
 
-                  <line x1="50" y1="54" x2="50" y2="72" stroke="var(--secondary)" stroke-width="1.4"/>
-                  <line x1="150" y1="54" x2="150" y2="72" stroke="var(--secondary)" stroke-width="1.4"/>
-                  <line x1="250" y1="54" x2="250" y2="72" stroke="var(--secondary)" stroke-width="1.4"/>
-                  <line x1="350" y1="54" x2="350" y2="72" stroke="var(--secondary)" stroke-width="1.4"/>
+                  <line x1="50" y1="58" x2="50" y2="72" stroke="var(--primary)" stroke-width="2"/>
+                  <line x1="150" y1="58" x2="150" y2="72" stroke="var(--primary)" stroke-width="2"/>
+                  <line x1="250" y1="58" x2="250" y2="72" stroke="var(--primary)" stroke-width="2"/>
+                  <line x1="350" y1="58" x2="350" y2="72" stroke="var(--primary)" stroke-width="2"/>
 
-                  <line x1="50" y1="72" x2="100" y2="108" stroke="var(--secondary)" stroke-width="1.4" marker-end="url(#policyMixArrow)"/>
-                  <line x1="150" y1="72" x2="160" y2="108" stroke="var(--secondary)" stroke-width="1.4" marker-end="url(#policyMixArrow)"/>
-                  <line x1="250" y1="72" x2="240" y2="108" stroke="var(--secondary)" stroke-width="1.4" marker-end="url(#policyMixArrow)"/>
-                  <line x1="350" y1="72" x2="300" y2="108" stroke="var(--secondary)" stroke-width="1.4" marker-end="url(#policyMixArrow)"/>
+                  <line x1="50" y1="72" x2="100" y2="110" stroke="var(--primary)" stroke-width="2" marker-end="url(#policyMixArrow)"/>
+                  <line x1="150" y1="72" x2="160" y2="110" stroke="var(--primary)" stroke-width="2" marker-end="url(#policyMixArrow)"/>
+                  <line x1="250" y1="72" x2="240" y2="110" stroke="var(--primary)" stroke-width="2" marker-end="url(#policyMixArrow)"/>
+                  <line x1="350" y1="72" x2="300" y2="110" stroke="var(--primary)" stroke-width="2" marker-end="url(#policyMixArrow)"/>
 
-                  <rect x="60" y="110" width="280" height="50" rx="6" fill="var(--primary)"/>
-                  <text x="200" y="132" text-anchor="middle" font-size="10.5" font-weight="700" fill="#FFFFFF" font-family="Inter, sans-serif">국내 배터리 생산능력 확충</text>
-                  <text x="200" y="148" text-anchor="middle" font-size="8" fill="#DBEAFE" font-family="Inter, sans-serif">공통 정책목표 · 기능적 상호보완</text>
+                  <rect x="64" y="116" width="280" height="52" rx="10" fill="#0F172A" fill-opacity="0.22"/>
+                  <rect x="60" y="111" width="280" height="52" rx="10" fill="url(#pmGoalGrad)"/>
+                  <ellipse cx="130" cy="123" rx="70" ry="9" fill="#FFFFFF" fill-opacity="0.18"/>
+                  <text x="200" y="134" text-anchor="middle" font-size="10.5" font-weight="700" fill="#FFFFFF" font-family="Inter, sans-serif">국내 배터리 생산능력 확충</text>
+                  <text x="200" y="150" text-anchor="middle" font-size="8" fill="#DBEAFE" font-family="Inter, sans-serif">공통 정책목표 · 기능적 상호보완</text>
 
-                  <text x="12" y="195" font-size="8.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">거시(법·기금) · 중위(세제·프로그램) · 미시(보조금) 3층위 정책조합</text>
+                  <text x="12" y="198" font-size="8.5" fill="var(--text-secondary)" font-family="Inter, sans-serif">거시(법·기금) · 중위(세제·프로그램) · 미시(보조금) 3층위 정책조합</text>
                 </svg>
                 <figcaption class="visually-hidden">일본 EV 배터리 산업정책의 4개 정책수단이 각각 다른 생산 단계를 맡아 국내 생산능력 확충이라는 공통 목표로 수렴하는 정책조합 구조도</figcaption>
               </figure>
@@ -660,7 +678,7 @@
               </p>
               <div class="card-footer">
                 <span class="card-badge">게재 완료</span>
-                <a class="card-link" href="https://www.kci.go.kr/kciportal/landing/article.kci?arti_id=ART003381288" target="_blank" rel="noopener">논문 보기 →</a>
+                <a class="card-link" href="papers/japan-ev-battery/index.html">개요 보기 →</a>
               </div>
             </div>
           </article>
