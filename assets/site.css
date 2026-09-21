@@ -289,12 +289,27 @@ body.landing {
 }
 .stage-video.ready { opacity: 1; }
 
-/* Deliberately light — the footage should stay legible as footage. */
+/* Deliberately light — the footage should stay legible as footage.
+
+   Two chrome variants, because legibility depends on the footage:
+
+     body.landing.chrome-dark   bright footage -> dark menu (the default)
+     body.landing.chrome-light  dark footage   -> white menu
+
+   Measured against the shipped curtain footage: at the masthead the frame
+   averages 0.40 luminance, so white type lands at 2.4:1 (fails) and ink at
+   7.5:1 (passes). The lower corners are darker, so those marks stay white.
+   If you swap in darker footage, change the class on <body> in index.html. */
 .stage-scrim {
   position: absolute; inset: 0;
   background:
-    linear-gradient(180deg, rgba(10,11,12,.34) 0%, rgba(10,11,12,0) 26%,
+    linear-gradient(180deg, rgba(10,11,12,.30) 0%, rgba(10,11,12,0) 26%,
                     rgba(10,11,12,0) 68%, rgba(10,11,12,.30) 100%);
+}
+body.landing.chrome-dark .stage-scrim {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.44) 0%, rgba(255,255,255,0) 18%,
+                    rgba(10,11,12,0) 64%, rgba(10,11,12,.34) 100%);
 }
 
 body.landing .masthead {
@@ -327,4 +342,20 @@ body.landing .menu-btn i::after { background: #FFFFFF; }
 /* If the reader asked for less motion, hold the still frame. */
 @media (prefers-reduced-motion: reduce) {
   .stage-video { display: none; }
+}
+
+/* ---- chrome-dark: dark masthead over bright footage ---- */
+body.landing.chrome-dark .masthead { border-bottom-color: rgba(23,25,27,.14); }
+body.landing.chrome-dark .brand,
+body.landing.chrome-dark .menu a { color: var(--ink); }
+body.landing.chrome-dark .brand .brand-en { color: var(--ink-2); }
+body.landing.chrome-dark .menu a:hover { color: var(--ink); border-bottom-color: var(--ink); }
+body.landing.chrome-dark .menu-btn { border-color: rgba(23,25,27,.35); }
+body.landing.chrome-dark .menu-btn i,
+body.landing.chrome-dark .menu-btn i::before,
+body.landing.chrome-dark .menu-btn i::after { background: var(--ink); }
+@media (max-width: 760px) {
+  body.landing.chrome-dark .menu { background: rgba(246,246,244,.96); border-bottom-color: var(--line); }
+  body.landing.chrome-dark .menu li + li { border-top-color: var(--line); }
+  body.landing.chrome-dark .menu a { color: var(--ink); }
 }

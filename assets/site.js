@@ -24,11 +24,15 @@
   if (y) y.textContent = String(new Date().getFullYear());
 
   /* ---- landing video ----
-     The poster image is painted underneath the <video> and is what the
-     visitor sees until playback actually starts. We only fade the video in
-     once it is genuinely playing, so a blocked autoplay (common on mobile
-     with Low Power Mode) or a missing file simply leaves the still frame
-     in place instead of flashing a black rectangle.                       */
+     The poster image sits underneath the <video> and is what the visitor
+     sees until playback genuinely starts. The video only fades in once it
+     is actually playing, so a refused autoplay, a hidden tab, or a missing
+     file simply leaves the still frame in place.
+
+     Autoplay is refused more often than people expect: a backgrounded tab,
+     iOS Low Power Mode, and some data-saver modes all block it. So rather
+     than calling play() once and giving up, we retry at each point where
+     the browser might newly allow it.                                      */
   var vid = document.querySelector(".stage-video");
   if (vid) {
     var reduce = window.matchMedia &&
@@ -38,14 +42,34 @@
       vid.removeAttribute("autoplay");
       vid.pause();
     } else {
-      var reveal = function () { vid.classList.add("ready"); };
-      vid.addEventListener("playing", reveal, { once: true });
-      vid.addEventListener("error", function () { vid.classList.remove("ready"); });
+      vid.addEventListener("playing", function () {
+        vid.classList.add("ready");
+      });
+      vid.addEventListener("error", function () {
+        vid.classList.remove("ready");
+      });
 
-      var p = vid.play();
-      if (p && typeof p.catch === "function") {
-        p.catch(function () { /* autoplay refused — keep the poster */ });
-      }
+      var tryPlay = function () {
+        if (!vid.paused) return;
+        var p = vid.play();
+        if (p && typeof p.catch === "function") {
+          p.catch(function () { /* still refused — the poster stays */ });
+        }
+      };
+
+      tryPlay();
+      vid.addEventListener("loadeddata", tryPlay);
+      vid.addEventListener("canplay", tryPlay);
+      document.addEventListener("visibilitychange", function () {
+        if (!document.hidden) tryPlay();
+      });
+      window.addEventListener("focus", tryPlay);
+
+      /* Last resort: the first touch or click on the page counts as the
+         user gesture that unblocks playback. */
+      var once = { once: true, passive: true };
+      document.addEventListener("pointerdown", tryPlay, once);
+      document.addEventListener("touchstart", tryPlay, once);
     }
   }
 })();
