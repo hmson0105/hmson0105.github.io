@@ -640,6 +640,197 @@
     .about-grid.one-col { grid-template-columns: 1fr; }
     .about-grid.one-col .about-text { max-width: 760px; }
     .about-grid.one-col .about-text p { font-size: 0.97rem; }
+
+    /* ===========================================================
+       커튼 히어로 — 깅엄 겉커튼 + 시어 속커튼이 갈라지며 빛이 든다
+       이미지 없이 CSS만으로 구성, transform 기반이라 GPU에서 처리된다
+       =========================================================== */
+    .curtain {
+      position: relative;
+      height: 100svh; min-height: 520px;
+      overflow: hidden;
+      background: #10161C;
+      margin-top: -74px;              /* 고정 상단바 아래로 꽉 채운다 */
+    }
+    .ct-stage { position: absolute; inset: 0; }
+
+    /* ---- 창밖 ---- */
+    .ct-view { position: absolute; inset: 0; }
+    .ct-sky {
+      position: absolute; inset: 0;
+      background:
+        linear-gradient(180deg, #9FB4C4 0%, #C4CFD2 38%, #DCD4BE 72%, #B9A98C 100%);
+    }
+    .ct-pillar {
+      position: absolute; left: 50%; top: 0; bottom: 0;
+      width: 4.2%; transform: translateX(-50%);
+      background:
+        linear-gradient(90deg, rgba(0,0,0,.34) 0%, rgba(0,0,0,0) 26%,
+                        rgba(255,255,255,.10) 52%, rgba(0,0,0,.30) 100%),
+        repeating-linear-gradient(0deg, #7E5A48 0 9px, #8C6552 9px 10px),
+        #7E5A48;
+    }
+    .ct-glow {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 30% 46% at 50% 34%,
+                  rgba(255,246,222,.85) 0%, rgba(255,246,222,.28) 45%, transparent 72%);
+    }
+
+    /* ---- 커튼 공통 ---- */
+    .ct-drape, .ct-sheer { position: absolute; top: -3%; bottom: -3%; overflow: hidden; }
+    .ct-drape .ct-cloth, .ct-sheer .ct-cloth { position: absolute; inset: 0; }
+    .ct-ripple {
+      position: absolute; top: -5%; bottom: -5%; left: 0;
+      width: 300%;
+      will-change: transform;
+    }
+    .ct-cloth { will-change: transform; transform-origin: 50% 0; }
+
+    /* ---- 깅엄 겉커튼 ---- */
+    .ct-drape { width: 30%; }
+    .ct-drape-l { left: 0; }
+    .ct-drape-r { right: 0; }
+    .ct-drape .ct-cloth {
+      background-color: #8B9478;
+      background-image:
+        repeating-linear-gradient(90deg, rgba(38,46,36,.42) 0 24px, rgba(38,46,36,0) 24px 48px),
+        repeating-linear-gradient(0deg,  rgba(38,46,36,.42) 0 24px, rgba(38,46,36,0) 24px 48px);
+      animation: ctSway 13s ease-in-out infinite;
+    }
+    .ct-drape-r .ct-cloth { animation-duration: 15s; animation-delay: -4s; }
+
+    /* 주름 음영: 넓은 요소를 가로로 흘려보내 천이 일렁이게 한다 */
+    .ct-drape .ct-ripple {
+      background-image: repeating-linear-gradient(90deg,
+        rgba(0,0,0,.42) 0px,
+        rgba(0,0,0,.06) 20px,
+        rgba(255,255,255,.20) 44px,
+        rgba(0,0,0,.10) 70px,
+        rgba(0,0,0,.42) 98px);
+      animation: ctFlow 17s linear infinite;
+    }
+    .ct-drape .ct-ripple-b {
+      background-image: repeating-linear-gradient(90deg,
+        rgba(0,0,0,.22) 0px, rgba(255,255,255,.12) 74px, rgba(0,0,0,.22) 158px);
+      animation: ctFlowBack 26s linear infinite;
+      opacity: .75;
+    }
+    .ct-drape .ct-edge {
+      position: absolute; top: 0; bottom: 0; width: 26%;
+      background: linear-gradient(90deg, rgba(0,0,0,0), rgba(0,0,0,.55));
+    }
+    .ct-drape-l .ct-edge { right: 0; }
+    .ct-drape-r .ct-edge { left: 0; transform: scaleX(-1); }
+
+    /* ---- 시어 속커튼: 가볍고 빨리 날린다 ---- */
+    .ct-sheer { width: 19%; }
+    .ct-sheer-l { left: 25%; }
+    .ct-sheer-r { right: 25%; }
+    .ct-sheer .ct-cloth {
+      background: linear-gradient(90deg,
+        rgba(246,240,225,.10), rgba(250,245,232,.34) 42%, rgba(236,228,208,.16));
+      animation: ctSwaySheer 9s ease-in-out infinite;
+    }
+    .ct-sheer-r .ct-cloth { animation-duration: 11s; animation-delay: -3.5s; }
+    .ct-sheer .ct-ripple {
+      background-image: repeating-linear-gradient(90deg,
+        rgba(92,84,64,.20) 0px,
+        rgba(255,253,244,.15) 17px,
+        rgba(106,96,74,.14) 39px,
+        rgba(255,253,244,.09) 52px,
+        rgba(82,74,56,.22) 71px,
+        rgba(255,253,244,.16) 88px,
+        rgba(92,84,64,.20) 106px);
+      animation: ctFlow 11s linear infinite;
+    }
+    .ct-sheer-r .ct-ripple { animation-duration: 13s; animation-direction: reverse; }
+
+    .ct-vignette {
+      position: absolute; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 86% 82% at 50% 44%, transparent 52%, rgba(14,20,16,.42) 100%),
+        linear-gradient(180deg, rgba(14,20,16,.34) 0%, transparent 20%, transparent 74%, rgba(14,20,16,.40) 100%);
+    }
+
+    @keyframes ctSway {
+      0%, 100% { transform: translateX(0) skewX(0deg) scaleX(1); }
+      30%      { transform: translateX(12px) skewX(-.7deg) scaleX(1.02); }
+      62%      { transform: translateX(-9px) skewX(.55deg) scaleX(.985); }
+    }
+    @keyframes ctSwaySheer {
+      0%, 100% { transform: translateX(0) skewX(0deg) scaleX(1); }
+      26%      { transform: translateX(-16px) skewX(1.1deg) scaleX(1.035); }
+      58%      { transform: translateX(11px) skewX(-.9deg) scaleX(.97); }
+    }
+    @keyframes ctFlow      { from { transform: translateX(0); }        to { transform: translateX(-33.3333%); } }
+    @keyframes ctFlowBack  { from { transform: translateX(-33.3333%); } to { transform: translateX(0); } }
+
+    /* ---- 모서리 텍스트 ---- */
+    .ct-year {
+      position: absolute; left: 26px; bottom: 22px; z-index: 3;
+      font-size: .74rem; letter-spacing: .22em; color: rgba(255,250,240,.72);
+    }
+    .ct-scroll {
+      position: absolute; left: 50%; bottom: 20px; z-index: 3;
+      transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      color: rgba(255,250,240,.80); text-decoration: none;
+    }
+    .ct-scroll span { font-size: .66rem; letter-spacing: .26em; }
+    .ct-scroll svg { animation: ctBob 2.4s ease-in-out infinite; }
+    .ct-scroll:hover { color: #FFFFFF; }
+    @keyframes ctBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
+
+    /* ---- 히어로 위에서는 상단바를 투명하게 ---- */
+    header.site-nav.over-hero {
+      background: transparent; border-bottom-color: transparent;
+    }
+    header.site-nav.over-hero .nav-brand,
+    header.site-nav.over-hero .nav-brand span,
+    header.site-nav.over-hero .nav-links a { color: #FFF8EC; }
+    header.site-nav.over-hero .nav-links a:hover { color: var(--gold); }
+    header.site-nav.over-hero .nav-brand .mascot {
+      background: rgba(255,255,255,.92); border-color: rgba(255,255,255,.5);
+    }
+    header.site-nav.over-hero .nav-toggle {
+      background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.45);
+    }
+    header.site-nav.over-hero .nav-toggle span,
+    header.site-nav.over-hero .nav-toggle span::before,
+    header.site-nav.over-hero .nav-toggle span::after { background: #FFF8EC; }
+    header.site-nav { transition: background .3s ease, border-color .3s ease; }
+
+    .nav-links a { text-transform: lowercase; letter-spacing: .04em; }
+
+    @media (max-width: 760px) {
+      .curtain { height: 88svh; min-height: 440px; margin-top: -64px; }
+      .ct-drape { width: 34%; }
+      .ct-sheer { width: 28%; }
+      .ct-sheer-l { left: 20%; }
+      .ct-sheer-r { right: 20%; }
+      .ct-year { left: 16px; bottom: 16px; }
+      header.site-nav.over-hero .nav-links.open { background: #FFFFFF; }
+      header.site-nav.over-hero .nav-links.open a { color: var(--nav-ink); }
+    }
+
+    /* 모션을 줄이도록 설정한 사용자에게는 정지 화면으로 */
+    @media (prefers-reduced-motion: reduce) {
+      .ct-cloth, .ct-ripple, .ct-scroll svg { animation: none !important; }
+    }
+
+    /* 창밖 깊이: 먼 첨탑과 지붕선 */
+    .ct-spire {
+      position: absolute; left: 50%; top: 14%;
+      width: 2.6%; height: 30%;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, rgba(86,104,120,.92), rgba(104,120,134,.66));
+      clip-path: polygon(50% 0, 100% 34%, 100% 100%, 0 100%, 0 34%);
+      filter: blur(.4px);
+    }
+    .ct-roof {
+      position: absolute; left: 0; right: 0; bottom: 0; height: 26%;
+      background: linear-gradient(180deg, rgba(96,86,74,0) 0%, rgba(92,80,66,.62) 55%, rgba(74,62,50,.82) 100%);
+    }
 </style>
 </head>
 
@@ -659,17 +850,66 @@
 
       <nav aria-label="Primary">
         <ul class="nav-links" id="navLinks">
-          <li><a href="#about">About</a></li>
-          <li><a href="#interests">Interests</a></li>
-          <li><a href="#projects">Projects</a></li>
-          <li><a href="#publications">Publications</a></li>
-          <li><a href="#contact">Contact</a></li>
+          <li><a href="#about">about</a></li>
+          <li><a href="#interests">research</a></li>
+          <li><a href="#projects">projects</a></li>
+          <li><a href="#contact">contact</a></li>
         </ul>
       </nav>
     </div>
   </header>
 
   <main id="top">
+
+    <!-- =============== 0. CURTAIN HERO =============== -->
+    <section class="curtain" aria-label="메인 화면">
+      <div class="ct-stage" aria-hidden="true">
+
+        <!-- 창밖 빛 -->
+        <div class="ct-view">
+          <div class="ct-sky"></div>
+          <div class="ct-pillar"></div>
+          <div class="ct-spire"></div>
+          <div class="ct-roof"></div>
+          <div class="ct-glow"></div>
+        </div>
+
+        <!-- 시어(속) 커튼 -->
+        <div class="ct-sheer ct-sheer-l">
+          <div class="ct-cloth"></div>
+          <div class="ct-ripple"></div>
+        </div>
+        <div class="ct-sheer ct-sheer-r">
+          <div class="ct-cloth"></div>
+          <div class="ct-ripple"></div>
+        </div>
+
+        <!-- 깅엄(겉) 커튼 -->
+        <div class="ct-drape ct-drape-l">
+          <div class="ct-cloth"></div>
+          <div class="ct-ripple"></div>
+          <div class="ct-ripple ct-ripple-b"></div>
+          <div class="ct-edge"></div>
+        </div>
+        <div class="ct-drape ct-drape-r">
+          <div class="ct-cloth"></div>
+          <div class="ct-ripple"></div>
+          <div class="ct-ripple ct-ripple-b"></div>
+          <div class="ct-edge"></div>
+        </div>
+
+        <div class="ct-vignette"></div>
+      </div>
+
+      <span class="ct-year">2026</span>
+      <a class="ct-scroll" href="#profile-heading" aria-label="아래로 이동">
+        <span>SCROLL</span>
+        <svg viewBox="0 0 12 26" width="12" height="26" fill="none" aria-hidden="true">
+          <path d="M6 1v22M1.5 18.5 6 23.5l4.5-5" stroke="currentColor" stroke-width="1.2"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+    </section>
 
     <!-- =============== 1. PROFILE =============== -->
     <section class="profile" aria-labelledby="profile-heading">
@@ -1454,6 +1694,20 @@
 
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
+
+    // 커튼 히어로 위에서는 상단바를 투명하게 둔다
+    (function () {
+      var nav = document.querySelector('header.site-nav');
+      var hero = document.querySelector('.curtain');
+      if (!nav || !hero) return;
+      function sync() {
+        var past = window.scrollY > hero.offsetHeight - nav.offsetHeight - 8;
+        nav.classList.toggle('over-hero', !past);
+      }
+      sync();
+      window.addEventListener('scroll', sync, { passive: true });
+      window.addEventListener('resize', sync);
+    })();
 
     var toggle = document.getElementById('navToggle');
     var links  = document.getElementById('navLinks');
