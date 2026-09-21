@@ -557,6 +557,89 @@
       .nav-inner { height: 64px; }
       .nav-links { top: 64px; }
     }
+
+    /* ===========================================================
+       프로필 블록 (TX 교수 소개 + youngjun.ch 레이아웃)
+       =========================================================== */
+    .profile { padding: 72px 0 64px; }
+    .profile-name {
+      font-size: clamp(1.9rem, 4vw, 2.7rem);
+      font-weight: 700; letter-spacing: -0.01em;
+      margin: 0 0 6px; color: #FFFFFF;
+    }
+    .profile-name .en {
+      font-weight: 400; color: var(--text-secondary);
+      font-size: 0.56em; letter-spacing: 0.02em; margin-left: 6px;
+    }
+    .profile-role {
+      color: var(--gold); font-size: 0.95rem; font-weight: 500;
+      letter-spacing: 0.02em; margin: 0 0 32px;
+    }
+    .profile-grid {
+      display: grid; grid-template-columns: 240px 1fr;
+      gap: 40px; align-items: start;
+    }
+    .profile-photo { width: 100%; aspect-ratio: 1 / 1; overflow: hidden; }
+    .profile-photo img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      filter: grayscale(1); transition: filter .35s ease;
+    }
+    .profile-photo:hover img { filter: grayscale(0); }
+
+    .profile-affil { list-style: none; margin: 0 0 20px; padding: 0; }
+    .profile-affil li {
+      font-size: 0.95rem; color: var(--text-secondary);
+      padding: 7px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+    }
+    .profile-affil li:first-child { padding-top: 0; }
+    .profile-affil b { color: #FFFFFF; font-weight: 600; margin-right: 4px; }
+    .profile-contact { font-size: 0.92rem; color: var(--text-secondary); margin: 0 0 24px; }
+    .profile-contact a { color: var(--link); }
+
+    @media (max-width: 760px) {
+      .profile { padding: 40px 0 44px; }
+      .profile-grid { grid-template-columns: 1fr; gap: 26px; }
+      .profile-photo { max-width: 200px; }
+      .profile-role { margin-bottom: 22px; }
+    }
+
+    /* ===========================================================
+       Publications (youngjun.ch 형식)
+       =========================================================== */
+    .pub-group {
+      font-size: 0.78rem; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--gold);
+      margin: 40px 0 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+    }
+    .pub-group:first-of-type { margin-top: 8px; }
+    .pub-list { list-style: none; margin: 0; padding: 0; }
+    .pub { padding: 14px 0; }
+    .pub + .pub { border-top: 1px solid rgba(255, 255, 255, 0.08); }
+    .pub-title {
+      font-size: 0.98rem; font-weight: 600; color: #FFFFFF;
+      margin: 0 0 4px; line-height: 1.5;
+    }
+    .pub-authors { font-size: 0.89rem; color: var(--text-secondary); margin: 0 0 2px; }
+    .pub-authors b { color: #FFFFFF; font-weight: 600; }
+    .pub-venue { font-size: 0.85rem; color: #8397B0; margin: 0 0 8px; }
+    .pub-links { display: flex; flex-wrap: wrap; gap: 14px; margin: 0; }
+    .pub-links a {
+      font-size: 0.84rem; color: var(--link);
+      text-decoration: underline; text-underline-offset: 3px;
+    }
+    .pub-links a:hover { color: var(--gold); }
+
+    @media (max-width: 680px) {
+      .pub-title { font-size: 0.93rem; }
+      .pub-group { margin: 30px 0 12px; }
+    }
+
+    .about-grid.one-col { grid-template-columns: 1fr; }
+    .about-grid.one-col .about-text { max-width: 760px; }
+    .about-grid.one-col .about-text p { font-size: 0.97rem; }
 </style>
 </head>
 
@@ -579,6 +662,7 @@
           <li><a href="#about">About</a></li>
           <li><a href="#interests">Interests</a></li>
           <li><a href="#projects">Projects</a></li>
+          <li><a href="#publications">Publications</a></li>
           <li><a href="#contact">Contact</a></li>
         </ul>
       </nav>
@@ -587,28 +671,36 @@
 
   <main id="top">
 
-    <!-- =============== 1. HERO =============== -->
-    <section class="hero" aria-labelledby="hero-heading">
-      <div class="container hero-grid">
-        <div>
-          <span class="hero-tag">경제안보 · 기술혁신 · 기업 리스크</span>
-          <h1 id="hero-heading">
-            정책과 현장 데이터로<br>
-            기술혁신을 검증하는 <span class="text-accent">연구자</span>.
-          </h1>
-          <p class="lead">
-            안녕하세요, <strong>손혜미</strong>입니다. 중소벤처기업진흥공단
-            리스크준법실 과장으로 일하며, KAIST 기술경영전문대학원(I&amp;TM)에서
-            기술혁신이 기업과 산업의 위험 구조를 어떻게 바꾸는지 연구합니다.
-          </p>
-          <div class="hero-actions">
-            <a href="#projects" class="btn btn-primary">연구 프로젝트 보기</a>
-            <a href="#contact" class="btn btn-secondary">Contact</a>
-          </div>
-        </div>
+    <!-- =============== 1. PROFILE =============== -->
+    <section class="profile" aria-labelledby="profile-heading">
+      <div class="container">
+        <h1 id="profile-heading" class="profile-name">
+          손혜미 <span class="en">Hyemi&nbsp;Son</span>
+        </h1>
+        <p class="profile-role">기술경영 연구자 · 기업 리스크 분석</p>
 
-        <div class="hero-avatar">
-          <img src="assets/images/profile.png" alt="손혜미 프로필 사진" width="912" height="1178">
+        <div class="profile-grid">
+          <div class="profile-photo">
+            <img src="assets/images/profile.png" alt="손혜미 프로필 사진" width="912" height="1178">
+          </div>
+
+          <div class="profile-body">
+            <ul class="profile-affil">
+              <li><b>석사과정</b> | KAIST 기술경영전문대학원 (I&amp;TM)</li>
+              <li><b>과장</b> | 중소벤처기업진흥공단 리스크준법실</li>
+              <li><b>연구 분야</b> | 기술혁신 · 경제안보 · 기업 리스크</li>
+              <li><b>협업 관심</b> | 공동 연구 · 정책 분석 · 데이터 파트너십</li>
+            </ul>
+
+            <p class="profile-contact">
+              Contact <a href="mailto:hmson0105@gmail.com">hmson0105@gmail.com</a>
+            </p>
+
+            <div class="hero-actions">
+              <a href="#publications" class="btn btn-primary">연구 성과 보기</a>
+              <a href="#projects" class="btn btn-secondary">연구 프로젝트</a>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -622,36 +714,7 @@
           제 이력과 현재 연구 방향을 간략히 소개합니다.
         </p>
 
-        <div class="about-grid">
-          <div class="about-card" aria-label="프로필 요약">
-            <dl>
-              <div>
-                <dt>이름</dt>
-                <dd>손혜미 (Hyemi Son)</dd>
-              </div>
-              <div>
-                <dt>소속 1</dt>
-                <dd>KAIST 기술경영전문대학원(I&amp;TM) 석사과정</dd>
-              </div>
-              <div>
-                <dt>소속 2</dt>
-                <dd>중소벤처기업진흥공단 리스크준법실 / 과장</dd>
-              </div>
-              <div>
-                <dt>연구 분야</dt>
-                <dd>기술혁신 · 경제안보 · 기업 리스크</dd>
-              </div>
-              <div>
-                <dt>협업 관심</dt>
-                <dd>공동 연구 · 정책 분석 · 데이터 파트너십</dd>
-              </div>
-              <div>
-                <dt>이메일</dt>
-                <dd><a href="mailto:hmson0105@gmail.com">hmson0105@gmail.com</a></dd>
-              </div>
-            </dl>
-          </div>
-
+        <div class="about-grid one-col">
           <div class="about-text">
             <p>
               저는 <strong>중소벤처기업진흥공단 리스크준법실</strong>에서 중소·벤처기업의
@@ -1252,6 +1315,61 @@
           </article>
 
         </div>
+      </div>
+    </section>
+
+    <!-- =============== 5. PUBLICATIONS =============== -->
+    <section id="publications" aria-labelledby="publications-heading">
+      <div class="container">
+        <span class="section-label">Publications</span>
+        <h2 id="publications-heading" class="section-heading">연구 성과</h2>
+        <p class="section-sub">학술지 논문, 특허, 경진대회 출품작을 최신순으로 정리했습니다.</p>
+
+        <h3 class="pub-group">Journal Articles</h3>
+        <ul class="pub-list">
+          <li class="pub">
+            <p class="pub-title">일본 전기차 배터리 산업정책의 정책조합 분석: 경제안보와 탄소중립의 결합을 중심으로</p>
+            <p class="pub-authors"><b>손혜미</b>, 박정규</p>
+            <p class="pub-venue">모빌리티연구, 2026, vol.6 no.2, pp.65–98 · 한국모빌리티학회 (KCI 등재지)</p>
+            <p class="pub-links">
+              <a href="papers/japan-ev-battery/index.html">overview</a>
+              <a href="https://www.kci.go.kr/kciportal/landing/article.kci?arti_id=ART003381288" target="_blank" rel="noopener">paper</a>
+              <a href="https://doi.org/10.23257/mobile.6.2.202609003" target="_blank" rel="noopener">doi</a>
+            </p>
+          </li>
+        </ul>
+
+        <h3 class="pub-group">Patents</h3>
+        <ul class="pub-list">
+          <li class="pub">
+            <p class="pub-title">AI 연산전력 분리 기반의 조직 운영 건전성 진단 및 제어 방법과 시스템</p>
+            <p class="pub-authors"><b>손혜미</b></p>
+            <p class="pub-venue">한국과학기술원 · 특허출원 준비 중 (2026)</p>
+            <p class="pub-links">
+              <a href="patents/ai-power-health-index/index.html">overview</a>
+            </p>
+          </li>
+        </ul>
+
+        <h3 class="pub-group">Competitions &amp; Reports</h3>
+        <ul class="pub-list">
+          <li class="pub">
+            <p class="pub-title">촉각센서 기술 특허전략 수립 — ETRI 전방위 촉각감지 로봇핸드 포트폴리오 강화전략</p>
+            <p class="pub-authors"><b>손혜미</b></p>
+            <p class="pub-venue">2026 특허 유니버시아드 특허전략 수립 부문 출품작</p>
+            <p class="pub-links">
+              <a href="dashboards/tactile-sensor-ip/index.html">overview</a>
+            </p>
+          </li>
+          <li class="pub">
+            <p class="pub-title">반도체 식각·플라즈마 공정 특허 지형 분석 — 미국 등록특허 8,993건의 기술 클러스터 지도</p>
+            <p class="pub-authors"><b>손혜미</b></p>
+            <p class="pub-venue">KAIST 이노베이션 경영 (2025 가을학기) · 코스 리서치</p>
+            <p class="pub-links">
+              <a href="dashboards/patent-atlas/index.html">overview</a>
+            </p>
+          </li>
+        </ul>
       </div>
     </section>
 
