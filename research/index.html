@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Research — Hyemi Son</title>
   <meta name="description" content="Publications, patents, and competition entries by Hyemi Son.">
-  <meta name="theme-color" content="#F6F6F4">
-  <link rel="icon" href="../assets/kitty.png" type="image/png">
+  <meta name="theme-color" content="#FFFFFF">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Hyemi Son">
   <meta property="og:title" content="Research — Hyemi Son">
@@ -16,10 +15,87 @@
   <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:opsz,wght@6..72,300;6..72,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../assets/site.css">
+  <style>
+    /* ==========================================================
+       Research — typography and layout follow the reference
+       academic index: IBM Plex Sans, a flat list with no rules,
+       no year column, and no status column. Each entry is four
+       lines: title, authors, venue, links.
+       ========================================================== */
+    body.research {
+      background: #FFFFFF;
+      font-family: "IBM Plex Sans", Arial, "Apple SD Gothic Neo", sans-serif;
+      font-size: 14.67px;
+      line-height: 22px;
+      color: #000000;
+    }
+    body.research .masthead {
+      background: #FFFFFF;
+      border-bottom: 1px solid #E8E8E8;
+    }
+    body.research .brand {
+      font-family: "IBM Plex Sans", Arial, sans-serif;
+      font-size: 17.33px; font-weight: 700; color: #1C1C1C; letter-spacing: normal;
+    }
+    body.research .brand .brand-en { color: #999999; }
+    body.research .menu a { font-family: "IBM Plex Sans", Arial, sans-serif; color: #1C1C1C; }
+    body.research .menu a[aria-current="page"] { border-bottom-color: #1C1C1C; }
+
+    .rs-wrap { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+
+    .rs-head { padding: 52px 0 6px; }
+    .rs-name {
+      font-size: 29.33px; line-height: 44px; font-weight: 700;
+      color: #1C1C1C; margin: 0 0 14px; letter-spacing: normal;
+    }
+    .rs-intro { font-size: 14.67px; line-height: 22px; color: #000000; margin: 0 0 22px; }
+    .rs-intro b { font-weight: 700; color: #1C1C1C; }
+
+    .rs-group {
+      font-size: 17.33px; line-height: 26px; font-weight: 700;
+      color: #1C1C1C; margin: 32px 0 12px;
+    }
+
+    .rs-list { list-style: none; margin: 0; padding: 0; }
+    .rs-item { margin: 0 0 22px; }
+    .rs-title {
+      font-size: 14.67px; line-height: 20.24px; font-weight: 700;
+      color: #1C1C1C; margin: 0;
+    }
+    .rs-authors {
+      font-size: 14.67px; line-height: 20.24px; font-weight: 400;
+      color: #1C1C1C; margin: 0;
+    }
+    .rs-authors b { font-weight: 700; }
+    .rs-venue {
+      font-size: 14.67px; line-height: 20.24px; font-weight: 400;
+      color: #999999; margin: 0;
+    }
+    .rs-links { margin: 2px 0 0; display: flex; flex-wrap: wrap; gap: 14px; }
+    .rs-links a {
+      font-size: 14.67px; line-height: 20.24px; color: #1C1C1C;
+      text-decoration: underline; text-underline-offset: 2px;
+    }
+    .rs-links a:hover { color: #000000; }
+
+    .rs-note { font-size: 14.67px; line-height: 20.24px; color: #999999; margin: 4px 0 0; }
+
+    body.research .foot { border-top: 1px solid #E8E8E8; margin-top: 44px; }
+    body.research .foot-in {
+      max-width: 760px; padding: 0 24px;
+      font-family: "IBM Plex Sans", Arial, sans-serif; font-size: 13px; color: #999999;
+    }
+    body.research .foot-in a { color: #1C1C1C; border-bottom: none; text-decoration: underline; }
+
+    @media (max-width: 760px) {
+      .rs-wrap, body.research .foot-in { padding: 0 20px; }
+      .rs-name { font-size: 24px; line-height: 34px; }
+    }
+  </style>
 </head>
-<body>
+<body class="research">
 
   <header class="masthead">
     <div class="masthead-in">
@@ -36,115 +112,79 @@
     </div>
   </header>
 
-  <div class="wrap">
-    <div class="page-head">
-      <p class="eyebrow">Research</p>
-      <h1 class="page-title">Archive</h1>
-      <p class="page-lede">
-        Publications, patents, and competition entries, most recent first. Overview
-        pages carry the full analysis, figures, and data.
-      </p>
-    </div>
-  </div>
-
   <main>
-    <div class="wrap">
+    <div class="rs-wrap">
 
-      <section class="block">
-        <p class="block-head">Journal articles</p>
-        <ul class="arch">
-          <li>
-            <div class="arch-row">
-              <span class="arch-year">2026</span>
-              <div>
-                <h2 class="arch-title">Analyzing the Policy Mix of Japan's EV Battery Industrial Policy: Integrating Economic Security and Carbon Neutrality</h2>
-                <p class="arch-meta"><b>Hyemi Son</b>, Jeong-Gyu Park &middot; Korea Advanced Institute of Science and Technology</p>
-                <p class="arch-meta"><i>Journal of Mobility Studies</i>, vol. 6, no. 2, pp. 65–98 &middot; Korean Society for Mobility (KCI-listed)</p>
-                <div class="arch-links">
-                  <a href="../papers/japan-ev-battery/">Overview</a>
-                  <a href="https://www.kci.go.kr/kciportal/landing/article.kci?arti_id=ART003381288" target="_blank" rel="noopener">KCI</a>
-                  <a href="https://doi.org/10.23257/mobile.6.2.202609003" target="_blank" rel="noopener">DOI</a>
-                </div>
-              </div>
-              <span class="arch-kind">Published</span>
-            </div>
-          </li>
-        </ul>
-      </section>
+      <div class="rs-head">
+        <h1 class="rs-name">Hyemi Son</h1>
+        <p class="rs-intro">
+          I am an M.S. candidate at the <b>Graduate School of Innovation &amp; Technology
+          Management (I&amp;TM), KAIST</b>, and a manager in the <b>Risk &amp; Compliance
+          Office, Korea SMEs and Startups Agency</b>.<br>
+          My research examines how technological innovation and industrial policy reshape
+          the risk structure of firms and industries.<br>
+          Contact: <a href="mailto:hmson0105@gmail.com" style="text-decoration:underline;text-underline-offset:2px">hmson0105@gmail.com</a>
+        </p>
+      </div>
 
-      <section class="block">
-        <p class="block-head">Patents</p>
-        <ul class="arch">
-          <li>
-            <div class="arch-row">
-              <span class="arch-year">2026</span>
-              <div>
-                <h2 class="arch-title">Method and System for Diagnosing and Controlling Organizational Operating Health Based on Separation of AI Compute Power</h2>
-                <p class="arch-meta"><b>Hyemi Son</b> &middot; Korea Advanced Institute of Science and Technology</p>
-                <p class="arch-meta">Technical details are withheld until filing.</p>
-                <div class="arch-links">
-                  <a href="../patents/ai-power-health-index/">Overview</a>
-                </div>
-              </div>
-              <span class="arch-kind">Filing in preparation</span>
-            </div>
-          </li>
-        </ul>
-      </section>
+      <h2 class="rs-group">Publication</h2>
+      <ul class="rs-list">
+        <li class="rs-item">
+          <p class="rs-title">Analyzing the Policy Mix of Japan's EV Battery Industrial Policy: Integrating Economic Security and Carbon Neutrality</p>
+          <p class="rs-authors"><b>Hyemi Son</b>, Jeong-Gyu Park</p>
+          <p class="rs-venue">Journal of Mobility Studies, vol. 6, no. 2, pp. 65–98 (2026, KCI)</p>
+          <p class="rs-links">
+            <a href="../papers/japan-ev-battery/">overview</a>
+            <a href="https://www.kci.go.kr/kciportal/landing/article.kci?arti_id=ART003381288" target="_blank" rel="noopener">paper</a>
+            <a href="https://doi.org/10.23257/mobile.6.2.202609003" target="_blank" rel="noopener">doi</a>
+          </p>
+        </li>
+      </ul>
 
-      <section class="block">
-        <p class="block-head">Competitions &amp; reports</p>
-        <ul class="arch">
-          <li>
-            <div class="arch-row">
-              <span class="arch-year">2026</span>
-              <div>
-                <h2 class="arch-title">Patent Strategy for Tactile Sensing Technology — Strengthening ETRI's Omnidirectional Tactile Robot Hand Portfolio</h2>
-                <p class="arch-meta"><b>Hyemi Son</b></p>
-                <p class="arch-meta">2,786 tactile sensor patents across Korea, the United States, Japan, the EU, and China. Portfolio gap diagnosis and an Anchor–Connect–Expand strategy.</p>
-                <div class="arch-links">
-                  <a href="../dashboards/tactile-sensor-ip/">Overview</a>
-                </div>
-              </div>
-              <span class="arch-kind">Patent Universiade entry</span>
-            </div>
-          </li>
-          <li>
-            <div class="arch-row">
-              <span class="arch-year">2025</span>
-              <div>
-                <h2 class="arch-title">Patent Landscape of Semiconductor Etching and Plasma Processing</h2>
-                <p class="arch-meta"><b>Hyemi Son</b></p>
-                <p class="arch-meta">8,993 granted US patents projected with TF-IDF and t-SNE into a map of 16 technology clusters, with applicant competition and IPC convergence networks.</p>
-                <div class="arch-links">
-                  <a href="../dashboards/patent-atlas/">Overview</a>
-                </div>
-              </div>
-              <span class="arch-kind">Course research &middot; KAIST</span>
-            </div>
-          </li>
-        </ul>
-      </section>
+      <h2 class="rs-group">Patent</h2>
+      <ul class="rs-list">
+        <li class="rs-item">
+          <p class="rs-title">[NEEDS REVIEW — replace with the exact filed title]</p>
+          <p class="rs-authors"><b>Hyemi Son</b></p>
+          <p class="rs-venue">Korea Advanced Institute of Science and Technology (2026, filing in preparation)</p>
+          <p class="rs-links">
+            <a href="../patents/ai-power-health-index/">overview</a>
+          </p>
+          <p class="rs-note">Technical details are withheld until filing.</p>
+        </li>
+      </ul>
 
-      <section class="block">
-        <p class="block-head">Work in progress</p>
-        <ul class="arch">
-          <li>
-            <div class="arch-row">
-              <span class="arch-year">2026</span>
-              <div>
-                <h2 class="arch-title">Early-Warning Indicators for SME Distress</h2>
-                <p class="arch-meta"><b>Hyemi Son</b></p>
-                <p class="arch-meta">Twenty indicators across news sentiment, macroeconomic conditions, financial position, and credit markets, combined into a pilot early-warning framework. Topic modelling runs on 762 collected news articles.</p>
-                <div class="arch-links">
-                  <a href="../dashboards/sme-crisis-index/">Overview</a>
-                </div>
-              </div>
-              <span class="arch-kind">Pilot study</span>
-            </div>
-          </li>
-        </ul>
-      </section>
+      <h2 class="rs-group">Competition</h2>
+      <ul class="rs-list">
+        <li class="rs-item">
+          <p class="rs-title">Patent Strategy for Tactile Sensing Technology: Strengthening ETRI's Omnidirectional Tactile Robot Hand Portfolio</p>
+          <p class="rs-authors"><b>Hyemi Son</b></p>
+          <p class="rs-venue">Patent Universiade, Patent Strategy Division (2026)</p>
+          <p class="rs-links">
+            <a href="../dashboards/tactile-sensor-ip/">overview</a>
+          </p>
+        </li>
+      </ul>
+
+      <h2 class="rs-group">Research Project</h2>
+      <ul class="rs-list">
+        <li class="rs-item">
+          <p class="rs-title">Patent Landscape of Semiconductor Etching and Plasma Processing</p>
+          <p class="rs-authors"><b>Hyemi Son</b></p>
+          <p class="rs-venue">Innovation Management, KAIST (2025)</p>
+          <p class="rs-links">
+            <a href="../dashboards/patent-atlas/">overview</a>
+          </p>
+        </li>
+        <li class="rs-item">
+          <p class="rs-title">Early-Warning Indicators for SME Distress</p>
+          <p class="rs-authors"><b>Hyemi Son</b></p>
+          <p class="rs-venue">Pilot study (2026)</p>
+          <p class="rs-links">
+            <a href="../dashboards/sme-crisis-index/">overview</a>
+          </p>
+        </li>
+      </ul>
 
     </div>
   </main>
@@ -152,8 +192,7 @@
   <footer class="foot">
     <div class="foot-in">
       <span>&copy; <span data-year>2026</span> Hyemi Son</span>
-      <span>Seoul, Republic of Korea &middot; <a href="mailto:hmson0105@gmail.com">hmson0105@gmail.com</a></span>
-      <span>Icon by <a href="https://icons8.com" target="_blank" rel="noopener">Icons8</a></span>
+      <span>Seoul, Republic of Korea</span>
     </div>
   </footer>
 
