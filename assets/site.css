@@ -13,9 +13,10 @@
   --line:       #E0E1DE;
   --line-2:     #CFD1CD;
 
-  --serif: "Newsreader", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  --sans:  "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+  /* One family across the site, matching the reference academic index. */
+  --sans:  "IBM Plex Sans", Arial, -apple-system, BlinkMacSystemFont,
            "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --serif: var(--sans);
 
   --page:   1180px;
   --gutter: 40px;
@@ -67,8 +68,8 @@ img, svg, video { display: block; max-width: 100%; }
 
 .brand {
   display: inline-flex; align-items: baseline; gap: 9px;
-  font-family: var(--serif);
-  font-size: 1.12rem; letter-spacing: .005em;
+  font-family: var(--sans); font-weight: 700;
+  font-size: 17.33px; letter-spacing: normal; color: #1C1C1C;
 }
 .brand .brand-en { font-family: var(--sans); font-size: .70rem; letter-spacing: .16em;
   text-transform: uppercase; color: var(--ink-3); }
@@ -120,9 +121,9 @@ img, svg, video { display: block; max-width: 100%; }
   color: var(--ink-3); margin: 0 0 16px;
 }
 .page-title {
-  font-family: var(--serif); font-weight: 400;
-  font-size: clamp(2.1rem, 5vw, 3.4rem); line-height: 1.08;
-  letter-spacing: -.012em; margin: 0 0 18px;
+  font-family: var(--sans); font-weight: 700;
+  font-size: 29.33px; line-height: 44px;
+  letter-spacing: normal; color: #1C1C1C; margin: 0 0 14px;
 }
 .page-lede {
   font-size: 1.02rem; line-height: 1.66; color: var(--ink-2);
@@ -139,8 +140,9 @@ section.block:last-of-type { border-bottom: 0; }
 }
 
 h2.sub {
-  font-family: var(--serif); font-weight: 400;
-  font-size: 1.5rem; line-height: 1.22; margin: 0 0 12px; letter-spacing: -.008em;
+  font-family: var(--sans); font-weight: 700;
+  font-size: 17.33px; line-height: 26px; margin: 0 0 12px;
+  letter-spacing: normal; color: #1C1C1C;
 }
 h3.sub-s {
   font-family: var(--sans); font-weight: 600;
@@ -157,11 +159,14 @@ strong { color: var(--ink); font-weight: 600; }
 /* ----------------------------------------------------------
    About
    ---------------------------------------------------------- */
-.profile { display: grid; grid-template-columns: 260px 1fr; gap: 52px; align-items: start; }
+.profile { display: grid; grid-template-columns: 260px 1fr; gap: 72px; align-items: start; }
 @media (max-width: 860px) { .profile { grid-template-columns: 1fr; gap: 28px; }
   .portrait { max-width: 210px; } }
 
-.portrait { width: 100%; aspect-ratio: 1/1; overflow: hidden; background: var(--line); }
+/* The browser gives <figure> a default margin of 16px 40px. Left in place it
+   pushes the photo 40px out of its grid column and swallows most of the gap
+   next to the table, so it is reset explicitly. */
+.portrait { margin: 0; width: 100%; aspect-ratio: 1/1; overflow: hidden; background: var(--line); }
 .portrait img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1); }
 
 .facts { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
@@ -196,7 +201,7 @@ strong { color: var(--ink); font-weight: 600; }
   .arch-row { grid-template-columns: 1fr; gap: 8px; }
 }
 .arch-year { font-size: .82rem; color: var(--ink-3); letter-spacing: .04em; padding-top: 2px; }
-.arch-title { font-family: var(--serif); font-size: 1.12rem; line-height: 1.34; margin: 0 0 6px; color: var(--ink); }
+.arch-title { font-family: var(--sans); font-weight: 700; font-size: 1rem; line-height: 1.34; margin: 0 0 6px; color: var(--ink); }
 .arch-meta { font-size: .86rem; color: var(--ink-2); margin: 0; }
 .arch-meta b { color: var(--ink); font-weight: 600; }
 .arch-kind {
@@ -225,7 +230,7 @@ strong { color: var(--ink); font-weight: 600; }
 .proj a.proj-hit { display: block; }
 .proj a.proj-hit:hover .proj-fig { border-color: var(--ink); }
 .proj-year { font-size: .68rem; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 7px; }
-.proj-title { font-family: var(--serif); font-weight: 400; font-size: 1.24rem; line-height: 1.28; margin: 0 0 8px; letter-spacing: -.008em; }
+.proj-title { font-family: var(--sans); font-weight: 700; font-size: 1.05rem; line-height: 1.28; margin: 0 0 8px; letter-spacing: -.008em; }
 .proj-desc { font-size: .9rem; color: var(--ink-2); margin: 0 0 12px; }
 .proj-links { display: flex; flex-wrap: wrap; gap: 16px; }
 .proj-links a { font-size: .78rem; color: var(--ink-2); border-bottom: 1px solid var(--line-2); padding-bottom: 1px; }
