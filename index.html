@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>손혜미 | Hyemi Son - My Space</title>
   <meta name="description" content="기술혁신·경제안보·기업 리스크를 정책과 현장 데이터로 분석하는 연구 포트폴리오.">
-  <meta name="theme-color" content="#1E40AF">
+  <meta name="theme-color" content="#002147">
   <link rel="icon" href="assets/kitty.png" type="image/png">
 
   <meta property="og:type" content="website">
@@ -35,18 +35,23 @@
        Hyemi Son Portfolio — Cool-tone Blue Minimalist
        =========================================================== */
     :root {
-      --primary:        #1E40AF;
-      --secondary:      #3B82F6;
-      --accent:         #60A5FA;
-      --bg:             #F8FAFC;
-      --bg-elev:        #FFFFFF;
-      --bg-soft:        #EFF4FB;
-      --text-primary:   #0F172A;
-      --text-secondary: #475569;
-      --border:         #E2E8F0;
-      --shadow-sm:      0 1px 2px rgba(15, 23, 42, 0.04);
-      --shadow-md:      0 4px 12px rgba(15, 23, 42, 0.06);
-      --shadow-lg:      0 12px 32px rgba(15, 23, 42, 0.08);
+      /* TX Creative AI Lab 팔레트 */
+      --navy:           #002147;   /* 페이지 배경 */
+      --gold:           #FAAF11;   /* 섹션 제목 강조 */
+      --link:           #7FB3EA;   /* 네이비 위 링크 */
+      --nav-ink:        #002147;   /* 흰 상단바 글자 */
+      --primary:        #FAAF11;
+      --secondary:      #7FB3EA;
+      --accent:         #FAAF11;
+      --bg:             #002147;
+      --bg-elev:        #0B2C52;
+      --bg-soft:        #06264A;
+      --text-primary:   #FFFFFF;
+      --text-secondary: #B4C4D8;
+      --border:         rgba(255, 255, 255, 0.16);
+      --shadow-sm:      0 1px 2px rgba(0, 0, 0, 0.18);
+      --shadow-md:      0 6px 18px rgba(0, 0, 0, 0.28);
+      --shadow-lg:      0 16px 40px rgba(0, 0, 0, 0.36);
       --radius-sm:      6px;
       --radius-md:      10px;
       --radius-lg:      16px;
@@ -59,7 +64,8 @@
 
     body {
       margin: 0;
-      font-family: "Inter", "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto,
+        "Helvetica Neue", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
       font-size: 16px;
       line-height: 1.6;
       color: var(--text-primary);
@@ -457,6 +463,100 @@
     }
       .footer-text .credit { font-size: .78rem; opacity: .8; }
     .footer-text .credit a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+
+    /* ===========================================================
+       TX Creative AI Lab 스타일 오버라이드
+       배경 #002147 · 흰 글자 · 골드 섹션 제목 · 흰색 상단바
+       =========================================================== */
+    html { background: var(--navy); scroll-padding-top: 84px; }
+    body { background: var(--navy); color: #FFFFFF; }
+    a { color: var(--link); }
+    a:hover { color: var(--gold); }
+    h1, h2, h3, h4 { color: #FFFFFF; }
+
+    /* 섹션 제목: TX의 골드 헤딩 */
+    h2 { color: var(--gold); font-weight: 600; letter-spacing: 0; }
+    .section-label { color: var(--link); }
+    .section-sub, p { color: var(--text-secondary); }
+    section + section { border-top: 1px solid rgba(255, 255, 255, 0.14); }
+
+    /* 상단바: TX는 흰 바탕 + 네이비 글자 */
+    header.site-nav {
+      background: #FFFFFF;
+      border-bottom: 1px solid rgba(0, 33, 71, 0.12);
+      backdrop-filter: none; -webkit-backdrop-filter: none;
+    }
+    .nav-inner { height: 74px; }
+    .nav-brand, .nav-brand span { color: var(--nav-ink); }
+    .nav-brand .mascot { background: #FFFFFF; border-color: rgba(0, 33, 71, 0.14); box-shadow: none; }
+    .nav-links a { color: var(--nav-ink); font-size: 0.92rem; font-weight: 500; }
+    .nav-links a:hover { color: #046BD2; }
+    .nav-toggle { background: #FFFFFF; border-color: rgba(0, 33, 71, 0.22); }
+    .nav-toggle span,
+    .nav-toggle span::before,
+    .nav-toggle span::after { background: var(--nav-ink); }
+    @media (max-width: 720px) {
+      .nav-links { background: #FFFFFF; top: 74px; border-bottom-color: rgba(0, 33, 71, 0.12); }
+      .nav-links li { border-top-color: rgba(0, 33, 71, 0.10); }
+    }
+
+    /* 히어로 */
+    .hero-tag { background: var(--bg-soft); border-color: var(--border); color: var(--gold); }
+    .hero-tag::before { background: var(--gold); }
+    .hero .lead { color: var(--text-secondary); }
+    .text-accent { color: var(--gold); }
+
+    /* 프로필 사진: TX처럼 정사각 · 흑백 · 작게 */
+    .hero-avatar {
+      max-width: 300px; aspect-ratio: 1 / 1;
+      border-radius: 0; background: transparent;
+      border: none; box-shadow: none; padding: 0;
+      overflow: hidden;
+    }
+    .hero-avatar img {
+      width: 100%; height: 100%; object-fit: cover;
+      filter: grayscale(1); transition: filter .35s ease;
+    }
+    .hero-avatar:hover img { filter: grayscale(0); }
+
+    /* 버튼 */
+    .btn-primary { background: var(--gold); color: #002147; font-weight: 600; }
+    .btn-primary:hover { background: #FFC245; color: #002147; }
+    .btn-secondary { background: transparent; color: #FFFFFF; border-color: rgba(255, 255, 255, 0.34); }
+    .btn-secondary:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* 카드 계열 */
+    .about-card, .interest-card, .card, .contact-inner {
+      background: var(--bg-elev); border-color: var(--border);
+    }
+    .about-card dd, .contact-channel { color: #FFFFFF; }
+    .about-text p, .interest-card p, .card-desc { color: var(--text-secondary); }
+    .interest-icon { background: var(--bg-soft); color: var(--gold); }
+    .interest-card h3, .card-title, .contact-inner h3 { color: #FFFFFF; }
+    .interest-link, .card-link { color: var(--link); }
+    .interest-link:hover, .card-link:hover { color: var(--gold); }
+    .card:hover { border-color: var(--gold); }
+    .card-meta { color: var(--gold); }
+    .card-badge { background: var(--bg-soft); color: var(--text-secondary); border: 1px solid var(--border); }
+    .card-link[aria-disabled="true"] { color: var(--text-secondary); }
+    .card-media.cover { background: #FFFFFF; border-bottom: 1px solid var(--border); }
+    .contact-channel svg { color: var(--gold); }
+    .contact-channel:hover { color: var(--gold); }
+
+    /* 푸터 */
+    footer { background: var(--navy); border-top-color: rgba(255, 255, 255, 0.14); }
+    .footer-inner, .footer-inner a { color: var(--text-secondary); }
+    .footer-inner a:hover { color: var(--gold); }
+
+    :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+    ::selection { background: var(--gold); color: #002147; }
+
+    @media (max-width: 680px) {
+      .hero-avatar { max-width: 230px; margin: 0 auto; padding: 0; }
+      h2 { font-size: 1.5rem; }
+      .nav-inner { height: 64px; }
+      .nav-links { top: 64px; }
+    }
 </style>
 </head>
 

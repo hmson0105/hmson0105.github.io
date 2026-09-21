@@ -2,6 +2,18 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "my-site",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8139",
+        "--directory",
+        "/Users/home/Desktop/my-site"
+      ],
+      "port": 8139
+    },
+    {
       "name": "kiet-notes",
       "runtimeExecutable": "python3",
       "runtimeArgs": [
