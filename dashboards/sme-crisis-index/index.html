@@ -6,6 +6,8 @@
 <title>중소기업 위기 조기경보 대시보드 | 손혜미</title>
 <meta name="description" content="뉴스 762건 토픽모델링과 실제 공공통계를 결합한 중소기업 위기 조기경보 지표 대시보드.">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #1a2332; }
@@ -135,6 +137,23 @@ img, svg, canvas { max-width: 100%; }
 .corr-tbl td { padding: 6px 9px; border-bottom: 1px solid #eef2f6; }
 .corr-bar { height: 15px; border-radius: 3px; display: inline-block; vertical-align: middle; }
 .corr-grp { font-size: 10.5px; color: #7c8ca3; }
+
+/* ── 타임라인 구간 선택 ─────────────────────────── */
+.tl-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.tl-btn { font-size: 11.5px; padding: 5px 11px; border: 1px solid #d5dde8; background: #fff;
+          border-radius: 999px; cursor: pointer; color: #44566e; transition: all .15s; }
+.tl-btn:hover { border-color: #2E75B6; color: #1B3A5C; }
+.tl-btn.on { background: #1B3A5C; border-color: #1B3A5C; color: #fff; }
+.tl-range { margin-left: auto; font-size: 11.5px; color: #7c8ca3; }
+.tl-hint { font-size: 11px; color: #94a3b8; margin-top: 8px; }
+.evt-list { margin-top: 14px; border-top: 1px solid #e8ecf0; }
+.evt-item { display: grid; grid-template-columns: 74px 92px 1fr; gap: 12px; padding: 9px 0;
+            border-bottom: 1px solid #f1f4f8; font-size: 12.5px; align-items: baseline; }
+.evt-item .dt { color: #7c8ca3; font-variant-numeric: tabular-nums; }
+.evt-item .tag { font-size: 10.5px; padding: 2px 7px; border-radius: 3px; text-align: center; font-weight: 600; }
+.evt-item .tx { color: #44566e; line-height: 1.5; }
+.evt-item.dim { opacity: .38; }
+@media (max-width: 680px) { .evt-item { grid-template-columns: 62px 1fr; } .evt-item .tag { display: none; } }
 </style>
 </head>
 <body>
@@ -334,8 +353,18 @@ img, svg, canvas { max-width: 100%; }
     <div class="subtitle">RQ3: 개별 기업 위기와 지정학 충격은 중소기업 신용지표에 어떻게 전이되는가?</div>
     <div class="chart-grid">
       <div class="chart-box full">
-        <h3>중소기업 대출 연체율과 주요 충격 이벤트 (2024.12 ~ 2026.07)</h3>
+        <h3>연체율·종합지수와 주요 충격 이벤트</h3>
+        <div class="tl-bar">
+          <button class="tl-btn" data-tl="all">전체</button>
+          <button class="tl-btn" data-tl="60">최근 5년</button>
+          <button class="tl-btn on" data-tl="36">최근 3년</button>
+          <button class="tl-btn" data-tl="12">최근 1년</button>
+          <button class="tl-btn" data-tl="reset">⟲ 초기화</button>
+          <span class="tl-range" id="tl-range">—</span>
+        </div>
         <canvas id="chart-timeline"></canvas>
+        <p class="tl-hint">차트 위에서 <strong>마우스를 드래그</strong>하면 그 구간만 확대됩니다. 초기화를 누르면 되돌아갑니다.</p>
+        <div class="evt-list" id="evt-list"></div>
         <div class="insight">
           <strong>확인된 사실:</strong> 홈플러스는 2025년 3월 4일 서울회생법원에 기업회생절차 개시를 신청했고
           (사건번호 2025회합135), 2026년 7월 3일 법원이 <strong>회생절차 폐지</strong>를 결정했다. 이 시점의
@@ -524,6 +553,7 @@ const pick = (obs, from) => obs.filter(o => o.t >= from);
 
 fetch('data/ecos.json').then(r => r.json()).then(E => {
   const S = E.series;
+  const A = E.analysis;   // 타임라인·상관·게이지가 모두 참조하므로 먼저 선언한다
   document.querySelectorAll('[data-ecos-date]').forEach(el => {
     el.textContent = E.collected_at.slice(0, 10);
   });
@@ -602,49 +632,129 @@ fetch('data/ecos.json').then(r => r.json()).then(E => {
               grid: { drawOnChartArea: false } },
         x: { ticks: { maxTicksLimit: 10, font: { size: 10 } } } } }
   });
-  // 6) 타임라인 — 연체율 실측 위에 충격 이벤트를 겹쳐 표시
-  const tl = pick(S.delinq_corp.obs, '202401');
+  // 6) 타임라인 — 연체율 + 종합 위기지수, 드래그로 구간 선택
   const EVT = [
-    // 모두 일자·출처가 확인된 사실만 표기한다.
-    { t: '202503', text: '홈플러스 회생절차 신청\n(3.4, 서울회생법원 2025회합135)', color: '#F39C12' },
-    { t: '202505', text: '기준금리 2.75→2.50%\n(수집 데이터에서 도출)', color: '#2E75B6' },
-    { t: '202607', text: '홈플러스 회생절차 폐지\n(7.3) · 협력업체 특례보증 3천억', color: '#E74C3C' }
+    // 일자와 출처가 확인된 사실만 싣는다.
+    { t: '202503', d: '2025.03.04', cat: '기업부실', color: '#F39C12',
+      tx: '홈플러스 기업회생절차 신청 (서울회생법원 2025회합135)' },
+    { t: '202507', d: '2025.07.07', cat: '통상', color: '#8E44AD',
+      tx: '미국, 한국에 8.1부터 상호관세 25% 부과 통보' },
+    { t: '202508', d: '2025.08.07', cat: '통상', color: '#8E44AD',
+      tx: '한·미 협상 타결로 15%로 조정, 행정명령 서명·발효' },
+    { t: '202602', d: '2026.02.28', cat: '지정학', color: '#E74C3C',
+      tx: '중동 확전 이후 호르무즈 해협 봉쇄 — 두바이유 157.66달러, 원/달러 1,500원 돌파' },
+    { t: '202607', d: '2026.07.03', cat: '기업부실', color: '#F39C12',
+      tx: '홈플러스 회생절차 폐지 결정 — 공익채권 약 1.1조원, 협력업체 특례보증 3,000억원' }
   ];
-  new Chart(document.getElementById('chart-timeline'), {
+  const CATC = { 기업부실: '#F39C12', 통상: '#8E44AD', 지정학: '#E74C3C', 통화정책: '#2E75B6' };
+
+  // 기준금리 변동은 수집 데이터에서 직접 뽑는다(별도 출처 불필요)
+  (function () {
+    const br = S.base_rate.obs;
+    for (let i = 1; i < br.length; i++) {
+      if (br[i].v !== br[i - 1].v && br[i].t >= '202401') {
+        EVT.push({ t: br[i].t, d: fmtT(br[i].t), cat: '통화정책', color: CATC.통화정책,
+          tx: '기준금리 ' + br[i - 1].v + '% → ' + br[i].v + '%' });
+      }
+    }
+    EVT.sort((a, b) => a.t.localeCompare(b.t));
+  })();
+
+  const tlAll = S.delinq_corp.obs;
+  const compMap = {};
+  A.composite.forEach(o => { compMap[o.t] = o.v; });
+
+  const tlChart = new Chart(document.getElementById('chart-timeline'), {
     type: 'line',
-    data: { labels: tl.map(o => fmtT(o.t)),
-      datasets: [{ label: S.delinq_corp.label, data: tl.map(o => o.v),
-        borderColor: colors.blue, borderWidth: 2.6, tension: .3, pointRadius: 0,
-        backgroundColor: colors.blue + '20', fill: true }] },
-    options: { responsive: true, interaction: { mode: 'index', intersect: false },
-      scales: { y: { beginAtZero: true, title: { display: true, text: '연체율 (%)' } },
-                x: { ticks: { maxTicksLimit: 12, font: { size: 10 } } } },
-      plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } } },
+    data: {
+      labels: tlAll.map(o => fmtT(o.t)),
+      datasets: [
+        { label: '기업대출 연체율 (좌)', data: tlAll.map(o => o.v), yAxisID: 'y',
+          borderColor: '#1B3A5C', borderWidth: 2.6, pointRadius: 0, tension: .3,
+          backgroundColor: '#1B3A5C18', fill: true },
+        { label: '종합 위기지수 (우)', data: tlAll.map(o => compMap[o.t] ?? null), yAxisID: 'y1',
+          borderColor: '#E74C3C', borderWidth: 1.8, pointRadius: 0, tension: .3,
+          borderDash: [5, 4], spanGaps: true }
+      ]
+    },
+    options: {
+      responsive: true, interaction: { mode: 'index', intersect: false },
+      scales: {
+        y: { position: 'left', beginAtZero: true, title: { display: true, text: '연체율 (%)' } },
+        y1: { position: 'right', title: { display: true, text: 'z-score' }, grid: { drawOnChartArea: false } },
+        x: { ticks: { maxTicksLimit: 14, font: { size: 10 } } }
+      },
+      plugins: {
+        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } },
+        zoom: {
+          zoom: { drag: { enabled: true, backgroundColor: 'rgba(46,117,182,.14)',
+                          borderColor: '#2E75B6', borderWidth: 1 },
+                  mode: 'x', onZoomComplete: () => syncRange() },
+          limits: { x: { minRange: 3 } }
+        }
+      }
+    },
     plugins: [{
-      afterDraw: function (chart) {
-        const ctx = chart.ctx, xA = chart.scales.x, yA = chart.scales.y;
-        EVT.forEach(function (e) {
-          const i = tl.findIndex(function (o) { return o.t === e.t; });
-          if (i < 0) return;
-          const x = xA.getPixelForValue(i);
+      afterDraw(chart) {
+        const { ctx, scales: { x: xA, y: yA } } = chart;
+        const lo = Math.ceil(xA.min), hi = Math.floor(xA.max);
+        EVT.forEach(e => {
+          const i = tlAll.findIndex(o => o.t === e.t);
+          if (i < lo || i > hi) return;                 // 보이는 구간만 그린다
+          const px = xA.getPixelForValue(i);
           ctx.save();
-          ctx.strokeStyle = e.color; ctx.lineWidth = 1.4; ctx.setLineDash([5, 4]);
-          ctx.beginPath(); ctx.moveTo(x, yA.top); ctx.lineTo(x, yA.bottom); ctx.stroke();
+          ctx.strokeStyle = e.color; ctx.lineWidth = 1.3; ctx.setLineDash([4, 3]);
+          ctx.beginPath(); ctx.moveTo(px, yA.top); ctx.lineTo(px, yA.bottom); ctx.stroke();
           ctx.setLineDash([]);
-          ctx.fillStyle = e.color; ctx.font = '600 10px Segoe UI, Arial';
-          ctx.textAlign = x > (xA.left + xA.right) / 2 ? 'right' : 'left';
-          e.text.split('\n').forEach(function (line, k) {
-            ctx.fillText(line, x + (ctx.textAlign === 'right' ? -6 : 6), yA.top + 14 + k * 12);
-          });
+          ctx.fillStyle = e.color;
+          ctx.beginPath(); ctx.arc(px, yA.top + 4, 3.2, 0, Math.PI * 2); ctx.fill();
           ctx.restore();
         });
       }
     }]
   });
 
+  function visibleRange() {
+    const xA = tlChart.scales.x;
+    const a = Math.max(0, Math.ceil(xA.min)), b = Math.min(tlAll.length - 1, Math.floor(xA.max));
+    return [tlAll[a]?.t, tlAll[b]?.t];
+  }
+  function syncRange() {
+    const [a, b] = visibleRange();
+    document.getElementById('tl-range').textContent = a && b ? fmtT(a) + ' ~ ' + fmtT(b) : '—';
+    document.querySelectorAll('.evt-item').forEach(el => {
+      const t = el.dataset.t;
+      el.classList.toggle('dim', !(t >= a && t <= b));
+    });
+  }
+  function setWindow(n) {
+    if (n === 'all' || n === 'reset') { tlChart.resetZoom(); }
+    else {
+      const last = tlAll.length - 1;
+      tlChart.zoomScale('x', { min: Math.max(0, last - n + 1), max: last }, 'none');
+    }
+    syncRange();
+  }
+  document.querySelectorAll('[data-tl]').forEach(b => {
+    b.addEventListener('click', () => {
+      const v = b.dataset.tl;
+      document.querySelectorAll('[data-tl]').forEach(x => x.classList.toggle('on', x === b && v !== 'reset'));
+      setWindow(v === 'reset' ? 'all' : (v === 'all' ? 'all' : parseInt(v)));
+    });
+  });
+
+  // 이벤트 목록
+  document.getElementById('evt-list').innerHTML = EVT.map(e =>
+    '<div class="evt-item" data-t="' + e.t + '">' +
+      '<span class="dt">' + e.d + '</span>' +
+      '<span class="tag" style="background:' + e.color + '1a;color:' + e.color + '">' + e.cat + '</span>' +
+      '<span class="tx">' + e.tx + '</span>' +
+    '</div>').join('');
+
+  setWindow(36);
+
 
   /* ── 종합 현황: 게이지 + KPI ─────────────────────── */
-  const A = E.analysis;
   document.getElementById('n-ind').textContent = Object.keys(S).length;
 
   // 게이지: -2 ~ +2 구간을 반원에 매핑하고 경보 구간을 색으로 나눈다
