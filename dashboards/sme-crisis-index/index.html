@@ -277,6 +277,13 @@ img, svg, canvas { max-width: 100%; }
   .flow-step::after { display: none; }
   .rq { grid-template-columns: 54px 1fr; gap: 11px; }
 }
+
+.st-badge { font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 4px;
+            white-space: nowrap; display: inline-block; }
+.st-done { background: #e6f4ea; color: #1e7e42; }
+.st-part { background: #fff4e5; color: #9a6400; }
+.st-todo { background: #f1f3f5; color: #6b7280; }
+.st-note { font-size: 11px; color: #8a9ab0; margin-top: 3px; display: block; }
 </style>
 </head>
 <body>
@@ -289,7 +296,7 @@ img, svg, canvas { max-width: 100%; }
 
 <div class="header">
   <h1>중소기업 위기 조기경보 대시보드</h1>
-  <p>뉴스 텍스트 토픽모델링 × 거시·재무·신용 지표를 결합한 20개 지표 조기경보 체계 | Pilot Study (2026)</p>
+  <p>뉴스 토픽모델링 × 거시·재무·신용·지역 지표를 결합한 24개 지표 조기경보 체계 | Pilot Study (2026)</p>
 </div>
 
 
@@ -323,7 +330,7 @@ img, svg, canvas { max-width: 100%; }
   <div class="stat-card"><div class="num">10</div><div class="label">크롤링 검색 쿼리</div></div>
   <div class="stat-card"><div class="num">5</div><div class="label">LDA 토픽</div></div>
   <div class="stat-card"><div class="num">265</div><div class="label">분석 어휘 수</div></div>
-  <div class="stat-card"><div class="num">20</div><div class="label">위기 판별 지표</div></div>
+  <div class="stat-card"><div class="num">24</div><div class="label">수집 지표 계열</div></div>
 </div>
 
 <div class="container">
@@ -663,50 +670,87 @@ img, svg, canvas { max-width: 100%; }
 
   <!-- 지표 체계 -->
   <div class="section">
-    <h2>지표 체계: 4개 유형 20개 지표</h2>
+    <h2>지표 체계와 구현 현황</h2>
     <div class="subtitle">뉴스에 먼저 드러나는 "인식된 위기"부터 거시 국면, 현장 재무, 금융시장 신용 반응까지</div>
-    <div class="chart-grid">
-      <div class="chart-box full">
-        <table>
-          <thead>
-            <tr><th style="width:170px">유형</th><th style="text-align:left">지표 (5개씩)</th><th style="width:150px">데이터 소스</th><th style="width:90px">구현 상태</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><span class="tag tag-t2">① 위기인식지수</span></td>
-              <td class="left">위기 키워드 언급빈도 · 뉴스 감성지수 · 위기 이슈 확산속도 · 업종별 위기언급 집중도 · 정책·구제 뉴스 노출빈도</td>
-              <td>뉴스 RSS 크롤링<br>+ 텍스트마이닝</td>
-              <td><strong style="color:#27AE60">구현 완료</strong></td>
-            </tr>
-            <tr>
-              <td><span class="tag tag-t3">② 거시경제지표</span></td>
-              <td class="left">기준금리 · 원/달러 환율 변동성 · 생산자물가지수(PPI) 변화율 · 소비자심리지수(CCSI) · 제조업 가동률</td>
-              <td>한국은행 ECOS<br>통계청 KOSIS</td>
-              <td>API 연동 예정</td>
-            </tr>
-            <tr>
-              <td><span class="tag tag-t1">③ 중소기업 재무·경영지표</span></td>
-              <td class="left">중소기업 대출연체율 · 폐업률 · 자금사정 BSI · 어음부도율 · 평균 영업이익률</td>
-              <td>중소벤처기업부<br>금융감독원</td>
-              <td><strong style="color:#F39C12">일부 반영</strong></td>
-            </tr>
-            <tr>
-              <td><span class="tag tag-t5">④ 금융시장·신용지표</span></td>
-              <td class="left">회사채 신용스프레드 · 신용등급 강등 비율 · 은행권 중기대출 증가율 · 벤처투자 위축지수 · 신용보증기금 대위변제율</td>
-              <td>금융투자협회<br>신용보증기금</td>
-              <td>수집 예정</td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="insight">
-          <strong>설계 원리:</strong> 위기는 ① 인식(뉴스) → ② 거시 국면 → ③ 현장 재무 → ④ 금융시장 신용의 순서로 전이된다.
-          각 층위의 시차를 측정하면, 뉴스 단계에서 이미 드러난 신호로 <strong>3~6개월 뒤 재무지표 악화를 예측</strong>할 수 있다는 것이
-          본 지표 체계의 가설이다.
-        </div>
+
+    <div class="chart-box full">
+      <table class="srctbl">
+        <thead><tr>
+          <th style="width:17%">유형</th>
+          <th style="width:42%">수집한 지표</th>
+          <th style="width:19%">데이터 소스</th>
+          <th style="width:22%">구현 상태</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td><b>① 위기인식지수</b></td>
+            <td>뉴스 토픽 5종(대출연체·폐업 / 협력업체대금·부도 / 명절 자금난 / 정책 긴급지원 / 수출부진·고금리)
+                · 상위 키워드 빈도 · 월별 토픽 구성 변화</td>
+            <td>Google News RSS<br><span class="corr-grp">10개 검색어</span></td>
+            <td><span class="st-badge st-done">구현 완료</span>
+                <span class="st-note">762건 수집 · LDA k=5 · 어휘 265개</span></td>
+          </tr>
+          <tr>
+            <td><b>② 거시·심리지표</b></td>
+            <td>기준금리 · 경제심리지수(원계열·순환변동치) · 소비자심리지수 · 현재경기판단 CSI
+                · 중소기업 경기동행종합지수(원지수·순환변동치)</td>
+            <td>한국은행 ECOS<br>통계청 KOSIS</td>
+            <td><span class="st-badge st-done">구현 완료</span>
+                <span class="st-note">API 직접 수집 · 7개 계열</span></td>
+          </tr>
+          <tr>
+            <td><b>③ 중소기업 재무·경영</b></td>
+            <td>중소기업 대출금리 · 자금사정 BSI(실적·전망) · 업황 BSI(실적·전망) · 매출 BSI
+                · 비제조업 업황 BSI · 대기업 대출금리(대조군)</td>
+            <td>한국은행 ECOS<br><span class="corr-grp">기업경기조사</span></td>
+            <td><span class="st-badge st-done">구현 완료</span>
+                <span class="st-note">API 직접 수집 · 8개 계열</span></td>
+          </tr>
+          <tr>
+            <td><b>④ 신용·실물지표</b></td>
+            <td>기업대출 연체율 · 가계대출 연체율 · 어음부도율 · 전산업생산지수 · 설비투자지수
+                · 제조업 재고율 · 평균가동률 · 수출입금액</td>
+            <td>한국은행 ECOS</td>
+            <td><span class="st-badge st-done">구현 완료</span>
+                <span class="st-note">API 직접 수집 · 9개 계열</span></td>
+          </tr>
+          <tr>
+            <td><b>⑤ 지역·산업 구조</b></td>
+            <td>시도별 중소기업대출 연체율 · 시도별 어음부도율 · 시도·산업별 사업체수·종사자수·매출액
+                · 지역 종합 위기지수</td>
+            <td>한국은행 ECOS<br>통계청 KOSIS</td>
+            <td><span class="st-badge st-done">구현 완료</span>
+                <span class="st-note">17개 시도 × 8개 산업</span></td>
+          </tr>
+          <tr>
+            <td><b>⑥ 미수집 지표</b></td>
+            <td>회사채 신용스프레드 · 신용등급 강등 비율 · 벤처투자 위축지수 · 신용보증기금 대위변제율
+                · 중소기업 폐업률(월 단위)</td>
+            <td>금융투자협회<br>신용보증기금 등</td>
+            <td><span class="st-badge st-todo">미구현</span>
+                <span class="st-note">공개 API 미제공 또는 월 단위 부재</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="insight" style="margin-top:14px;font-size:12.5px">
+        <strong>현재 수집 규모.</strong> ECOS·KOSIS 오픈API에서 <strong>24개 계열 2,494개 관측치</strong>
+        (2018.01~2026.10)를 수집했고, 여기에 뉴스 762건과 17개 시도 데이터를 더해 분석했다.
+        <strong>초기 설계의 20개 지표는 모두 확보</strong>했으며 BSI 계열과 지역 지표가 추가돼 24개로 늘었다.
+        <br><br>
+        <strong>확보하지 못한 것.</strong> 회사채 스프레드·신용등급·대위변제율은 공개 API가 없어
+        기관 승인이나 유료 구독이 필요하다. <strong>중소기업 폐업률</strong>은 KOSIS 기업생멸행정통계에
+        연간으로만 있어 월별 조기경보에는 쓸 수 없었다. 그 대신 지역별 표에만 존재하는
+        <strong>중소기업 전용 연체율</strong>을 찾아 지역 분석에 활용했다.
       </div>
+
+      <p class="src" style="margin-top:12px">
+        설계 원리: 위기는 ① 인식(뉴스) → ② 거시 국면 → ③ 현장 재무 → ④ 금융시장 신용의 순서로 전이된다는
+        가설에서 출발했다. 실제 분석 결과 자금·신용 지표군의 상관이 가장 높았고(평균 0.34),
+        선행 시차는 0개월과 6개월로 양극화됐다. 가설의 전이 순서는 부분적으로만 확인됐다.
+      </p>
     </div>
   </div>
-
 
   <!-- 지역별 산업·신용 지도 -->
   <div class="section">
@@ -1446,6 +1490,8 @@ Promise.all([
 
   selInd.innerHTML = R.industries.map(i =>
     '<option value="' + i.code + '">' + i.name + '</option>').join('');
+  // 전체 산업은 모든 시도가 100%라 산점도가 한 줄로 뭉친다. 비교가 되는 제조업을 기본으로 둔다.
+  if ([...selInd.options].some(o => o.value === 'C')) selInd.value = 'C';
   // 인출선이 지도 밖으로 나가므로 좌우를 조금 넓혀 잘리지 않게 한다
   const vb = M.viewBox.split(' ').map(Number);
   svg.setAttribute('viewBox', (vb[0]-95) + ' ' + vb[1] + ' ' + (vb[2]+190) + ' ' + vb[3]);
