@@ -229,6 +229,54 @@ img, svg, canvas { max-width: 100%; }
 .find .basis { display: block; font-size: 12.5px; color: #5b6e85; line-height: 1.68; }
 .find .caveat { display: block; font-size: 12px; color: #8a7350; background: #fdf8ef;
                 border-radius: 5px; padding: 8px 11px; margin-top: 9px; line-height: 1.6; }
+
+/* ── 카드뉴스형 도입부 ─────────────────────────── */
+.cardnews { display: grid; gap: 14px; }
+.cn-3 { grid-template-columns: repeat(3, 1fr); }
+.cn-2 { grid-template-columns: repeat(2, 1fr); }
+.cn-card { background: #fff; border: 1px solid #e3eaf2; border-radius: 12px;
+           padding: 20px 21px; position: relative; overflow: hidden; }
+.cn-card .no { font-size: 34px; font-weight: 800; color: #eaf1f8; line-height: 1;
+               position: absolute; right: 14px; top: 10px; }
+.cn-card h4 { font-size: 14.5px; color: #1B3A5C; margin-bottom: 9px; position: relative; }
+.cn-card p { font-size: 13px; color: #55677d; line-height: 1.68; margin: 0; position: relative; }
+.cn-card b { color: #1B3A5C; }
+.cn-card.accent { background: linear-gradient(135deg,#1B3A5C,#2E75B6); border-color: transparent; }
+.cn-card.accent h4, .cn-card.accent p { color: #fff; }
+.cn-card.accent p { color: #cfe0ef; }
+.cn-card.accent .no { color: rgba(255,255,255,.16); }
+.cn-card.accent b { color: #fff; }
+
+.rq { display: grid; grid-template-columns: 62px 1fr; gap: 16px; align-items: start;
+      padding: 16px 0; border-bottom: 1px solid #eef2f6; }
+.rq:last-child { border-bottom: none; }
+.rq .tag { font-size: 11px; font-weight: 700; letter-spacing: .06em; color: #fff;
+           background: #2E75B6; border-radius: 5px; padding: 5px 0; text-align: center; }
+.rq .q { font-size: 14px; color: #1B3A5C; font-weight: 600; margin-bottom: 5px; line-height: 1.5; }
+.rq .a { font-size: 12.5px; color: #5b6e85; line-height: 1.62; }
+.rq .a b { color: #2E75B6; }
+
+.flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 4px; }
+.flow-step { background: #f7fafc; border-radius: 9px; padding: 14px 13px; position: relative; }
+.flow-step .n { font-size: 10.5px; font-weight: 700; color: #2E75B6; letter-spacing: .08em; }
+.flow-step h5 { font-size: 12.5px; color: #1B3A5C; margin: 5px 0 5px; }
+.flow-step p { font-size: 11.5px; color: #6b7e94; line-height: 1.55; margin: 0; }
+.flow-step::after { content: "→"; position: absolute; right: -9px; top: 50%;
+                    transform: translateY(-50%); color: #c3d0de; font-size: 13px; }
+.flow-step:last-child::after { display: none; }
+
+.srctbl { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 4px; }
+.srctbl th { background: #f2f6fa; color: #44566e; padding: 9px 11px; text-align: left;
+             font-weight: 600; border-bottom: 1px solid #e3eaf2; }
+.srctbl td { padding: 9px 11px; border-bottom: 1px solid #f1f4f8; color: #55677d; }
+.srctbl td b { color: #1B3A5C; }
+.srctbl code { background: #f2f6fa; padding: 1px 5px; border-radius: 3px; font-size: 11.5px; }
+@media (max-width: 900px) {
+  .cn-3, .cn-2 { grid-template-columns: 1fr; }
+  .flow { grid-template-columns: 1fr 1fr; }
+  .flow-step::after { display: none; }
+  .rq { grid-template-columns: 54px 1fr; gap: 11px; }
+}
 </style>
 </head>
 <body>
@@ -287,8 +335,149 @@ img, svg, canvas { max-width: 100%; }
     활용하는 것이 적절합니다.
   </div>
 
+  <!-- 01 연구 목적 -->
+  <div class="section">
+    <div class="eyebrow-num">01 · Research Purpose</div>
+    <h2>왜 이 분석을 했나</h2>
+    <div class="subtitle">중소기업 부실은 터진 뒤에야 숫자로 나타난다. 그 전에 잡히는 신호를 찾는 것이 목적이다.</div>
+
+    <div class="cardnews cn-3">
+      <div class="cn-card">
+        <span class="no">01</span>
+        <h4>문제</h4>
+        <p>연체율·폐업률은 <b>이미 벌어진 일</b>의 기록이다. 통계가 발표될 때쯤이면
+           지원 시점은 지나 있다. 실무에서는 "언제 움직여야 하는가"에 답하지 못한다.</p>
+      </div>
+      <div class="cn-card">
+        <span class="no">02</span>
+        <h4>착안</h4>
+        <p>부실은 한 번에 오지 않는다. <b>인식 → 심리 → 실물 → 신용</b> 순으로 번진다.
+           앞 단계를 관측할 수 있다면 뒤 단계를 예고하는 신호가 된다.</p>
+      </div>
+      <div class="cn-card accent">
+        <span class="no">03</span>
+        <h4>목표</h4>
+        <p>공개 API로 모을 수 있는 지표를 넓게 수집해, 그중 <b>무엇이 실제로
+           연체율을 앞서는지</b> 가려내고 하나의 조기경보 지수로 묶는다.</p>
+      </div>
+    </div>
+
+    <div class="insight" style="margin-top:16px;font-size:12.5px">
+      <strong>이 분석의 성격.</strong> 인과관계를 규명하는 연구가 아니라,
+      <strong>어떤 지표를 쓸 것인지 고르기 위한 탐색적 분석(exploratory analysis)</strong>이다.
+      결과는 가설이며, 확정을 위해서는 인과검정과 업종·규모별 세분화가 뒤따라야 한다.
+    </div>
+  </div>
+
+  <!-- 02 연구 질문 -->
+  <div class="section">
+    <div class="eyebrow-num">02 · Research Questions</div>
+    <h2>무엇을 물었나</h2>
+    <div class="subtitle">각 질문은 대시보드의 특정 화면과 1:1로 연결된다.</div>
+
+    <div class="chart-box full">
+      <div class="rq">
+        <span class="tag">RQ 0</span>
+        <div>
+          <div class="q">모은 지표 중 무엇이 실제로 중소기업 부실과 함께 움직이는가?</div>
+          <div class="a">→ 24개 지표를 전년동월대비 변화로 바꿔 연체율과의 상관과 시차를 계산.
+            <b>지표 풀과 상관 구조</b> 화면.</div>
+        </div>
+      </div>
+      <div class="rq">
+        <span class="tag">RQ 1</span>
+        <div>
+          <div class="q">뉴스에 드러나는 위기 담론은 어떤 주제로 구성되며 어떻게 변하는가?</div>
+          <div class="a">→ 뉴스 762건을 토픽모델링(LDA)해 5개 주제로 분해.
+            <b>분석 1: 위기인식지수</b> 화면.</div>
+        </div>
+      </div>
+      <div class="rq">
+        <span class="tag">RQ 2</span>
+        <div>
+          <div class="q">뉴스에서 감지된 위기 인식이 실제 재무 지표로 확인되는가?</div>
+          <div class="a">→ 연체율·대출금리·실물지표를 같은 기간으로 놓고 대조.
+            <b>분석 2: 재무·신용 지표</b> 화면.</div>
+        </div>
+      </div>
+      <div class="rq">
+        <span class="tag">RQ 3</span>
+        <div>
+          <div class="q">개별 기업 부실과 지정학·통상 충격은 신용지표에 어떻게 전이되는가?</div>
+          <div class="a">→ 일자가 확인된 충격 사건을 연체율 시계열 위에 겹쳐 대조.
+            <b>분석 3: 타임라인</b> 화면.</div>
+        </div>
+      </div>
+      <div class="rq">
+        <span class="tag">RQ 4</span>
+        <div>
+          <div class="q">산업 구성이 다른 지역 사이에 신용 위험은 어떻게 갈리는가?</div>
+          <div class="a">→ 17개 시도의 산업별 사업체 비중과 중소기업 연체율을 결합.
+            <b>지역별 산업 구조와 신용 지표</b> 화면.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 데이터 수집 -->
+  <div class="section">
+    <div class="eyebrow-num">03 · Data Collection</div>
+    <h2>어떻게 모았나</h2>
+    <div class="subtitle">전부 공개 API와 공개 RSS에서 직접 수집했다. 값을 코드에 옮겨 적은 곳은 없다.</div>
+
+    <div class="flow">
+      <div class="flow-step"><div class="n">STEP 1</div><h5>지표 후보 선정</h5>
+        <p>부실과 연관될 만한 계열을 넓게 훑어 통계표·항목 코드를 특정</p></div>
+      <div class="flow-step"><div class="n">STEP 2</div><h5>API 수집</h5>
+        <p>ECOS·KOSIS 호출. 재시도와 중복 시점 검사를 내장</p></div>
+      <div class="flow-step"><div class="n">STEP 3</div><h5>전처리</h5>
+        <p>전년동월대비 변화로 변환해 추세 제거</p></div>
+      <div class="flow-step"><div class="n">STEP 4</div><h5>상관·시차 분석</h5>
+        <p>시차 0~6개월을 모두 시도해 선행성이 큰 지점 탐색</p></div>
+      <div class="flow-step"><div class="n">STEP 5</div><h5>지수화·시각화</h5>
+        <p>방향 정렬 후 표준화해 평균, JSON 산출</p></div>
+    </div>
+
+    <div class="chart-box full" style="margin-top:16px">
+      <table class="srctbl">
+        <thead><tr><th style="width:23%">출처</th><th style="width:30%">수집 내용</th>
+          <th style="width:17%">규모</th><th>스크립트</th></tr></thead>
+        <tbody>
+          <tr><td><b>한국은행 ECOS</b><br><span class="corr-grp">오픈API</span></td>
+              <td>연체율·대출금리·기준금리·어음부도율·BSI·심리지수·생산·설비투자·재고율·가동률·수출입</td>
+              <td>22개 계열<br>2,288 관측치</td>
+              <td><code>collect_ecos.py</code></td></tr>
+          <tr><td><b>통계청 KOSIS</b><br><span class="corr-grp">오픈API</span></td>
+              <td>중소기업 경기동행종합지수 / 시도·산업별 사업체수·종사자수·매출액</td>
+              <td>2개 계열<br>18개 시도 × 94개 산업</td>
+              <td><code>collect_ecos.py</code><br><code>collect_region.py</code></td></tr>
+          <tr><td><b>Google News RSS</b><br><span class="corr-grp">공개 피드</span></td>
+              <td>중소기업 위기 관련 10개 검색어로 기사 수집 후 LDA 토픽모델링</td>
+              <td>762건<br>어휘 265개</td>
+              <td><code>crawl_topic.py</code></td></tr>
+          <tr><td><b>통계청 시도 경계</b><br><span class="corr-grp">공간정보</span></td>
+              <td>행정경계를 단순화해 SVG 경로로 변환 (7.5MB → 41KB)</td>
+              <td>17개 시도</td>
+              <td><code>build_map.py</code></td></tr>
+        </tbody>
+      </table>
+      <p class="src" style="margin-top:12px">
+        API 키는 저장소에 포함하지 않고 로컬 설정 파일에서 읽는다. 스크립트를 다시 실행하면
+        최신 통계로 갱신되며, 수집 시점과 통계표·항목 코드는 산출 JSON에 함께 기록된다.
+      </p>
+    </div>
+
+    <div class="insight" style="margin-top:16px;font-size:12.5px">
+      <strong>수집 과정에서 걸러낸 함정.</strong> ECOS 연체율표와 KOSIS 경기지수표는
+      <strong>2차원 구조</strong>라 항목을 하나만 지정하면 은행종류·지수종류가 한 계열에 섞여 들어온다.
+      처음 실행 시 102개월 구간에서 306건이 반환되어 발견했고, 이후 같은 실수를 막기 위해
+      <strong>같은 시점이 중복되면 수집을 중단</strong>하는 검사를 넣었다.
+    </div>
+  </div>
+
   <!-- 분석 1 -->
   <div class="section">
+    <div class="eyebrow-num">04 · Exploratory Analysis</div>
     <h2>분석 1: 위기인식지수 — 뉴스 토픽모델링 (LDA)</h2>
     <div class="subtitle">RQ1: 중소기업 위기 담론은 어떤 주제로 구성되며, 어떻게 변화하고 있는가?</div>
     <div class="chart-grid">
@@ -356,6 +545,7 @@ img, svg, canvas { max-width: 100%; }
 
   <!-- 분석 0: 지표 풀 상관 -->
   <div class="section">
+    <div class="eyebrow-num">05 · Correlation Structure</div>
     <h2>지표 풀과 상관 구조</h2>
     <div class="subtitle">RQ0: 수집한 지표 중 무엇이 실제로 중소기업 부실과 함께 움직이는가?</div>
     <div class="chart-grid">
@@ -386,6 +576,7 @@ img, svg, canvas { max-width: 100%; }
 
   <!-- 분석 2 -->
   <div class="section">
+    <div class="eyebrow-num">06 · Credit Indicators</div>
     <h2>분석 2: 재무·신용 지표 실측 추이</h2>
     <div class="subtitle">RQ2: 뉴스에서 감지된 위기 인식은 실제 재무 지표로 확인되는가?</div>
     <div class="rng" style="max-width:none;margin:0 0 18px">
@@ -434,6 +625,7 @@ img, svg, canvas { max-width: 100%; }
 
   <!-- 분석 3 -->
   <div class="section">
+    <div class="eyebrow-num">07 · Shock Timeline</div>
     <h2>분석 3: 거시 충격과 위기 지표 타임라인</h2>
     <div class="subtitle">RQ3: 개별 기업 위기와 지정학 충격은 중소기업 신용지표에 어떻게 전이되는가?</div>
     <div class="chart-grid">
@@ -518,6 +710,7 @@ img, svg, canvas { max-width: 100%; }
 
   <!-- 지역별 산업·신용 지도 -->
   <div class="section">
+    <div class="eyebrow-num">08 · Regional Analysis</div>
     <h2>지역별 산업 구조와 신용 지표</h2>
     <div class="subtitle">RQ4: 산업 구성이 다른 지역 사이에 중소기업 신용 위험은 어떻게 갈리는가?</div>
     <div class="chart-box full">
@@ -565,7 +758,7 @@ img, svg, canvas { max-width: 100%; }
 
   <!-- 분석 결과 -->
   <div class="section">
-    <div class="eyebrow-num">05 · Exploratory Analysis</div>
+    <div class="eyebrow-num">09 · Findings</div>
     <h2>분석 결과</h2>
     <div class="subtitle">ECOS·KOSIS 24개 계열 2,494개 관측치(2018.01~2026.10)에 대한 탐색적 분석</div>
 
@@ -1298,28 +1491,35 @@ Promise.all([
     const vals = Object.keys(M.paths).map(n => valueOf(REG[n], ind, met)).filter(v => v != null);
     const lo = Math.min(...vals), hi = Math.max(...vals);
 
+    /* 광역시 7곳은 면적이 도(道)의 1/10 이하라(광주 627 vs 강원 28,692)
+       폴리곤 위에 글자를 얹으면 서로 겹쳐 읽히지 않는다. 지도 밖 여백에
+       원형 마커와 인출선으로 빼고, 나머지는 영역 안에 그대로 둔다.
+       값은 라벨을 밀어낼 방향 벡터(좌우, 상하). */
+    const SMALL = { 서울:[-1,-1], 인천:[-1,1], 세종:[-1,0], 대전:[-1,1],
+                    광주:[-1,1], 대구:[1,0], 울산:[1,0], 부산:[1,1] };
+    const OFF = 62;
+
     const shown = v => v == null ? '—'
       : isZ(met) ? (v >= 0 ? '+' : '') + v.toFixed(2)
       : isRate(met) ? v.toFixed(2) : fmt(v);
 
-    const paths = Object.entries(M.paths).map(([name, d]) => {
+    // 광역시는 면적이 도(道)의 1/10 이하라 주변 색에 묻힌다. 테두리를 굵게 줘
+    // 경계를 드러내고, 큰 도를 먼저 그린 뒤 위에 얹어 가려지지 않게 한다.
+    const order = Object.entries(M.paths).sort((a, b) =>
+      (SMALL[a[0]] ? 1 : 0) - (SMALL[b[0]] ? 1 : 0));
+
+    const paths = order.map(([name, d]) => {
       const v = valueOf(REG[name], ind, met);
       const fillC = isZ(met) && REG[name] && REG[name].risk
         ? RISKC[REG[name].risk.level] : colorFor(v, lo, hi);
+      const sw = SMALL[name] ? 2.0 : 0.9;
+      const sc2 = SMALL[name] ? '#26384d' : '#fff';
       return '<path d="' + d + '" data-n="' + name + '" class="kmap-p' +
         (picked === name ? ' sel' : '') + '" fill="' + fillC +
-        '" stroke="#fff" stroke-width="0.9"><title>' + name + ' · ' + shown(v) +
+        '" stroke="' + sc2 + '" stroke-width="' + sw + '"><title>' + name + ' · ' + shown(v) +
         (isZ(met) && REG[name] && REG[name].risk ? ' (' + REG[name].risk.level + ')' : '') +
         '</title></path>';
     }).join('');
-
-    /* 라벨 배치.
-       광역시 7곳은 면적이 도(道)의 1/10 이하라 폴리곤 위에 글자를 얹으면
-       서로 겹치고 읽히지 않는다. 이들은 지도 밖 여백에 원형 마커와
-       인출선으로 빼고, 나머지는 폴리곤 중심에 그대로 둔다. */
-    const SMALL = { 서울:[-1,-1], 인천:[-1,1], 세종:[-1,0], 대전:[-1,1],
-                    광주:[-1,1], 대구:[1,0], 울산:[1,0], 부산:[1,1] };
-    const OFF = 62;
 
     const labels = Object.entries(M.labels || {}).map(([name, xy]) => {
       const v = valueOf(REG[name], ind, met);
@@ -1342,7 +1542,8 @@ Promise.all([
         const tx = lx + (sx2 < 0 ? -11 : 11);
         return '<g class="kmap-lb" pointer-events="none">' +
           '<line x1="' + xy[0] + '" y1="' + xy[1] + '" x2="' + lx + '" y2="' + ly + '" ' +
-          'stroke="#9aa8b8" stroke-width="0.8"></line>' +
+          'stroke="#7b8b9d" stroke-width="0.9"></line>' +
+          '<circle cx="' + xy[0] + '" cy="' + xy[1] + '" r="2.4" fill="#26384d"></circle>' +
           '<circle cx="' + lx + '" cy="' + ly + '" r="7" fill="' + fillC +
           '" stroke="#fff" stroke-width="1.6"></circle>' +
           '<text x="' + tx + '" y="' + (ly - 1) + '" text-anchor="' + anchor + '" ' +

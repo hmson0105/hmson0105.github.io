@@ -66,6 +66,52 @@ def simplify(pts, tol):
     return [p for p, k in zip(pts, keep) if k]
 
 
+
+def point_in(poly, x, y):
+    """레이 캐스팅. poly 는 [(x,y), …] 닫힌 고리."""
+    inside = False
+    n = len(poly)
+    for i in range(n):
+        x1, y1 = poly[i]
+        x2, y2 = poly[(i + 1) % n]
+        if (y1 > y) != (y2 > y):
+            xin = (x2 - x1) * (y - y1) / (y2 - y1) + x1
+            if x < xin:
+                inside = not inside
+    return inside
+
+
+def label_point(rings, others):
+    """라벨을 놓을 지점.
+
+    무게중심을 그대로 쓰면 경기도처럼 다른 시도를 감싸는 도넛 모양에서
+    중심이 '구멍'(서울)에 떨어진다. 그래서 자기 폴리곤 안에 있으면서
+    다른 시도 폴리곤 밖이고, 경계에서 가장 먼 점을 격자로 찾는다.
+    """
+    big = max(rings, key=lambda r: ring_area(r))
+    xs = [q[0] for q in big]; ys = [q[1] for q in big]
+    x0, x1 = min(xs), max(xs); y0, y1 = min(ys), max(ys)
+
+    best, bestd = None, -1
+    N = 26
+    for i in range(1, N):
+        for j in range(1, N):
+            x = x0 + (x1 - x0) * i / N
+            y = y0 + (y1 - y0) * j / N
+            if not point_in(big, x, y):
+                continue
+            if any(point_in(o, x, y) for o in others):
+                continue                       # 남의 영역 위에는 두지 않는다
+            # 경계까지의 최단거리를 점수로 삼는다
+            d = min(math.hypot(x - qx, y - qy) for qx, qy in big)
+            if d > bestd:
+                best, bestd = (x, y), d
+    if best:
+        return best
+    # 못 찾으면 무게중심으로 되돌린다
+    return (sum(xs) / len(xs), sum(ys) / len(ys))
+
+
 def main():
     if not CACHE.exists():
         print("경계 GeoJSON 내려받는 중 …")
@@ -129,11 +175,11 @@ def main():
             pts = [fit(q) for q in r]
             parts.append("M" + "L".join(f"{a},{b}" for a, b in pts) + "Z")
         out[name] = "".join(parts)
-        # 라벨은 가장 큰 폴리곤의 무게중심에 둔다
-        big = max(rings, key=lambda r: ring_area(r))
-        pts = [fit(q) for q in big]
-        cx = sum(q[0] for q in pts) / len(pts)
-        cy = sum(q[1] for q in pts) / len(pts)
+        # 라벨은 자기 영역 안이면서 남의 영역 밖인 지점에 둔다
+        fitted = [[fit(q) for q in r] for r in rings]
+        others = [fit_r for nm2, rs2 in raw.items() if nm2 != name
+                  for fit_r in ([[fit(q) for q in r] for r in rs2])]
+        cx, cy = label_point(fitted, others)
         labels[name] = [round(cx, 1), round(cy, 1)]
         print(f"  {name:<4} 폴리곤 {len(parts):>2}개  라벨 ({cx:.0f},{cy:.0f})  {len(out[name]):>6} chars")
 
