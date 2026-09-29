@@ -106,6 +106,35 @@ img, svg, canvas { max-width: 100%; }
   .jk-topbar { font-size: 11.5px; gap: 5px; }
   .jk-back { padding: 3px 8px 3px 5px; gap: 5px; }
 }
+
+/* ── 종합 현황 패널 ───────────────────────────────── */
+.status { background: #fff; border-bottom: 1px solid #e0e7ef; padding: 26px 40px 30px; }
+.status-grid { display: grid; grid-template-columns: 300px 1fr; gap: 34px; align-items: center;
+               max-width: 1240px; margin: 0 auto; }
+.gauge-wrap { text-align: center; }
+.gauge-val { font-size: 40px; font-weight: 700; line-height: 1.1; margin-top: -46px; }
+.gauge-lv { font-size: 14px; font-weight: 600; letter-spacing: .04em; margin-top: 4px; }
+.gauge-sub { font-size: 11.5px; color: #8a9ab0; margin-top: 6px; }
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.kpi { border: 1px solid #e6ebf2; border-radius: 10px; padding: 13px 15px; background: #fbfcfe; }
+.kpi .k { font-size: 11px; color: #7c8ca3; letter-spacing: .02em; }
+.kpi .v { font-size: 23px; font-weight: 700; color: #1B3A5C; margin-top: 3px; line-height: 1.15; }
+.kpi .u { font-size: 11px; color: #8a9ab0; font-weight: 400; margin-left: 2px; }
+.kpi .d { font-size: 11.5px; margin-top: 4px; font-weight: 600; }
+.d.up { color: #E74C3C; } .d.down { color: #2E75B6; } .d.flat { color: #94a3b8; }
+.legend-bands { display: flex; gap: 12px; justify-content: center; margin-top: 10px; font-size: 10.5px; color: #7c8ca3; }
+.legend-bands i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 3px; }
+@media (max-width: 900px) {
+  .status { padding: 20px 16px 24px; }
+  .status-grid { grid-template-columns: 1fr; gap: 20px; }
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+}
+/* 상관 매트릭스 */
+.corr-tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.corr-tbl th { background: #1B3A5C; color: #fff; padding: 7px 9px; position: sticky; top: 0; }
+.corr-tbl td { padding: 6px 9px; border-bottom: 1px solid #eef2f6; }
+.corr-bar { height: 15px; border-radius: 3px; display: inline-block; vertical-align: middle; }
+.corr-grp { font-size: 10.5px; color: #7c8ca3; }
 </style>
 </head>
 <body>
@@ -119,6 +148,32 @@ img, svg, canvas { max-width: 100%; }
 <div class="header">
   <h1>중소기업 위기 조기경보 대시보드</h1>
   <p>뉴스 텍스트 토픽모델링 × 거시·재무·신용 지표를 결합한 20개 지표 조기경보 체계 | Pilot Study (2026)</p>
+</div>
+
+
+<div class="status">
+  <div class="status-grid">
+    <div class="gauge-wrap">
+      <canvas id="gauge" height="150"></canvas>
+      <div class="gauge-val" id="gauge-val">—</div>
+      <div class="gauge-lv" id="gauge-lv">—</div>
+      <div class="gauge-sub" id="gauge-sub">—</div>
+      <div class="legend-bands">
+        <span><i style="background:#2E75B6"></i>안정</span>
+        <span><i style="background:#27AE60"></i>주의</span>
+        <span><i style="background:#F39C12"></i>경계</span>
+        <span><i style="background:#E74C3C"></i>위험</span>
+      </div>
+    </div>
+    <div>
+      <div class="kpi-row" id="kpi-row"></div>
+      <div class="insight" style="margin-top:14px;font-size:12.5px">
+        <strong>종합 위기지수</strong>는 수집한 <strong id="n-ind">—</strong>개 지표를 전년동월대비 변화로 바꾼 뒤,
+        위험 방향을 맞춰 표준화(z-score)하고 평균한 값이다. 0보다 크면 지표들이 평균보다 위험한 쪽에 있다는 뜻이다.
+        수준(level) 값을 그대로 쓰면 추세만으로 상관이 높게 나오므로 변화율로 바꿔 계산했다.
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="stats-bar">
@@ -205,6 +260,36 @@ img, svg, canvas { max-width: 100%; }
     </div>
   </div>
 
+  <!-- 분석 0: 지표 풀 상관 -->
+  <div class="section">
+    <h2>지표 풀과 상관 구조</h2>
+    <div class="subtitle">RQ0: 수집한 지표 중 무엇이 실제로 중소기업 부실과 함께 움직이는가?</div>
+    <div class="chart-grid">
+      <div class="chart-box full">
+        <h3>종합 위기지수 추이</h3>
+        <canvas id="chart-composite"></canvas>
+        <p class="src">전 지표를 전년동월대비 변화 → 위험방향 정렬 → z-score 평균. 0 이상이면 평균보다 위험한 국면</p>
+      </div>
+      <div class="chart-box full">
+        <h3><span id="corr-base">—</span>과의 상관 — 지표 <span id="corr-n">—</span>개</h3>
+        <div class="table-scroll" style="max-height:420px;overflow-y:auto">
+          <table class="corr-tbl">
+            <thead><tr>
+              <th style="text-align:left">지표</th><th>상관계수 r</th><th style="width:34%">크기</th>
+              <th>선행 시차</th><th>표본</th>
+            </tr></thead>
+            <tbody id="corr-body"></tbody>
+          </table>
+        </div>
+        <p class="src">
+          붉은 막대는 양(+)의 상관(지표가 오르면 연체율도 오름), 파란 막대는 음(−)의 상관.
+          선행 시차는 0~6개월을 모두 시도해 상관이 가장 컸던 값이다.
+          수준이 아닌 <strong>전년동월대비 변화</strong>로 계산해 추세에 의한 허위상관을 제거했다.
+        </p>
+      </div>
+    </div>
+  </div>
+
   <!-- 분석 2 -->
   <div class="section">
     <h2>분석 2: 재무·신용 지표 실측 추이</h2>
@@ -252,15 +337,18 @@ img, svg, canvas { max-width: 100%; }
         <h3>중소기업 대출 연체율과 주요 충격 이벤트 (2024.12 ~ 2026.07)</h3>
         <canvas id="chart-timeline"></canvas>
         <div class="insight">
-          <strong>예비 관찰:</strong> 2025년 3월 <strong>홈플러스 회생절차 신청</strong> 이후 연체율은 하락 전환하지 않고
-          2025년 8월 0.89%까지 상승했다. 2025년 6월 <strong>중동 정세 악화(이란 사태)</strong>로 유가·환율 충격이 겹치면서
-          압력이 지속됐고, 2026년 5월 1.00%로 11년 만의 최고치를 기록했다. 홈플러스는 결국 2026년 7월 회생절차가 폐지되며
-          파산 수순을 밟았고, 미정산 중소 협력업체 약 150곳(업체당 평균 미수금 7.7억원)이 직접 타격을 받았다.
+          <strong>확인된 사실:</strong> 홈플러스는 2025년 3월 4일 서울회생법원에 기업회생절차 개시를 신청했고
+          (사건번호 2025회합135), 2026년 7월 3일 법원이 <strong>회생절차 폐지</strong>를 결정했다. 이 시점의
+          공익채권은 임직원 체불임금과 협력업체 납품대금을 포함해 <strong>약 1조 1,000억원</strong> 규모로 보도됐으며,
+          정부는 미정산 피해 중소·중견기업을 대상으로 <strong>최대 3,000억원 특례보증</strong>을 추가 지원한다고 발표했다.
           <br><br>
-          <strong>시사점:</strong> 대형 유통기업 1곳의 부실이 <strong>협력 중소기업 → 업종 전반 신용지표</strong>로 전이되는
-          경로가 관찰된다. 이는 개별 기업 재무제표만으로는 포착되지 않으며, 본 지표 체계가 <strong>뉴스(T2 협력업체 대금·부도)와
-          신용지표를 함께 보는 이유</strong>이기도 하다. 향후 이벤트 스터디(event study)로 충격 전후 초과 연체율을 추정할 계획이다.
-        </div>
+          같은 구간의 기준금리는 수집 데이터에서 2025년 5월 2.75%→2.50% 인하 후, 2026년 7·8월 두 차례 인상되어
+          3.00%로 되돌아왔다. 기업대출 연체율은 이 기간 0.7~0.9% 범위에서 움직였다.
+          <br><br>
+          <strong>해석의 한계:</strong> 개별 사건과 연체율 변동 사이의 <strong>인과관계는 이 차트만으로 확인되지 않는다.</strong>
+          연체율은 전체 은행 기업대출 기준이라 특정 기업의 협력업체 피해가 직접 반영된다고 보기 어렵고,
+          같은 시기 금리·업황 등 다른 요인이 함께 작용한다. 이벤트 표시는 시점 대조를 위한 참조선이며,
+          전이 경로를 주장하려면 업종별·규모별 세부 데이터와 </div>
       </div>
     </div>
   </div>
@@ -517,9 +605,10 @@ fetch('data/ecos.json').then(r => r.json()).then(E => {
   // 6) 타임라인 — 연체율 실측 위에 충격 이벤트를 겹쳐 표시
   const tl = pick(S.delinq_corp.obs, '202401');
   const EVT = [
-    { t: '202503', text: '홈플러스\n회생절차 신청', color: '#F39C12' },
-    { t: '202506', text: '중동 정세 악화\n(유가·환율)', color: '#E74C3C' },
-    { t: '202606', text: '연체율 최신치', color: '#8E44AD' }
+    // 모두 일자·출처가 확인된 사실만 표기한다.
+    { t: '202503', text: '홈플러스 회생절차 신청\n(3.4, 서울회생법원 2025회합135)', color: '#F39C12' },
+    { t: '202505', text: '기준금리 2.75→2.50%\n(수집 데이터에서 도출)', color: '#2E75B6' },
+    { t: '202607', text: '홈플러스 회생절차 폐지\n(7.3) · 협력업체 특례보증 3천억', color: '#E74C3C' }
   ];
   new Chart(document.getElementById('chart-timeline'), {
     type: 'line',
@@ -552,6 +641,114 @@ fetch('data/ecos.json').then(r => r.json()).then(E => {
       }
     }]
   });
+
+
+  /* ── 종합 현황: 게이지 + KPI ─────────────────────── */
+  const A = E.analysis;
+  document.getElementById('n-ind').textContent = Object.keys(S).length;
+
+  // 게이지: -2 ~ +2 구간을 반원에 매핑하고 경보 구간을 색으로 나눈다
+  (function () {
+    const cur = A.current.value;
+    const BANDS = [
+      { to: 0.0, c: '#2E75B6', n: '안정' }, { to: 0.5, c: '#27AE60', n: '주의' },
+      { to: 1.0, c: '#F39C12', n: '경계' }, { to: 2.0, c: '#E74C3C', n: '위험' }
+    ];
+    const LO = -2, HI = 2;
+    const seg = [], col = [];
+    let prev = LO;
+    BANDS.forEach(b => { seg.push(b.to - prev); col.push(b.c); prev = b.to; });
+    new Chart(document.getElementById('gauge'), {
+      type: 'doughnut',
+      data: { datasets: [{ data: seg, backgroundColor: col, borderWidth: 0 }] },
+      options: { rotation: -90, circumference: 180, cutout: '72%',
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        responsive: true, maintainAspectRatio: false },
+      plugins: [{
+        afterDraw(ch) {
+          const { ctx, chartArea: a } = ch;
+          const cx = (a.left + a.right) / 2, cy = a.bottom;
+          const r = Math.min(cx - a.left, a.bottom - a.top) * 0.92;
+          const frac = Math.min(1, Math.max(0, (cur - LO) / (HI - LO)));
+          const ang = Math.PI + frac * Math.PI;
+          ctx.save();
+          ctx.strokeStyle = '#1a2332'; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + Math.cos(ang) * r * 0.82, cy + Math.sin(ang) * r * 0.82);
+          ctx.stroke();
+          ctx.beginPath(); ctx.arc(cx, cy, 4.5, 0, Math.PI * 2);
+          ctx.fillStyle = '#1a2332'; ctx.fill();
+          ctx.restore();
+        }
+      }]
+    });
+    const LVC = { 안정: '#2E75B6', 주의: '#27AE60', 경계: '#F39C12', 위험: '#E74C3C' };
+    const gv = document.getElementById('gauge-val');
+    gv.textContent = (cur >= 0 ? '+' : '') + cur.toFixed(2);
+    gv.style.color = LVC[A.current.level];
+    const gl = document.getElementById('gauge-lv');
+    gl.textContent = A.current.level;
+    gl.style.color = LVC[A.current.level];
+    document.getElementById('gauge-sub').textContent =
+      fmtT(A.current.t) + ' 기준 · 종합 위기지수';
+  })();
+
+  // KPI 4종 — 최신값과 전년동월대비
+  (function () {
+    const PICK = ['delinq_corp', 'bsi_fund_now', 'dishonor', 'rate_sme'];
+    const box = document.getElementById('kpi-row');
+    box.innerHTML = PICK.map(function (k) {
+      const s0 = S[k]; if (!s0) return '';
+      const o = s0.obs[s0.obs.length - 1];
+      const py = s0.obs.find(function (x) {
+        return x.t === (parseInt(o.t.slice(0, 4)) - 1) + o.t.slice(4);
+      });
+      let d = '', cls = 'flat';
+      if (py) {
+        const diff = o.v - py.v;
+        cls = Math.abs(diff) < 1e-9 ? 'flat' : (diff * (s0.risk_dir || 1) > 0 ? 'up' : 'down');
+        d = (diff >= 0 ? '▲ ' : '▼ ') + Math.abs(diff).toFixed(2) + ' (전년동월비)';
+      }
+      return '<div class="kpi"><div class="k">' + s0.label + '</div>' +
+             '<div class="v">' + o.v + '<span class="u"> ' + s0.unit + '</span></div>' +
+             '<div class="d ' + cls + '">' + d + '</div></div>';
+    }).join('');
+  })();
+
+  /* ── 지표 풀 상관 매트릭스 ───────────────────────── */
+  (function () {
+    const host = document.getElementById('corr-body'); if (!host) return;
+    const rows = A.correlation.map(function (c) {
+      const w = Math.round(Math.abs(c.best_r) * 100);
+      const col = c.best_r > 0 ? '#E74C3C' : '#2E75B6';
+      return '<tr><td>' + c.label + '<div class="corr-grp">' + c.group + '</div></td>' +
+        '<td style="text-align:right;font-weight:600">' + (c.best_r > 0 ? '+' : '') + c.best_r.toFixed(3) + '</td>' +
+        '<td><span class="corr-bar" style="width:' + w + '%;background:' + col + '"></span></td>' +
+        '<td style="text-align:center">' + c.best_lag + '개월</td>' +
+        '<td style="text-align:center;color:#8a9ab0">' + c.n + '</td></tr>';
+    }).join('');
+    host.innerHTML = rows;
+    document.getElementById('corr-base').textContent = A.base_label;
+    document.getElementById('corr-n').textContent = A.correlation.length;
+  })();
+
+  /* ── 종합 위기지수 추이 ─────────────────────────── */
+  (function () {
+    const el = document.getElementById('chart-composite'); if (!el) return;
+    const c = A.composite;
+    new Chart(el, {
+      type: 'line',
+      data: { labels: c.map(function (o) { return fmtT(o.t); }),
+        datasets: [{ label: '종합 위기지수', data: c.map(function (o) { return o.v; }),
+          borderColor: '#1B3A5C', borderWidth: 2.4, pointRadius: 0, tension: .3,
+          segment: { borderColor: function (ctx) { return ctx.p1.parsed.y >= 0.5 ? '#E74C3C' : '#1B3A5C'; } },
+          fill: { target: { value: 0 }, above: '#E74C3C22', below: '#2E75B622' } }] },
+      options: { responsive: true, interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { display: false } },
+        scales: { y: { title: { display: true, text: 'z-score 평균' } },
+                  x: { ticks: { maxTicksLimit: 12, font: { size: 10 } } } } }
+    });
+  })();
 
 }).catch(e => {
   console.error('ECOS 데이터 로드 실패', e);
