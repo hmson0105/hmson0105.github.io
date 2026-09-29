@@ -2,6 +2,7 @@
 # 수집 원본·자격증명 (공개 저장소에 올리지 않는다)
 *.csv
 .env
+dashboards/*/analysis/_kmap_src.json
 dashboards/*/analysis/raw/
 keys.env
 참고논문/

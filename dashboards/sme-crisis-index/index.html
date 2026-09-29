@@ -200,6 +200,9 @@ img, svg, canvas { max-width: 100%; }
                   background: #fff; color: #33475c; }
 .map-ctl label { font-size: 11.5px; color: #7c8ca3; }
 .cart { width: 100%; height: auto; }
+.kmap-p { cursor: pointer; transition: opacity .15s; }
+.kmap-p:hover { opacity: .75; }
+.kmap-p.sel { stroke: #1a2332; stroke-width: 2.2; }
 .cart-cell { cursor: pointer; transition: opacity .15s; }
 .cart-cell:hover { opacity: .78; }
 .cart-cell.sel rect { stroke: #1a2332; stroke-width: 2.4; }
@@ -519,14 +522,27 @@ img, svg, canvas { max-width: 100%; }
       </div>
       <div class="map-wrap">
         <div>
-          <svg id="cartogram" class="cart" viewBox="0 0 420 520" role="img"
-               aria-label="시도별 지표 카토그램"></svg>
+          <svg id="kmap" class="cart" viewBox="0 0 460 600" role="img"
+               aria-label="시도별 지표 지도"></svg>
           <div class="map-legend">
             <div class="bar"></div>
             <div class="ends"><span id="map-lo">—</span><span id="map-hi">—</span></div>
           </div>
         </div>
         <div class="map-side" id="map-side"></div>
+      </div>
+
+      <div class="chart-grid" style="margin-top:20px">
+        <div class="chart-box">
+          <h3 id="ts-title">지역 시계열</h3>
+          <canvas id="chart-region-ts"></canvas>
+          <p class="src">지도에서 시도를 클릭하면 해당 지역 추이로 바뀝니다. 회색은 전국 평균</p>
+        </div>
+        <div class="chart-box">
+          <h3>산업 구성과 연체율</h3>
+          <canvas id="chart-region-scatter"></canvas>
+          <p class="src" id="scatter-note">가로축 = 선택 산업의 사업체 비중, 세로축 = 중소기업대출 연체율</p>
+        </div>
       </div>
       <p class="src" id="map-src"></p>
     </div>
@@ -1140,12 +1156,14 @@ fetch('data/ecos.json').then(r => r.json()).then(E => {
 
 
 
-/* ── 지역별 산업·신용 카토그램 ──────────────────────
-   행정경계 GeoJSON은 용량이 크고 출처·라이선스 확인이 필요해,
-   시도를 타일로 배치한 카토그램으로 그린다. 면적이 아니라 색으로
-   지표를 읽으므로 대도시가 과소 표현되는 문제도 함께 피한다. */
-fetch('data/region.json').then(r => r.json()).then(R => {
-  const svg = document.getElementById('cartogram');
+/* ── 지역별 산업·신용 지도 ──────────────────────────
+   통계청 시도 경계를 build_map.py 로 단순화해 SVG path 로 미리 투영했다.
+   (원본 7.5MB → 41KB) 클라이언트는 path 를 그리고 색만 칠하면 된다. */
+Promise.all([
+  fetch('data/region.json').then(r => r.json()),
+  fetch('data/kmap.json').then(r => r.json())
+]).then(([R, M]) => {
+  const svg = document.getElementById('kmap');
   const selInd = document.getElementById('map-ind');
   const selMet = document.getElementById('map-metric');
   const side = document.getElementById('map-side');
@@ -1153,89 +1171,151 @@ fetch('data/region.json').then(r => r.json()).then(R => {
 
   selInd.innerHTML = R.industries.map(i =>
     '<option value="' + i.code + '">' + i.name + '</option>').join('');
+  svg.setAttribute('viewBox', M.viewBox);
 
-  const CELL = 56, GAP = 6, PADX = 40, PADY = 16;
+  const REG = {};
+  R.regions.forEach(r => { REG[r.name] = r; });
+  let picked = '서울';
+  let tsChart = null, scChart = null;
+
   const fmt = n => n == null ? '—'
     : (n >= 1e8 ? (n / 1e8).toFixed(1) + '억'
-    : n >= 1e4 ? (n / 1e4).toFixed(1) + '만' : n.toLocaleString());
-
-  let picked = null;
+    : n >= 1e4 ? (n / 1e4).toFixed(1) + '만' : Math.round(n).toLocaleString());
+  const isRate = m => m === 'delinq' || m === 'dishonor';
 
   function valueOf(reg, ind, met) {
-    if (met === 'delinq' || met === 'dishonor') {
+    if (!reg) return null;
+    if (isRate(met)) {
       const a = reg[met];
       return a && a.length ? a[a.length - 1].v : null;
     }
     const o = reg.industry[ind];
     return o ? o[met] : null;
   }
-
-  function draw() {
-    const ind = selInd.value, met = selMet.value;
-    const vals = R.regions.map(r => valueOf(r, ind, met)).filter(v => v != null);
-    const lo = Math.min(...vals), hi = Math.max(...vals);
-    const scale = v => {
-      if (v == null || hi === lo) return '#eef2f6';
-      const t = (v - lo) / (hi - lo);
-      // 밝은 청록 → 진한 네이비 4단계 보간
-      const S1 = [232, 241, 248], S2 = [127, 179, 217], S3 = [46, 117, 182], S4 = [27, 58, 92];
-      const seg = t < .34 ? [S1, S2, t / .34] : t < .67 ? [S2, S3, (t - .34) / .33] : [S3, S4, (t - .67) / .33];
-      const [a, b, k] = seg;
-      return 'rgb(' + a.map((c, i) => Math.round(c + (b[i] - c) * k)).join(',') + ')';
-    };
-
-    svg.innerHTML = R.regions.filter(r => r.grid).map(r => {
-      const v = valueOf(r, ind, met);
-      const x = PADX + (r.grid.c - 1) * (CELL + GAP);
-      const y = PADY + (r.grid.r - 1) * (CELL + GAP);
-      const dark = v != null && (v - lo) / (hi - lo || 1) > .55;
-      return '<g class="cart-cell' + (picked === r.name ? ' sel' : '') + '" data-n="' + r.name + '">' +
-        '<rect x="' + x + '" y="' + y + '" width="' + CELL + '" height="' + CELL + '" rx="7" ' +
-        'fill="' + scale(v) + '" stroke="#fff" stroke-width="1.6"></rect>' +
-        '<text x="' + (x + CELL / 2) + '" y="' + (y + CELL / 2 - 3) + '" text-anchor="middle" ' +
-        'font-size="12.5" font-weight="600" fill="' + (dark ? '#fff' : '#33475c') + '">' + r.name + '</text>' +
-        '<text x="' + (x + CELL / 2) + '" y="' + (y + CELL / 2 + 13) + '" text-anchor="middle" ' +
-        'font-size="10.5" fill="' + (dark ? '#dbe7f3' : '#7c8ca3') + '">' +
-        (v == null ? '—' : (met === 'delinq' || met === 'dishonor' ? v.toFixed(2) : fmt(v))) +
-        '</text></g>';
-    }).join('');
-
-    const unit = (met === 'delinq' || met === 'dishonor') ? '%' : '';
-    document.getElementById('map-lo').textContent =
-      (met === 'delinq' || met === 'dishonor' ? lo.toFixed(2) : fmt(lo)) + unit;
-    document.getElementById('map-hi').textContent =
-      (met === 'delinq' || met === 'dishonor' ? hi.toFixed(2) : fmt(hi)) + unit;
-
-    svg.querySelectorAll('.cart-cell').forEach(g => {
-      g.addEventListener('click', () => { picked = g.dataset.n; draw(); });
-    });
-
-    const reg = R.regions.find(r => r.name === (picked || '서울'));
-    if (reg) {
-      const tot = reg.industry['0'] || {};
-      const cur = reg.industry[ind] || {};
-      const dl = reg.delinq.length ? reg.delinq[reg.delinq.length - 1] : null;
-      const ds = reg.dishonor.length ? reg.dishonor[reg.dishonor.length - 1] : null;
-      const share = tot.biz && cur.biz ? (cur.biz / tot.biz * 100).toFixed(1) + '%' : '—';
-      side.innerHTML =
-        '<h4>' + reg.name + '</h4>' +
-        '<div class="mrow"><span>사업체수 (전체)</span><b>' + fmt(tot.biz) + '</b></div>' +
-        '<div class="mrow"><span>종사자수 (전체)</span><b>' + fmt(tot.emp) + '</b></div>' +
-        '<div class="mrow"><span>' + selInd.options[selInd.selectedIndex].text + ' 사업체</span><b>' + fmt(cur.biz) + '</b></div>' +
-        '<div class="mrow"><span>해당 산업 비중</span><b>' + share + '</b></div>' +
-        '<div class="mrow"><span>중소기업 연체율</span><b>' + (dl ? dl.v + '%' : '—') + '</b></div>' +
-        '<div class="mrow"><span>어음부도율</span><b>' + (ds ? ds.v + '%' : '—') + '</b></div>' +
-        '<p class="src" style="margin-top:9px">' + (dl ? fmtT(dl.t) + ' 기준' : '') + '</p>';
-    }
+  function shareOf(reg, ind) {
+    const t = reg.industry['0'], c = reg.industry[ind];
+    return (t && c && t.biz && c.biz) ? c.biz / t.biz * 100 : null;
   }
 
-  selInd.addEventListener('change', draw);
-  selMet.addEventListener('change', draw);
+  function colorFor(v, lo, hi) {
+    if (v == null || hi === lo) return '#eef2f6';
+    const t = (v - lo) / (hi - lo);
+    const S = [[232,241,248],[127,179,217],[46,117,182],[27,58,92]];
+    const seg = t < .34 ? [S[0],S[1],t/.34] : t < .67 ? [S[1],S[2],(t-.34)/.33] : [S[2],S[3],(t-.67)/.33];
+    const [a,b,k] = seg;
+    return 'rgb(' + a.map((c,i)=>Math.round(c+(b[i]-c)*k)).join(',') + ')';
+  }
+
+  function drawMap() {
+    const ind = selInd.value, met = selMet.value;
+    const vals = Object.keys(M.paths).map(n => valueOf(REG[n], ind, met)).filter(v => v != null);
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+
+    svg.innerHTML = Object.entries(M.paths).map(([name, d]) => {
+      const v = valueOf(REG[name], ind, met);
+      return '<path d="' + d + '" data-n="' + name + '" class="kmap-p' +
+        (picked === name ? ' sel' : '') + '" fill="' + colorFor(v, lo, hi) +
+        '" stroke="#fff" stroke-width="0.9"><title>' + name + ' · ' +
+        (v == null ? '자료 없음' : (isRate(met) ? v.toFixed(2) + '%' : fmt(v))) +
+        '</title></path>';
+    }).join('');
+
+    svg.querySelectorAll('.kmap-p').forEach(el => {
+      el.addEventListener('click', () => { picked = el.dataset.n; drawMap(); drawSide(); drawTS(); drawScatter(); });
+    });
+
+    const u = isRate(met) ? '%' : '';
+    document.getElementById('map-lo').textContent = (isRate(met) ? lo.toFixed(2) : fmt(lo)) + u;
+    document.getElementById('map-hi').textContent = (isRate(met) ? hi.toFixed(2) : fmt(hi)) + u;
+  }
+
+  function drawSide() {
+    const reg = REG[picked]; if (!reg) return;
+    const ind = selInd.value;
+    const tot = reg.industry['0'] || {}, cur = reg.industry[ind] || {};
+    const dl = reg.delinq.length ? reg.delinq[reg.delinq.length-1] : null;
+    const ds = reg.dishonor.length ? reg.dishonor[reg.dishonor.length-1] : null;
+    const sh = shareOf(reg, ind);
+    side.innerHTML =
+      '<h4>' + reg.name + '</h4>' +
+      '<div class="mrow"><span>사업체수 (전체)</span><b>' + fmt(tot.biz) + '</b></div>' +
+      '<div class="mrow"><span>종사자수 (전체)</span><b>' + fmt(tot.emp) + '</b></div>' +
+      '<div class="mrow"><span>' + selInd.options[selInd.selectedIndex].text + '</span><b>' + fmt(cur.biz) + '</b></div>' +
+      '<div class="mrow"><span>해당 산업 비중</span><b>' + (sh == null ? '—' : sh.toFixed(1) + '%') + '</b></div>' +
+      '<div class="mrow"><span>중소기업 연체율</span><b>' + (dl ? dl.v + '%' : '—') + '</b></div>' +
+      '<div class="mrow"><span>어음부도율</span><b>' + (ds ? ds.v + '%' : '—') + '</b></div>' +
+      '<p class="src" style="margin-top:9px">' + (dl ? fmtT(dl.t) + ' 기준' : '') + '</p>';
+  }
+
+  /* 선택 지역 시계열 — 전국 평균을 회색으로 함께 깔아 비교한다 */
+  function drawTS() {
+    const met = isRate(selMet.value) ? selMet.value : 'delinq';
+    const reg = REG[picked]; if (!reg || !reg[met].length) return;
+    const labels = reg[met].map(o => fmtT(o.t));
+    // 전국 평균: 같은 시점의 시도 값 평균
+    const byT = {};
+    R.regions.forEach(r => r[met].forEach(o => { (byT[o.t] = byT[o.t] || []).push(o.v); }));
+    const nat = reg[met].map(o => {
+      const a = byT[o.t]; return a ? +(a.reduce((x,y)=>x+y,0)/a.length).toFixed(2) : null;
+    });
+    document.getElementById('ts-title').textContent =
+      picked + ' — ' + (met === 'delinq' ? '중소기업대출 연체율' : '어음부도율');
+    const cfg = {
+      type: 'line',
+      data: { labels, datasets: [
+        { label: '전국 평균', data: nat, borderColor: '#b9c4d1', borderWidth: 1.6,
+          pointRadius: 0, tension: .3, borderDash: [4,3] },
+        { label: picked, data: reg[met].map(o => o.v), borderColor: '#1B3A5C',
+          borderWidth: 2.4, pointRadius: 0, tension: .3, backgroundColor: '#1B3A5C18', fill: true }
+      ] },
+      options: { responsive: true, interaction: { mode:'index', intersect:false },
+        plugins: { legend: { position:'top', labels:{ boxWidth:12, font:{size:11} } } },
+        scales: { y:{ beginAtZero:true, title:{ display:true, text:'%' } },
+                  x:{ ticks:{ maxTicksLimit:10, font:{size:10} } } } }
+    };
+    if (tsChart) { tsChart.destroy(); }
+    tsChart = new Chart(document.getElementById('chart-region-ts'), cfg);
+  }
+
+  /* 산업 비중 × 연체율 산점도 + 상관계수 */
+  function drawScatter() {
+    const ind = selInd.value;
+    const pts = R.regions.filter(r => r.delinq.length && shareOf(r, ind) != null)
+      .map(r => ({ x: +shareOf(r, ind).toFixed(2),
+                   y: r.delinq[r.delinq.length-1].v, n: r.name }));
+    if (pts.length < 3) return;
+    const mx = pts.reduce((s,p)=>s+p.x,0)/pts.length, my = pts.reduce((s,p)=>s+p.y,0)/pts.length;
+    const sx = Math.sqrt(pts.reduce((s,p)=>s+(p.x-mx)**2,0)), sy = Math.sqrt(pts.reduce((s,p)=>s+(p.y-my)**2,0));
+    const r = (sx>0&&sy>0) ? pts.reduce((s,p)=>s+(p.x-mx)*(p.y-my),0)/(sx*sy) : 0;
+
+    const cfg = {
+      type: 'scatter',
+      data: { datasets: [{
+        label: '시도', data: pts,
+        backgroundColor: pts.map(p => p.n === picked ? '#E74C3C' : '#2E75B6'),
+        pointRadius: pts.map(p => p.n === picked ? 8 : 5.5)
+      }] },
+      options: { responsive: true,
+        plugins: { legend: { display:false },
+          tooltip: { callbacks: { label: c => c.raw.n + ' — 비중 ' + c.raw.x + '%, 연체율 ' + c.raw.y + '%' } } },
+        scales: { x:{ title:{ display:true, text:'해당 산업 사업체 비중 (%)' } },
+                  y:{ title:{ display:true, text:'중소기업대출 연체율 (%)' } } } }
+    };
+    if (scChart) { scChart.destroy(); }
+    scChart = new Chart(document.getElementById('chart-region-scatter'), cfg);
+    document.getElementById('scatter-note').textContent =
+      '점 하나가 시도 하나(n=' + pts.length + '). 선택한 ' +
+      selInd.options[selInd.selectedIndex].text + ' 기준 상관계수 r = ' + r.toFixed(3) +
+      '. 붉은 점이 현재 선택 지역이다.';
+  }
+
+  function redraw() { drawMap(); drawSide(); drawTS(); drawScatter(); }
+  selInd.addEventListener('change', redraw);
+  selMet.addEventListener('change', redraw);
   document.getElementById('map-asof').textContent = '사업체 ' + R.industry_year + '년 · 신용지표 최신월';
   document.getElementById('map-src').textContent =
-    R.citation.industry + ' / ' + R.citation.delinq + ' / ' + R.citation.dishonor +
-    ' — ' + R.grid_note;
-  draw();
+    R.citation.industry + ' / ' + R.citation.delinq + ' / ' + R.citation.dishonor + ' / ' + M.source;
+  redraw();
 }).catch(e => console.error('지역 데이터 로드 실패', e));
 
 </script>
