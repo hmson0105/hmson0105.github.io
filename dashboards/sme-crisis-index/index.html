@@ -43,6 +43,7 @@ tr:nth-child(even) { background: #f7fafc; }
 .method-box h3 { color: white; font-size: 15px; margin-bottom: 10px; }
 .method-box code { background: rgba(255,255,255,.12); padding: 1px 6px; border-radius: 4px; font-size: 12px; }
 canvas { max-height: 320px; }
+.src { font-size: 11px; color: #94a3b8; margin-top: 8px; }
 .jk-topbar { display: flex; align-items: center; gap: 8px; padding: 12px 40px; background: #fff; border-bottom: 1px solid #e0e7ef; font-size: 13px; color: #94a3b8; }
 .jk-topbar a { color: #334155; text-decoration: none; font-weight: 500; }
 .jk-topbar a:hover { color: #1d4ed8; }
@@ -132,7 +133,7 @@ img, svg, canvas { max-width: 100%; }
 
   <div class="notice">
     <strong>데이터 안내.</strong> 분석 1의 뉴스 데이터는 Google News RSS에서 실제로 수집한 762건(2026년 9월 17일 기준)을
-    직접 토픽모델링한 결과입니다. 분석 2·3의 연체율·폐업률은 언론에 공개된 실제 통계 수치입니다.
+    직접 토픽모델링한 결과입니다. 분석 2·3의 거시·신용지표는 <strong>한국은행 ECOS·통계청 KOSIS 오픈API로 직접 수집</strong>했습니다(수집일 <span data-ecos-date>—</span>, 10개 계열 1,030개 관측치). 통계표·항목 코드는 각 차트 아래에 표기했고, 수집 스크립트 <code>analysis/collect_ecos.py</code>를 다시 실행하면 최신 통계로 갱신됩니다.
     다만 RSS는 최신 기사 비중이 높아, 월별 기사 수의 절대량은 시점 간 직접 비교보다 <strong>토픽 구성 변화</strong>를 읽는 데
     활용하는 것이 적절합니다.
   </div>
@@ -210,23 +211,33 @@ img, svg, canvas { max-width: 100%; }
     <div class="subtitle">RQ2: 뉴스에서 감지된 위기 인식은 실제 재무 지표로 확인되는가?</div>
     <div class="chart-grid">
       <div class="chart-box">
-        <h3>중소기업 대출 연체율 (2021~2026)</h3>
+        <h3>은행 대출 연체율 — 기업 vs 가계 (2020~)</h3>
         <canvas id="chart-delinq"></canvas>
+        <p class="src">한국은행 ECOS 901Y054 · 1일 이상 연체, 은행전체 기준</p>
       </div>
       <div class="chart-box">
-        <h3>중소기업·소상공인 폐업률</h3>
+        <h3>대출금리 — 중소기업·대기업·기준금리</h3>
         <canvas id="chart-closure"></canvas>
+        <p class="src">한국은행 ECOS 121Y015 · 예금은행 잔액 기준 / 722Y001</p>
+      </div>
+      <div class="chart-box full">
+        <h3>실물지표 — 설비투자·생산·중소기업 경기·어음부도율</h3>
+        <canvas id="chart-real"></canvas>
+        <p class="src">한국은행 ECOS 901Y066 · 901Y033 · 801Y002 / 통계청 KOSIS 303·DT_303005_CI001</p>
       </div>
       <div class="chart-box full">
         <div class="insight" style="margin-top:0">
-          <strong>핵심 발견:</strong> 중소기업 대출 연체율은 2021년말 0.27%에서 2026년 5월 <strong>1.00%로 약 3.7배</strong> 상승해
-          11년 만의 최고치를 기록했다. 2025년 8월 0.89% → 연말 0.72%로 일시 개선된 것은 은행권의 연말 상각·정상화 처리에 따른
-          착시이며, 2026년 들어 다시 1.00%까지 올랐다. 폐업률은 2025년 8.64%로 반짝 개선됐으나 2026년 다시 9%대 중후반으로
-          고착화되는 흐름이다.
+          <strong>핵심 발견:</strong> 은행 기업대출 연체율은 2021년 9월 <strong>0.3%</strong>를 저점으로
+          2025년 5월 <strong>0.9%</strong>까지 <strong>3배</strong> 상승했고, 최신치(2026년 6월)는 0.8%다.
+          같은 기간 가계대출 연체율은 0.4% 수준에 머물러, 상승이 <strong>기업 부문에 집중</strong>돼 있음을 보여준다.
           <br><br>
-          <strong>시사점:</strong> 뉴스 토픽 T1(대출 연체·폐업 부담)의 기사량 증가와 실제 연체율 상승이 같은 방향으로 움직인다는 점은,
-          <strong>뉴스 기반 위기인식지수가 재무지표의 선행·동행 신호로 기능할 가능성</strong>을 시사한다.
-          본 연구에서는 교차상관분석(cross-correlation)으로 선행 시차를 검증할 예정이다.
+          중소기업 대출금리는 2023년 11월 <strong>5.36%</strong>로 고점을 찍은 뒤 하락해 2026년 7월 4.32%다.
+          대기업과의 금리차는 최신 <strong>0.09%p</strong>로, 2023년 1월의 0.36%p에서 좁혀졌다.
+          기준금리가 3.0%까지 내려온 국면에서 조달비용 압력은 완화됐으나, 연체율은 아직 저점으로 돌아가지 않았다.
+          <br><br>
+          <strong>시사점:</strong> 뉴스 토픽 T1(대출 연체·폐업 부담)의 기사량과 연체율이 같은 방향으로 움직이는지는
+          <strong>교차상관분석(cross-correlation)</strong>으로 선행 시차를 검증할 예정이다. 금리는 이미 꺾였는데
+          연체율이 따라 내려오지 않는 구간은, 금리 외 요인(업황·거래처 부실)이 작동하고 있음을 시사한다.
         </div>
       </div>
     </div>
@@ -417,82 +428,139 @@ new Chart(document.getElementById('chart-topic-month'), {
 });
 
 // 4) 연체율
-const delinqLabels = ['21년말','22년말','23년말','24년말','25.8월','25년말','26.5월'];
-const delinqData = [0.27, 0.32, 0.48, 0.62, 0.89, 0.72, 1.00];
-new Chart(document.getElementById('chart-delinq'), {
-  type: 'bar',
-  data: {
-    labels: delinqLabels,
-    datasets: [{ label: '연체율(%)', data: delinqData,
-      backgroundColor: delinqData.map(v => v >= 1.0 ? colors.red : (v >= 0.85 ? colors.orange : colors.blue)),
-      borderRadius: 4 }]
-  },
-  options: { responsive: true, plugins: { legend: { display: false } },
-    scales: { y: { beginAtZero: true, title: { display: true, text: '연체율 (%)' } } } }
-});
+/* ── 아래 세 차트는 analysis/collect_ecos.py 가 한국은행 ECOS 오픈API에서
+      수집한 data/ecos.json 을 읽는다. 값을 코드에 적어두지 않으므로,
+      스크립트를 다시 돌리면 최신 통계로 갱신된다. ── */
+const fmtT = t => t.length === 6 ? `${t.slice(2,4)}.${t.slice(4,6)}` : t;
+const pick = (obs, from) => obs.filter(o => o.t >= from);
 
-// 5) 폐업률
-new Chart(document.getElementById('chart-closure'), {
-  type: 'bar',
-  data: {
-    labels: ['2024', '2025', '2026(추정)'],
-    datasets: [{ label: '폐업률(%)', data: [9.04, 8.64, 9.5],
-      backgroundColor: [colors.blue, colors.green, colors.red], borderRadius: 4 }]
-  },
-  options: { responsive: true, plugins: { legend: { display: false } },
-    scales: { y: { beginAtZero: true, title: { display: true, text: '폐업률 (%)' } } } }
-});
+fetch('data/ecos.json').then(r => r.json()).then(E => {
+  const S = E.series;
+  document.querySelectorAll('[data-ecos-date]').forEach(el => {
+    el.textContent = E.collected_at.slice(0, 10);
+  });
 
-// 6) 타임라인 + 이벤트 수직선
-const tlLabels = ['2024.12','2025.03','2025.06','2025.08','2025.12','2026.05','2026.07'];
-new Chart(document.getElementById('chart-timeline'), {
-  type: 'line',
-  data: {
-    labels: tlLabels,
-    datasets: [{
-      label: '중소기업 대출 연체율 (%)',
-      data: [0.62, null, null, 0.89, 0.72, 1.00, null],
-      borderColor: colors.blue, borderWidth: 3, tension: 0.3, pointRadius: 6,
-      backgroundColor: colors.blue + '20', fill: true, spanGaps: true
-    }]
-  },
-  options: {
-    responsive: true,
-    scales: { y: { beginAtZero: true, title: { display: true, text: '연체율 (%)' }, suggestedMax: 1.2 } },
-    plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } }
-  },
-  plugins: [{
-    afterDraw: function (chart) {
-      const ctx = chart.ctx;
-      const xAxis = chart.scales.x;
-      const yAxis = chart.scales.y;
-      const events = [
-        { label: '2025.03', idx: 1, text: '홈플러스\n회생절차 신청', color: '#F39C12' },
-        { label: '2025.06', idx: 2, text: '중동 정세 악화\n(이란 사태)', color: '#E74C3C' },
-        { label: '2026.07', idx: 6, text: '홈플러스\n회생절차 폐지', color: '#8E44AD' }
-      ];
-      for (const e of events) {
-        const x = xAxis.getPixelForValue(e.idx);
-        ctx.save();
-        ctx.beginPath();
-        ctx.setLineDash([4, 4]);
-        ctx.strokeStyle = e.color;
-        ctx.lineWidth = 1.5;
-        ctx.moveTo(x, yAxis.top);
-        ctx.lineTo(x, yAxis.bottom);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.font = 'bold 10px Segoe UI, Arial';
-        ctx.fillStyle = e.color;
-        ctx.textAlign = 'center';
-        e.text.split('\n').forEach((line, i) => {
-          ctx.fillText(line, x, yAxis.top + 12 + i * 12);
+  // 4) 연체율 — 기업 vs 가계
+  const corp = pick(S.delinq_corp.obs, '202001');
+  const house = pick(S.delinq_house.obs, '202001');
+  new Chart(document.getElementById('chart-delinq'), {
+    type: 'line',
+    data: {
+      labels: corp.map(o => fmtT(o.t)),
+      datasets: [
+        { label: S.delinq_corp.label, data: corp.map(o => o.v),
+          borderColor: colors.red, backgroundColor: colors.red + '18',
+          borderWidth: 2.4, pointRadius: 0, tension: .3, fill: true },
+        { label: S.delinq_house.label, data: house.map(o => o.v),
+          borderColor: colors.blue, borderWidth: 1.8, pointRadius: 0,
+          tension: .3, borderDash: [5, 4] }
+      ]
+    },
+    options: { responsive: true, interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+      scales: { y: { beginAtZero: true, title: { display: true, text: '연체율 (%)' } },
+                x: { ticks: { maxTicksLimit: 10, font: { size: 10 } } } } }
+  });
+
+  // 5) 중소기업 대출금리 — 대기업·기준금리와 비교
+  const sme = pick(S.rate_sme.obs, '202001');
+  const lrg = pick(S.rate_large.obs, '202001');
+  const base = pick(S.base_rate.obs, '202001');
+  new Chart(document.getElementById('chart-closure'), {
+    type: 'line',
+    data: {
+      labels: sme.map(o => fmtT(o.t)),
+      datasets: [
+        { label: '중소기업 대출금리', data: sme.map(o => o.v),
+          borderColor: colors.red, borderWidth: 2.4, pointRadius: 0, tension: .3 },
+        { label: '대기업 대출금리', data: lrg.map(o => o.v),
+          borderColor: colors.orange, borderWidth: 2, pointRadius: 0, tension: .3 },
+        { label: '한국은행 기준금리', data: base.map(o => o.v),
+          borderColor: '#94a3b8', borderWidth: 1.6, pointRadius: 0,
+          tension: .3, borderDash: [5, 4] }
+      ]
+    },
+    options: { responsive: true, interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+      scales: { y: { title: { display: true, text: '연 %' } },
+                x: { ticks: { maxTicksLimit: 10, font: { size: 10 } } } } }
+  });
+
+  // 6) 실물지표 — 설비투자·전산업생산·어음부도율
+  const cap = pick(S.capex.obs, '202001');
+  const prod = pick(S.production.obs, '202001');
+  const dis = pick(S.dishonor.obs, '202001');
+  new Chart(document.getElementById('chart-real'), {
+    type: 'line',
+    data: {
+      labels: cap.map(o => fmtT(o.t)),
+      datasets: [
+        { label: '설비투자지수', data: cap.map(o => o.v), yAxisID: 'y',
+          borderColor: colors.blue, borderWidth: 2, pointRadius: 0, tension: .3 },
+        { label: '전산업생산지수', data: prod.map(o => o.v), yAxisID: 'y',
+          borderColor: colors.green, borderWidth: 2, pointRadius: 0, tension: .3 },
+        { label: '중소기업 동행지수 순환변동치', data: pick(S.sme_cycle.obs, '202001').map(o => o.v),
+          yAxisID: 'y', borderColor: '#8E44AD', borderWidth: 2, pointRadius: 0, tension: .3 },
+        { label: '어음부도율(우축)', data: dis.map(o => o.v), yAxisID: 'y1',
+          borderColor: colors.red, borderWidth: 1.8, pointRadius: 0,
+          tension: .3, borderDash: [4, 3] }
+      ]
+    },
+    options: { responsive: true, interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+      scales: {
+        y: { position: 'left', title: { display: true, text: '지수 (2020=100)' } },
+        y1: { position: 'right', title: { display: true, text: '부도율 (%)' },
+              grid: { drawOnChartArea: false } },
+        x: { ticks: { maxTicksLimit: 10, font: { size: 10 } } } } }
+  });
+  // 6) 타임라인 — 연체율 실측 위에 충격 이벤트를 겹쳐 표시
+  const tl = pick(S.delinq_corp.obs, '202401');
+  const EVT = [
+    { t: '202503', text: '홈플러스\n회생절차 신청', color: '#F39C12' },
+    { t: '202506', text: '중동 정세 악화\n(유가·환율)', color: '#E74C3C' },
+    { t: '202606', text: '연체율 최신치', color: '#8E44AD' }
+  ];
+  new Chart(document.getElementById('chart-timeline'), {
+    type: 'line',
+    data: { labels: tl.map(o => fmtT(o.t)),
+      datasets: [{ label: S.delinq_corp.label, data: tl.map(o => o.v),
+        borderColor: colors.blue, borderWidth: 2.6, tension: .3, pointRadius: 0,
+        backgroundColor: colors.blue + '20', fill: true }] },
+    options: { responsive: true, interaction: { mode: 'index', intersect: false },
+      scales: { y: { beginAtZero: true, title: { display: true, text: '연체율 (%)' } },
+                x: { ticks: { maxTicksLimit: 12, font: { size: 10 } } } },
+      plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } } },
+    plugins: [{
+      afterDraw: function (chart) {
+        const ctx = chart.ctx, xA = chart.scales.x, yA = chart.scales.y;
+        EVT.forEach(function (e) {
+          const i = tl.findIndex(function (o) { return o.t === e.t; });
+          if (i < 0) return;
+          const x = xA.getPixelForValue(i);
+          ctx.save();
+          ctx.strokeStyle = e.color; ctx.lineWidth = 1.4; ctx.setLineDash([5, 4]);
+          ctx.beginPath(); ctx.moveTo(x, yA.top); ctx.lineTo(x, yA.bottom); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = e.color; ctx.font = '600 10px Segoe UI, Arial';
+          ctx.textAlign = x > (xA.left + xA.right) / 2 ? 'right' : 'left';
+          e.text.split('\n').forEach(function (line, k) {
+            ctx.fillText(line, x + (ctx.textAlign === 'right' ? -6 : 6), yA.top + 14 + k * 12);
+          });
+          ctx.restore();
         });
-        ctx.restore();
       }
-    }
-  }]
+    }]
+  });
+
+}).catch(e => {
+  console.error('ECOS 데이터 로드 실패', e);
+  document.querySelectorAll('[data-ecos-fallback]').forEach(el => {
+    el.textContent = '거시지표를 불러오지 못했습니다. analysis/collect_ecos.py 를 실행해 data/ecos.json 을 생성하세요.';
+  });
 });
+
+
 </script>
 
 </body>
