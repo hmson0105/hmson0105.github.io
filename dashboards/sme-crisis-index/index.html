@@ -139,12 +139,6 @@ img, svg, canvas { max-width: 100%; }
 .corr-grp { font-size: 10.5px; color: #7c8ca3; }
 
 /* ── 타임라인 구간 선택 ─────────────────────────── */
-.tl-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
-.tl-btn { font-size: 11.5px; padding: 5px 11px; border: 1px solid #d5dde8; background: #fff;
-          border-radius: 999px; cursor: pointer; color: #44566e; transition: all .15s; }
-.tl-btn:hover { border-color: #2E75B6; color: #1B3A5C; }
-.tl-btn.on { background: #1B3A5C; border-color: #1B3A5C; color: #fff; }
-.tl-range { margin-left: auto; font-size: 11.5px; color: #7c8ca3; }
 .tl-hint { font-size: 11px; color: #94a3b8; margin-top: 8px; }
 .evt-list { margin-top: 14px; border-top: 1px solid #e8ecf0; }
 .evt-item { display: grid; grid-template-columns: 74px 92px 1fr; gap: 12px; padding: 9px 0;
@@ -154,6 +148,33 @@ img, svg, canvas { max-width: 100%; }
 .evt-item .tx { color: #44566e; line-height: 1.5; }
 .evt-item.dim { opacity: .38; }
 @media (max-width: 680px) { .evt-item { grid-template-columns: 62px 1fr; } .evt-item .tag { display: none; } }
+
+/* ── 기간 범위 슬라이더 (이중 핸들) ─────────────── */
+.rng { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.rng-label { font-size: 12px; color: #44566e; font-weight: 600; white-space: nowrap; }
+.rng-val { font-size: 12px; color: #1B3A5C; font-variant-numeric: tabular-nums;
+           white-space: nowrap; min-width: 116px; }
+.rng-wrap { position: relative; flex: 1; height: 22px; }
+.rng-track { position: absolute; top: 9px; left: 0; right: 0; height: 4px;
+             background: #dfe6ee; border-radius: 2px; }
+.rng-fill { position: absolute; top: 0; height: 100%; background: #2E75B6; border-radius: 2px; }
+.rng-slider { position: absolute; top: 0; left: 0; width: 100%; height: 22px; margin: 0;
+              -webkit-appearance: none; appearance: none; background: none; pointer-events: none; }
+.rng-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; pointer-events: auto; cursor: grab;
+  width: 15px; height: 15px; border-radius: 50%; background: #fff;
+  border: 2.5px solid #1B3A5C; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.rng-slider::-webkit-slider-thumb:active { cursor: grabbing; }
+.rng-slider::-moz-range-thumb {
+  pointer-events: auto; cursor: grab; width: 15px; height: 15px; border: 2.5px solid #1B3A5C;
+  border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.rng-reset { font-size: 11.5px; color: #7c8ca3; background: none; border: none;
+             cursor: pointer; padding: 3px 6px; white-space: nowrap; }
+.rng-reset:hover { color: #1B3A5C; text-decoration: underline; }
+@media (max-width: 680px) {
+  .rng { flex-wrap: wrap; gap: 8px; }
+  .rng-wrap { flex: 1 1 100%; order: 3; }
+}
 </style>
 </head>
 <body>
@@ -354,16 +375,18 @@ img, svg, canvas { max-width: 100%; }
     <div class="chart-grid">
       <div class="chart-box full">
         <h3>연체율·종합지수와 주요 충격 이벤트</h3>
-        <div class="tl-bar">
-          <button class="tl-btn" data-tl="all">전체</button>
-          <button class="tl-btn" data-tl="60">최근 5년</button>
-          <button class="tl-btn on" data-tl="36">최근 3년</button>
-          <button class="tl-btn" data-tl="12">최근 1년</button>
-          <button class="tl-btn" data-tl="reset">⟲ 초기화</button>
-          <span class="tl-range" id="tl-range">—</span>
+        <div class="rng">
+          <span class="rng-label">조회 기간</span>
+          <span class="rng-val" id="rng-val">—</span>
+          <div class="rng-wrap">
+            <div class="rng-track"><div class="rng-fill" id="rng-fill"></div></div>
+            <input type="range" class="rng-slider" id="rng-min" step="1">
+            <input type="range" class="rng-slider" id="rng-max" step="1">
+          </div>
+          <button class="rng-reset" id="rng-reset" type="button">전체</button>
         </div>
         <canvas id="chart-timeline"></canvas>
-        <p class="tl-hint">차트 위에서 <strong>마우스를 드래그</strong>하면 그 구간만 확대됩니다. 초기화를 누르면 되돌아갑니다.</p>
+        <p class="tl-hint">양 끝 핸들을 끌어 기간을 좁히면 차트와 아래 사건 목록이 함께 바뀝니다.</p>
         <div class="evt-list" id="evt-list"></div>
         <div class="insight">
           <strong>확인된 사실:</strong> 홈플러스는 2025년 3월 4일 서울회생법원에 기업회생절차 개시를 신청했고
@@ -714,33 +737,45 @@ fetch('data/ecos.json').then(r => r.json()).then(E => {
     }]
   });
 
-  function visibleRange() {
-    const xA = tlChart.scales.x;
-    const a = Math.max(0, Math.ceil(xA.min)), b = Math.min(tlAll.length - 1, Math.floor(xA.max));
-    return [tlAll[a]?.t, tlAll[b]?.t];
-  }
-  function syncRange() {
-    const [a, b] = visibleRange();
-    document.getElementById('tl-range').textContent = a && b ? fmtT(a) + ' ~ ' + fmtT(b) : '—';
+  /* ── 기간 범위 슬라이더 ──────────────────────────
+     두 개의 range 입력을 겹쳐 놓고 낮은 쪽/높은 쪽 값을 각각 잡는다.
+     트랙은 배경 div 가 그리고, 입력 자체는 투명하게 두어 핸들만 보이게 한다. */
+  const rMin = document.getElementById('rng-min');
+  const rMax = document.getElementById('rng-max');
+  const rFill = document.getElementById('rng-fill');
+  const rVal = document.getElementById('rng-val');
+  const LAST = tlAll.length - 1;
+
+  [rMin, rMax].forEach(el => { el.min = 0; el.max = LAST; });
+  rMin.value = 0; rMax.value = LAST;
+
+  function applyRange() {
+    let a = parseInt(rMin.value, 10), b = parseInt(rMax.value, 10);
+    if (a > b) { [a, b] = [b, a]; }            // 핸들이 교차하면 값을 뒤집는다
+    if (b - a < 2) {                            // 최소 3개월은 남긴다
+      if (parseInt(rMin.value, 10) === a) b = Math.min(LAST, a + 2);
+      else a = Math.max(0, b - 2);
+    }
+    const pa = (a / LAST) * 100, pb = (b / LAST) * 100;
+    rFill.style.left = pa + '%';
+    rFill.style.width = (pb - pa) + '%';
+
+    const ta = tlAll[a].t, tb = tlAll[b].t;
+    rVal.textContent = fmtT(ta) + ' — ' + fmtT(tb) +
+      '  (' + (b - a + 1) + '개월)';
+
+    tlChart.zoomScale('x', { min: a, max: b }, 'none');
+
     document.querySelectorAll('.evt-item').forEach(el => {
       const t = el.dataset.t;
-      el.classList.toggle('dim', !(t >= a && t <= b));
+      el.classList.toggle('dim', !(t >= ta && t <= tb));
     });
   }
-  function setWindow(n) {
-    if (n === 'all' || n === 'reset') { tlChart.resetZoom(); }
-    else {
-      const last = tlAll.length - 1;
-      tlChart.zoomScale('x', { min: Math.max(0, last - n + 1), max: last }, 'none');
-    }
-    syncRange();
-  }
-  document.querySelectorAll('[data-tl]').forEach(b => {
-    b.addEventListener('click', () => {
-      const v = b.dataset.tl;
-      document.querySelectorAll('[data-tl]').forEach(x => x.classList.toggle('on', x === b && v !== 'reset'));
-      setWindow(v === 'reset' ? 'all' : (v === 'all' ? 'all' : parseInt(v)));
-    });
+
+  rMin.addEventListener('input', applyRange);
+  rMax.addEventListener('input', applyRange);
+  document.getElementById('rng-reset').addEventListener('click', () => {
+    rMin.value = 0; rMax.value = LAST; applyRange();
   });
 
   // 이벤트 목록
@@ -751,7 +786,7 @@ fetch('data/ecos.json').then(r => r.json()).then(E => {
       '<span class="tx">' + e.tx + '</span>' +
     '</div>').join('');
 
-  setWindow(36);
+  applyRange();
 
 
   /* ── 종합 현황: 게이지 + KPI ─────────────────────── */
