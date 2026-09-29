@@ -512,6 +512,7 @@ img, svg, canvas { max-width: 100%; }
         <select id="map-ind"></select>
         <label for="map-metric" style="margin-left:6px">색상 기준</label>
         <select id="map-metric">
+          <option value="risk">지역 종합 위기지수</option>
           <option value="delinq">중소기업대출 연체율</option>
           <option value="dishonor">어음부도율</option>
           <option value="biz">사업체수</option>
@@ -612,7 +613,33 @@ img, svg, canvas { max-width: 100%; }
             지면을 더 쓰고, 통계는 <strong>결과(연체)</strong>를 뒤늦게 기록한다. 두 신호의 시차 관계는
             교차상관으로 검증할 예정이며, 현재 결과만으로 뉴스가 지표를 선행한다고 말할 수는 없다.
           </p>
+  
+        <div class="find">
+          <h4>6. 지역 신용위험은 산업 구성과 뚜렷이 갈린다</h4>
+          <p>
+            17개 시도의 산업별 사업체 비중과 중소기업대출 연체율의 단면 상관을 보면
+            <span class="num">전문·과학 및 기술 서비스업 r=+0.638</span>,
+            <span class="num">도매 및 소매업 +0.433</span>, 정보통신업 +0.403으로 양의 상관인 반면,
+            <span class="num">건설업 −0.591</span>, 제조업 −0.359로 음의 상관이다.
+            서비스·지식산업 비중이 높은 지역일수록 연체율이 높고, 제조·건설 비중이 높은 지역은 낮다.
+            다만 서비스업 비중이 높은 곳은 대체로 대도시이므로, 이 상관이 <strong>산업 효과인지
+            도시 규모 효과인지는 이 데이터만으로 분리되지 않는다.</strong>
+          </p>
         </div>
+
+        <div class="find warn">
+          <h4>7. 사업체가 가장 많은 지역이 가장 안전한 것은 아니다</h4>
+          <p>
+            연체율·어음부도율을 시도 간 z-score로 묶은 지역 위기지수는
+            <span class="num">광주 +2.59(위험)</span>, 서울 +0.99(경계), 대구 +0.49(주의) 순으로 높고,
+            충북 −0.73 · 충남 −0.69 · 전남 −0.63이 가장 낮다.
+            사업체 수 1·2위인 경기(160만)와 서울(118만)이 각각 −0.60과 +0.99로 정반대에 놓인다.
+            <strong>사업체 밀도와 신용위험은 비례하지 않는다.</strong>
+            광주는 어음부도율 2.59%가 다른 시도(대부분 0.3% 미만)와 자릿수가 달라 지수를 끌어올렸는데,
+            표본이 작은 지역은 소수 사건으로 크게 흔들리므로 추세 확인 후 해석해야 한다.
+          </p>
+        </div>
+      </div>
       </div>
 
       <div class="chart-box full">
@@ -650,6 +677,9 @@ img, svg, canvas { max-width: 100%; }
               유지되는지는 검증되지 않았다.</li>
           <li><strong>뉴스 데이터의 편향.</strong> Google News RSS는 최신 기사 비중이 높아
               월별 기사 수의 절대량을 시점 간 비교하기 어렵다. 토픽 구성 변화를 읽는 용도로 한정했다.</li>
+          <li><strong>지역 분석은 단면(cross-section)이다.</strong> 산업 비중은 2024년 연간,
+              연체율은 최신월 값으로 한 시점만 비교했다. 지역별 시계열은 수집돼 있으므로
+              패널 분석으로 확장하면 지역 고정효과를 통제할 수 있다.</li>
           <li><strong>종합지수는 동일가중이다.</strong> 24개 지표를 같은 비중으로 평균했으며,
               상관 크기나 선행성에 따른 가중은 적용하지 않았다. 향후 주성분분석이나
               로지스틱 회귀로 가중치를 추정할 수 있다.</li>
@@ -1171,7 +1201,9 @@ Promise.all([
 
   selInd.innerHTML = R.industries.map(i =>
     '<option value="' + i.code + '">' + i.name + '</option>').join('');
-  svg.setAttribute('viewBox', M.viewBox);
+  // 인출선이 지도 밖으로 나가므로 좌우를 조금 넓혀 잘리지 않게 한다
+  const vb = M.viewBox.split(' ').map(Number);
+  svg.setAttribute('viewBox', (vb[0]-95) + ' ' + vb[1] + ' ' + (vb[2]+190) + ' ' + vb[3]);
 
   const REG = {};
   R.regions.forEach(r => { REG[r.name] = r; });
@@ -1182,9 +1214,12 @@ Promise.all([
     : (n >= 1e8 ? (n / 1e8).toFixed(1) + '억'
     : n >= 1e4 ? (n / 1e4).toFixed(1) + '만' : Math.round(n).toLocaleString());
   const isRate = m => m === 'delinq' || m === 'dishonor';
+  const isZ = m => m === 'risk';
+  const RISKC = { 위험:'#E74C3C', 경계:'#F39C12', 주의:'#27AE60', 안정:'#2E75B6' };
 
   function valueOf(reg, ind, met) {
     if (!reg) return null;
+    if (met === 'risk') return reg.risk ? reg.risk.value : null;
     if (isRate(met)) {
       const a = reg[met];
       return a && a.length ? a[a.length - 1].v : null;
@@ -1211,22 +1246,85 @@ Promise.all([
     const vals = Object.keys(M.paths).map(n => valueOf(REG[n], ind, met)).filter(v => v != null);
     const lo = Math.min(...vals), hi = Math.max(...vals);
 
-    svg.innerHTML = Object.entries(M.paths).map(([name, d]) => {
+    const shown = v => v == null ? '—'
+      : isZ(met) ? (v >= 0 ? '+' : '') + v.toFixed(2)
+      : isRate(met) ? v.toFixed(2) : fmt(v);
+
+    const paths = Object.entries(M.paths).map(([name, d]) => {
       const v = valueOf(REG[name], ind, met);
+      const fillC = isZ(met) && REG[name] && REG[name].risk
+        ? RISKC[REG[name].risk.level] : colorFor(v, lo, hi);
       return '<path d="' + d + '" data-n="' + name + '" class="kmap-p' +
-        (picked === name ? ' sel' : '') + '" fill="' + colorFor(v, lo, hi) +
-        '" stroke="#fff" stroke-width="0.9"><title>' + name + ' · ' +
-        (v == null ? '자료 없음' : (isRate(met) ? v.toFixed(2) + '%' : fmt(v))) +
+        (picked === name ? ' sel' : '') + '" fill="' + fillC +
+        '" stroke="#fff" stroke-width="0.9"><title>' + name + ' · ' + shown(v) +
+        (isZ(met) && REG[name] && REG[name].risk ? ' (' + REG[name].risk.level + ')' : '') +
         '</title></path>';
     }).join('');
+
+    /* 라벨 배치.
+       광역시 7곳은 면적이 도(道)의 1/10 이하라 폴리곤 위에 글자를 얹으면
+       서로 겹치고 읽히지 않는다. 이들은 지도 밖 여백에 원형 마커와
+       인출선으로 빼고, 나머지는 폴리곤 중심에 그대로 둔다. */
+    const SMALL = { 서울:[-1,-1], 인천:[-1,1], 세종:[-1,0], 대전:[-1,1],
+                    광주:[-1,1], 대구:[1,0], 울산:[1,0], 부산:[1,1] };
+    const OFF = 62;
+
+    const labels = Object.entries(M.labels || {}).map(([name, xy]) => {
+      const v = valueOf(REG[name], ind, met);
+      let dark;
+      if (isZ(met)) {
+        const lv = REG[name] && REG[name].risk ? REG[name].risk.level : null;
+        dark = lv === '위험' || lv === '안정';
+      } else {
+        dark = v != null && (v - lo) / ((hi - lo) || 1) > .55;
+      }
+      const fillC = isZ(met) && REG[name] && REG[name].risk
+        ? RISKC[REG[name].risk.level] : colorFor(v, lo, hi);
+
+      if (SMALL[name]) {
+        // 인출선 + 원형 마커 + 바깥 라벨
+        const [sx2, sy2] = SMALL[name];
+        const lx = xy[0] + sx2 * OFF;
+        const ly = xy[1] + sy2 * 16;
+        const anchor = sx2 < 0 ? 'end' : 'start';
+        const tx = lx + (sx2 < 0 ? -11 : 11);
+        return '<g class="kmap-lb" pointer-events="none">' +
+          '<line x1="' + xy[0] + '" y1="' + xy[1] + '" x2="' + lx + '" y2="' + ly + '" ' +
+          'stroke="#9aa8b8" stroke-width="0.8"></line>' +
+          '<circle cx="' + lx + '" cy="' + ly + '" r="7" fill="' + fillC +
+          '" stroke="#fff" stroke-width="1.6"></circle>' +
+          '<text x="' + tx + '" y="' + (ly - 1) + '" text-anchor="' + anchor + '" ' +
+          'font-size="11" font-weight="700" fill="#26384d">' + name + '</text>' +
+          '<text x="' + tx + '" y="' + (ly + 10) + '" text-anchor="' + anchor + '" ' +
+          'font-size="9.5" fill="#5b6e85">' + shown(v) + '</text></g>';
+      }
+
+      const col = dark ? '#fff' : '#26384d';
+      const sub = dark ? 'rgba(255,255,255,.82)' : '#5b6e85';
+      return '<g class="kmap-lb" pointer-events="none">' +
+        '<text x="' + xy[0] + '" y="' + (xy[1] - 1) + '" text-anchor="middle" ' +
+        'font-size="11.5" font-weight="700" fill="' + col + '">' + name + '</text>' +
+        '<text x="' + xy[0] + '" y="' + (xy[1] + 11) + '" text-anchor="middle" ' +
+        'font-size="10" fill="' + sub + '">' + shown(v) + '</text></g>';
+    }).join('');
+
+    svg.innerHTML = paths + labels;
 
     svg.querySelectorAll('.kmap-p').forEach(el => {
       el.addEventListener('click', () => { picked = el.dataset.n; drawMap(); drawSide(); drawTS(); drawScatter(); });
     });
 
     const u = isRate(met) ? '%' : '';
-    document.getElementById('map-lo').textContent = (isRate(met) ? lo.toFixed(2) : fmt(lo)) + u;
-    document.getElementById('map-hi').textContent = (isRate(met) ? hi.toFixed(2) : fmt(hi)) + u;
+    const bar = document.querySelector('.map-legend .bar');
+    if (isZ(met)) {
+      bar.style.background = 'linear-gradient(90deg,#2E75B6 0 25%,#27AE60 25% 50%,#F39C12 50% 75%,#E74C3C 75%)';
+      document.getElementById('map-lo').textContent = '안정 · 주의';
+      document.getElementById('map-hi').textContent = '경계 · 위험';
+    } else {
+      bar.style.background = 'linear-gradient(90deg,#e8f1f8,#7fb3d9,#2E75B6,#1B3A5C)';
+      document.getElementById('map-lo').textContent = (isRate(met) ? lo.toFixed(2) : fmt(lo)) + u;
+      document.getElementById('map-hi').textContent = (isRate(met) ? hi.toFixed(2) : fmt(hi)) + u;
+    }
   }
 
   function drawSide() {
@@ -1244,6 +1342,10 @@ Promise.all([
       '<div class="mrow"><span>해당 산업 비중</span><b>' + (sh == null ? '—' : sh.toFixed(1) + '%') + '</b></div>' +
       '<div class="mrow"><span>중소기업 연체율</span><b>' + (dl ? dl.v + '%' : '—') + '</b></div>' +
       '<div class="mrow"><span>어음부도율</span><b>' + (ds ? ds.v + '%' : '—') + '</b></div>' +
+      '<div class="mrow"><span>지역 위기지수</span><b style="color:' +
+        (reg.risk ? RISKC[reg.risk.level] : '#8a9ab0') + '">' +
+        (reg.risk ? (reg.risk.value >= 0 ? '+' : '') + reg.risk.value.toFixed(2) +
+          ' ' + reg.risk.level : '—') + '</b></div>' +
       '<p class="src" style="margin-top:9px">' + (dl ? fmtT(dl.t) + ' 기준' : '') + '</p>';
   }
 
@@ -1288,25 +1390,36 @@ Promise.all([
     const sx = Math.sqrt(pts.reduce((s,p)=>s+(p.x-mx)**2,0)), sy = Math.sqrt(pts.reduce((s,p)=>s+(p.y-my)**2,0));
     const r = (sx>0&&sy>0) ? pts.reduce((s,p)=>s+(p.x-mx)*(p.y-my),0)/(sx*sy) : 0;
 
+    // 최소제곱 회귀직선 — 기울기와 절편으로 양 끝점만 그린다
+    const b = sx > 0 ? pts.reduce((s2,p)=>s2+(p.x-mx)*(p.y-my),0) / pts.reduce((s2,p)=>s2+(p.x-mx)**2,0) : 0;
+    const a0 = my - b * mx;
+    const xmin = Math.min(...pts.map(p=>p.x)), xmax = Math.max(...pts.map(p=>p.x));
+    const line = [{x: xmin, y: a0 + b*xmin}, {x: xmax, y: a0 + b*xmax}];
+
     const cfg = {
       type: 'scatter',
-      data: { datasets: [{
-        label: '시도', data: pts,
-        backgroundColor: pts.map(p => p.n === picked ? '#E74C3C' : '#2E75B6'),
-        pointRadius: pts.map(p => p.n === picked ? 8 : 5.5)
-      }] },
+      data: { datasets: [
+        { label: '추세선', data: line, type: 'line', borderColor: '#94a3b8',
+          borderWidth: 1.8, borderDash: [6,4], pointRadius: 0, fill: false, order: 2 },
+        { label: '시도', data: pts, order: 1,
+          backgroundColor: pts.map(p => p.n === picked ? '#E74C3C' : '#2E75B6'),
+          pointRadius: pts.map(p => p.n === picked ? 8 : 5.5) }
+      ] },
       options: { responsive: true,
         plugins: { legend: { display:false },
-          tooltip: { callbacks: { label: c => c.raw.n + ' — 비중 ' + c.raw.x + '%, 연체율 ' + c.raw.y + '%' } } },
+          tooltip: { filter: c => c.datasetIndex === 1,
+            callbacks: { label: c => c.raw.n + ' — 비중 ' + c.raw.x + '%, 연체율 ' + c.raw.y + '%' } } },
         scales: { x:{ title:{ display:true, text:'해당 산업 사업체 비중 (%)' } },
                   y:{ title:{ display:true, text:'중소기업대출 연체율 (%)' } } } }
     };
     if (scChart) { scChart.destroy(); }
     scChart = new Chart(document.getElementById('chart-region-scatter'), cfg);
-    document.getElementById('scatter-note').textContent =
-      '점 하나가 시도 하나(n=' + pts.length + '). 선택한 ' +
-      selInd.options[selInd.selectedIndex].text + ' 기준 상관계수 r = ' + r.toFixed(3) +
-      '. 붉은 점이 현재 선택 지역이다.';
+    const r2 = (r * r).toFixed(3);
+    document.getElementById('scatter-note').innerHTML =
+      '점 하나가 시도 하나(n=' + pts.length + '). ' +
+      selInd.options[selInd.selectedIndex].text + ' 비중 기준 <b>r = ' + r.toFixed(3) +
+      '</b>, R² = ' + r2 + ', 기울기 ' + b.toFixed(4) +
+      '. 붉은 점이 선택 지역. 단면 상관이므로 인과로 읽을 수 없다.';
   }
 
   function redraw() { drawMap(); drawSide(); drawTS(); drawScatter(); }

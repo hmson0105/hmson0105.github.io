@@ -18,7 +18,7 @@ OUT = HERE.parent / "data" / "kmap.json"
 SRC = ("https://raw.githubusercontent.com/southkorea/southkorea-maps/"
        "master/kostat/2018/json/skorea-provinces-2018-geo.json")
 
-W, H = 460, 600          # viewBox
+W, H = 420, 560          # viewBox
 TOL = 0.006              # 단순화 허용오차(도 단위). 클수록 거칠어진다
 MIN_AREA = 0.004         # 이보다 작은 폴리곤(섬)은 버린다
 
@@ -94,13 +94,14 @@ def main():
         return (round((x - x0) * kx * sc + ox, 1),
                 round(H - ((y - y0) * sc + oy), 1))
 
-    out, total = {}, 0
+    # 1차 투영 결과를 모아 실제 점유 범위를 재서 여백 없이 다시 맞춘다
+    raw = {}
     for f in geo["features"]:
         name = SHORT.get(f["properties"].get("name", ""), f["properties"].get("name", ""))
         g = f["geometry"]
         polys = g["coordinates"] if g["type"] == "MultiPolygon" else [g["coordinates"]]
         biggest = max(ring_area(p[0]) for p in polys)
-        parts = []
+        rings = []
         for poly in polys:
             ring = poly[0]
             if ring_area(ring) < max(MIN_AREA, biggest * 0.02):
@@ -108,17 +109,40 @@ def main():
             pts = simplify(ring, TOL)
             if len(pts) < 4:
                 continue
-            d = "M" + "L".join(f"{a},{b}" for a, b in (proj(*p) for p in pts)) + "Z"
-            parts.append(d)
+            rings.append([proj(*q) for q in pts])
+        raw[name] = rings
+
+    # ── 여백 제거: 실제 점유 범위를 viewBox 에 꽉 채운다 ──
+    ax = [q[0] for rs in raw.values() for r in rs for q in r]
+    ay = [q[1] for rs in raw.values() for r in rs for q in r]
+    bx0, bx1, by0, by1 = min(ax), max(ax), min(ay), max(ay)
+    PAD = 10
+    k = min((W - PAD * 2) / (bx1 - bx0), (H - PAD * 2) / (by1 - by0))
+    dx = (W - (bx1 - bx0) * k) / 2 - bx0 * k
+    dy = (H - (by1 - by0) * k) / 2 - by0 * k
+    fit = lambda q: (round(q[0] * k + dx, 1), round(q[1] * k + dy, 1))
+
+    out, labels = {}, {}
+    for name, rings in raw.items():
+        parts = []
+        for r in rings:
+            pts = [fit(q) for q in r]
+            parts.append("M" + "L".join(f"{a},{b}" for a, b in pts) + "Z")
         out[name] = "".join(parts)
-        total += sum(len(p) for p in parts)
-        print(f"  {name:<4} 폴리곤 {len(parts):>2}개  {sum(len(p) for p in parts):>6} chars")
+        # 라벨은 가장 큰 폴리곤의 무게중심에 둔다
+        big = max(rings, key=lambda r: ring_area(r))
+        pts = [fit(q) for q in big]
+        cx = sum(q[0] for q in pts) / len(pts)
+        cy = sum(q[1] for q in pts) / len(pts)
+        labels[name] = [round(cx, 1), round(cy, 1)]
+        print(f"  {name:<4} 폴리곤 {len(parts):>2}개  라벨 ({cx:.0f},{cy:.0f})  {len(out[name]):>6} chars")
 
     OUT.parent.mkdir(exist_ok=True)
     OUT.write_text(json.dumps({
         "viewBox": f"0 0 {W} {H}",
         "source": "통계청 2018 시도 경계 (southkorea-maps, KOSTAT 원자료) — 단순화 후 SVG 투영",
         "paths": out,
+        "labels": labels,
     }, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"\n저장: {OUT.name}  {OUT.stat().st_size // 1024} KB  (원본 7.5MB)")
 
