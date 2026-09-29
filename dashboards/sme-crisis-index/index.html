@@ -192,6 +192,26 @@ img, svg, canvas { max-width: 100%; }
 .lim { font-size: 12.5px; color: #55677d; line-height: 1.7; }
 .lim li { margin-bottom: 7px; }
 @media (max-width: 860px) { .impl-grid { grid-template-columns: 1fr; } }
+
+/* ── 지역 카토그램 ─────────────────────────────── */
+.map-wrap { display: grid; grid-template-columns: 1fr 236px; gap: 22px; align-items: start; }
+.map-ctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+.map-ctl select { font-size: 12px; padding: 5px 9px; border: 1px solid #d5dde8; border-radius: 6px;
+                  background: #fff; color: #33475c; }
+.map-ctl label { font-size: 11.5px; color: #7c8ca3; }
+.cart { width: 100%; height: auto; }
+.cart-cell { cursor: pointer; transition: opacity .15s; }
+.cart-cell:hover { opacity: .78; }
+.cart-cell.sel rect { stroke: #1a2332; stroke-width: 2.4; }
+.map-side h4 { font-size: 12.5px; color: #1B3A5C; margin-bottom: 8px; }
+.map-side .mrow { display: flex; justify-content: space-between; font-size: 12px;
+                  padding: 6px 0; border-bottom: 1px solid #eef2f6; color: #55677d; }
+.map-side .mrow b { color: #1B3A5C; font-variant-numeric: tabular-nums; }
+.map-legend { margin-top: 12px; font-size: 11px; color: #7c8ca3; }
+.map-legend .bar { height: 10px; border-radius: 2px; margin: 5px 0 3px;
+                   background: linear-gradient(90deg,#e8f1f8,#7fb3d9,#2E75B6,#1B3A5C); }
+.map-legend .ends { display: flex; justify-content: space-between; }
+@media (max-width: 860px) { .map-wrap { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -478,6 +498,39 @@ img, svg, canvas { max-width: 100%; }
     </div>
   </div>
 
+
+  <!-- 지역별 산업·신용 지도 -->
+  <div class="section">
+    <h2>지역별 산업 구조와 신용 지표</h2>
+    <div class="subtitle">RQ4: 산업 구성이 다른 지역 사이에 중소기업 신용 위험은 어떻게 갈리는가?</div>
+    <div class="chart-box full">
+      <div class="map-ctl">
+        <label for="map-ind">산업</label>
+        <select id="map-ind"></select>
+        <label for="map-metric" style="margin-left:6px">색상 기준</label>
+        <select id="map-metric">
+          <option value="delinq">중소기업대출 연체율</option>
+          <option value="dishonor">어음부도율</option>
+          <option value="biz">사업체수</option>
+          <option value="emp">종사자수</option>
+          <option value="sales">매출액</option>
+        </select>
+        <span class="src" id="map-asof" style="margin-left:auto"></span>
+      </div>
+      <div class="map-wrap">
+        <div>
+          <svg id="cartogram" class="cart" viewBox="0 0 420 520" role="img"
+               aria-label="시도별 지표 카토그램"></svg>
+          <div class="map-legend">
+            <div class="bar"></div>
+            <div class="ends"><span id="map-lo">—</span><span id="map-hi">—</span></div>
+          </div>
+        </div>
+        <div class="map-side" id="map-side"></div>
+      </div>
+      <p class="src" id="map-src"></p>
+    </div>
+  </div>
 
   <!-- 분석 결과 -->
   <div class="section">
@@ -1085,6 +1138,105 @@ fetch('data/ecos.json').then(r => r.json()).then(E => {
   });
 });
 
+
+
+/* ── 지역별 산업·신용 카토그램 ──────────────────────
+   행정경계 GeoJSON은 용량이 크고 출처·라이선스 확인이 필요해,
+   시도를 타일로 배치한 카토그램으로 그린다. 면적이 아니라 색으로
+   지표를 읽으므로 대도시가 과소 표현되는 문제도 함께 피한다. */
+fetch('data/region.json').then(r => r.json()).then(R => {
+  const svg = document.getElementById('cartogram');
+  const selInd = document.getElementById('map-ind');
+  const selMet = document.getElementById('map-metric');
+  const side = document.getElementById('map-side');
+  if (!svg) return;
+
+  selInd.innerHTML = R.industries.map(i =>
+    '<option value="' + i.code + '">' + i.name + '</option>').join('');
+
+  const CELL = 56, GAP = 6, PADX = 40, PADY = 16;
+  const fmt = n => n == null ? '—'
+    : (n >= 1e8 ? (n / 1e8).toFixed(1) + '억'
+    : n >= 1e4 ? (n / 1e4).toFixed(1) + '만' : n.toLocaleString());
+
+  let picked = null;
+
+  function valueOf(reg, ind, met) {
+    if (met === 'delinq' || met === 'dishonor') {
+      const a = reg[met];
+      return a && a.length ? a[a.length - 1].v : null;
+    }
+    const o = reg.industry[ind];
+    return o ? o[met] : null;
+  }
+
+  function draw() {
+    const ind = selInd.value, met = selMet.value;
+    const vals = R.regions.map(r => valueOf(r, ind, met)).filter(v => v != null);
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    const scale = v => {
+      if (v == null || hi === lo) return '#eef2f6';
+      const t = (v - lo) / (hi - lo);
+      // 밝은 청록 → 진한 네이비 4단계 보간
+      const S1 = [232, 241, 248], S2 = [127, 179, 217], S3 = [46, 117, 182], S4 = [27, 58, 92];
+      const seg = t < .34 ? [S1, S2, t / .34] : t < .67 ? [S2, S3, (t - .34) / .33] : [S3, S4, (t - .67) / .33];
+      const [a, b, k] = seg;
+      return 'rgb(' + a.map((c, i) => Math.round(c + (b[i] - c) * k)).join(',') + ')';
+    };
+
+    svg.innerHTML = R.regions.filter(r => r.grid).map(r => {
+      const v = valueOf(r, ind, met);
+      const x = PADX + (r.grid.c - 1) * (CELL + GAP);
+      const y = PADY + (r.grid.r - 1) * (CELL + GAP);
+      const dark = v != null && (v - lo) / (hi - lo || 1) > .55;
+      return '<g class="cart-cell' + (picked === r.name ? ' sel' : '') + '" data-n="' + r.name + '">' +
+        '<rect x="' + x + '" y="' + y + '" width="' + CELL + '" height="' + CELL + '" rx="7" ' +
+        'fill="' + scale(v) + '" stroke="#fff" stroke-width="1.6"></rect>' +
+        '<text x="' + (x + CELL / 2) + '" y="' + (y + CELL / 2 - 3) + '" text-anchor="middle" ' +
+        'font-size="12.5" font-weight="600" fill="' + (dark ? '#fff' : '#33475c') + '">' + r.name + '</text>' +
+        '<text x="' + (x + CELL / 2) + '" y="' + (y + CELL / 2 + 13) + '" text-anchor="middle" ' +
+        'font-size="10.5" fill="' + (dark ? '#dbe7f3' : '#7c8ca3') + '">' +
+        (v == null ? '—' : (met === 'delinq' || met === 'dishonor' ? v.toFixed(2) : fmt(v))) +
+        '</text></g>';
+    }).join('');
+
+    const unit = (met === 'delinq' || met === 'dishonor') ? '%' : '';
+    document.getElementById('map-lo').textContent =
+      (met === 'delinq' || met === 'dishonor' ? lo.toFixed(2) : fmt(lo)) + unit;
+    document.getElementById('map-hi').textContent =
+      (met === 'delinq' || met === 'dishonor' ? hi.toFixed(2) : fmt(hi)) + unit;
+
+    svg.querySelectorAll('.cart-cell').forEach(g => {
+      g.addEventListener('click', () => { picked = g.dataset.n; draw(); });
+    });
+
+    const reg = R.regions.find(r => r.name === (picked || '서울'));
+    if (reg) {
+      const tot = reg.industry['0'] || {};
+      const cur = reg.industry[ind] || {};
+      const dl = reg.delinq.length ? reg.delinq[reg.delinq.length - 1] : null;
+      const ds = reg.dishonor.length ? reg.dishonor[reg.dishonor.length - 1] : null;
+      const share = tot.biz && cur.biz ? (cur.biz / tot.biz * 100).toFixed(1) + '%' : '—';
+      side.innerHTML =
+        '<h4>' + reg.name + '</h4>' +
+        '<div class="mrow"><span>사업체수 (전체)</span><b>' + fmt(tot.biz) + '</b></div>' +
+        '<div class="mrow"><span>종사자수 (전체)</span><b>' + fmt(tot.emp) + '</b></div>' +
+        '<div class="mrow"><span>' + selInd.options[selInd.selectedIndex].text + ' 사업체</span><b>' + fmt(cur.biz) + '</b></div>' +
+        '<div class="mrow"><span>해당 산업 비중</span><b>' + share + '</b></div>' +
+        '<div class="mrow"><span>중소기업 연체율</span><b>' + (dl ? dl.v + '%' : '—') + '</b></div>' +
+        '<div class="mrow"><span>어음부도율</span><b>' + (ds ? ds.v + '%' : '—') + '</b></div>' +
+        '<p class="src" style="margin-top:9px">' + (dl ? fmtT(dl.t) + ' 기준' : '') + '</p>';
+    }
+  }
+
+  selInd.addEventListener('change', draw);
+  selMet.addEventListener('change', draw);
+  document.getElementById('map-asof').textContent = '사업체 ' + R.industry_year + '년 · 신용지표 최신월';
+  document.getElementById('map-src').textContent =
+    R.citation.industry + ' / ' + R.citation.delinq + ' / ' + R.citation.dishonor +
+    ' — ' + R.grid_note;
+  draw();
+}).catch(e => console.error('지역 데이터 로드 실패', e));
 
 </script>
 
