@@ -175,6 +175,23 @@ img, svg, canvas { max-width: 100%; }
   .rng { flex-wrap: wrap; gap: 8px; }
   .rng-wrap { flex: 1 1 100%; order: 3; }
 }
+
+/* ── 분석 결과 섹션 ─────────────────────────────── */
+.eyebrow-num { font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+               color: #8a9ab0; font-weight: 600; margin-bottom: 6px; }
+.find { border-left: 3px solid #2E75B6; padding: 2px 0 2px 16px; margin-bottom: 22px; }
+.find h4 { font-size: 15px; color: #1B3A5C; margin-bottom: 7px; }
+.find p { font-size: 13px; color: #44566e; line-height: 1.68; margin: 0; }
+.find .num { font-weight: 700; color: #1B3A5C; }
+.find.warn { border-left-color: #E74C3C; }
+.find.warn h4 { color: #b23b2e; }
+.impl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 6px; }
+.impl { background: #f7fafc; border-radius: 9px; padding: 15px 16px; }
+.impl h5 { font-size: 12.5px; color: #1B3A5C; margin-bottom: 6px; letter-spacing: .02em; }
+.impl p { font-size: 12.5px; color: #55677d; line-height: 1.6; margin: 0; }
+.lim { font-size: 12.5px; color: #55677d; line-height: 1.7; }
+.lim li { margin-bottom: 7px; }
+@media (max-width: 860px) { .impl-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -334,6 +351,16 @@ img, svg, canvas { max-width: 100%; }
   <div class="section">
     <h2>분석 2: 재무·신용 지표 실측 추이</h2>
     <div class="subtitle">RQ2: 뉴스에서 감지된 위기 인식은 실제 재무 지표로 확인되는가?</div>
+    <div class="rng" style="max-width:none;margin:0 0 18px">
+      <span class="rng-label">조회 기간</span>
+      <span class="rng-val" id="fin-val">—</span>
+      <div class="rng-wrap">
+        <div class="rng-track"><div class="rng-fill" id="fin-fill"></div></div>
+        <input type="range" class="rng-slider" id="fin-min" step="1">
+        <input type="range" class="rng-slider" id="fin-max" step="1">
+      </div>
+      <button class="rng-reset" id="fin-reset" type="button">전체</button>
+    </div>
     <div class="chart-grid">
       <div class="chart-box">
         <h3>은행 대출 연체율 — 기업 vs 가계 (2020~)</h3>
@@ -447,6 +474,117 @@ img, svg, canvas { max-width: 100%; }
           각 층위의 시차를 측정하면, 뉴스 단계에서 이미 드러난 신호로 <strong>3~6개월 뒤 재무지표 악화를 예측</strong>할 수 있다는 것이
           본 지표 체계의 가설이다.
         </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 분석 결과 -->
+  <div class="section">
+    <div class="eyebrow-num">05 · Exploratory Analysis</div>
+    <h2>분석 결과</h2>
+    <div class="subtitle">ECOS·KOSIS 24개 계열 2,494개 관측치(2018.01~2026.10)에 대한 탐색적 분석</div>
+
+    <div class="chart-grid">
+      <div class="chart-box full">
+        <h3>핵심 발견</h3>
+
+        <div class="find">
+          <h4>1. 신용지표가 심리·실물지표보다 먼저, 그리고 강하게 움직인다</h4>
+          <p>
+            연체율과의 상관을 그룹별로 평균하면 <span class="num">자금·신용 0.340</span> &gt;
+            대외·가격 0.249 &gt; 수요·심리 0.228 &gt; 실물·생산 0.174 순이다.
+            가계대출 연체율이 <span class="num">r=+0.720, 4개월 선행</span>으로 가장 강했고,
+            어음부도율(+0.471)과 기준금리(+0.467)가 각각 6개월 선행으로 뒤를 이었다.
+            가계와 기업 연체가 같은 방향으로 움직인다는 것은, 중소기업 부실이 기업 고유 요인만이
+            아니라 <strong>가계를 포함한 신용 사이클 전반</strong>과 엮여 있음을 시사한다.
+          </p>
+        </div>
+
+        <div class="find">
+          <h4>2. 선행 시차가 0개월과 6개월로 갈린다</h4>
+          <p>
+            23개 지표의 최적 시차 분포는 <span class="num">0개월 9개</span>,
+            <span class="num">6개월 10개</span>로 양극화됐고 중간 시차는 3개뿐이다.
+            동행 그룹(수입금액·대출금리·비제조업 BSI)은 연체율과 같은 국면을 공유하는 지표,
+            선행 그룹(어음부도율·기준금리·업황 BSI·가동률)은 조기경보 후보로 나뉜다.
+            조기경보 체계를 설계한다면 <strong>후자를 신호원으로, 전자를 확증용으로</strong> 쓰는 구성이 타당하다.
+          </p>
+        </div>
+
+        <div class="find warn">
+          <h4>3. 중소기업 체감은 관측 전 기간 내내 부정적이었다</h4>
+          <p>
+            중소기업 업황 BSI(실적)는 102개월 <span class="num">전 기간 100 미만</span>이었고
+            평균 67.4, 최신 67.0이다. 자금사정 BSI도 전 기간 100 미만(평균 72.2)이다.
+            BSI 100은 호전과 악화 응답이 같은 수준을 뜻하므로, 이는 <strong>경기 국면과 무관하게
+            중소기업이 지속적으로 악화를 체감</strong>해 왔다는 의미다. 따라서 BSI는 수준(level)보다
+            <strong>변화 방향</strong>으로 읽어야 하며, 절대값으로 경보를 걸면 항상 경보가 켜진다.
+          </p>
+        </div>
+
+        <div class="find">
+          <h4>4. 종합지수 기준 현재는 '안정'이나, 연체율 자체는 저점 대비 높다</h4>
+          <p>
+            24개 지표를 방향 정렬해 z-score 평균한 종합 위기지수는 최신
+            <span class="num">−0.27('안정')</span>이다. 관측 93개월 중 위험 구간은 0개월,
+            경계 11%, 주의 41%, 안정 48%였고 최고점은 <span class="num">2020년 5월 +0.98</span>(코로나 충격),
+            최저점은 2021년 5월 −1.96이었다. 다만 기업대출 연체율은 2021년 9월 0.3%에서
+            2025년 5월 <span class="num">0.9%로 3배</span> 올랐고 최신치도 0.8%다.
+            <strong>종합지수가 안정이어도 개별 신용지표는 회복되지 않은 상태</strong>로, 두 신호를 함께 봐야 한다.
+          </p>
+        </div>
+
+        <div class="find">
+          <h4>5. 뉴스 토픽과 신용지표는 서로 다른 것을 포착한다</h4>
+          <p>
+            수집한 뉴스 762건의 토픽 중 비중이 가장 큰 것은 정책 긴급지원(T4)이었고,
+            대출연체·폐업(T1)과 협력업체대금·부도(T2)가 뒤를 이었다. 언론은 <strong>대응(정책)</strong>에
+            지면을 더 쓰고, 통계는 <strong>결과(연체)</strong>를 뒤늦게 기록한다. 두 신호의 시차 관계는
+            교차상관으로 검증할 예정이며, 현재 결과만으로 뉴스가 지표를 선행한다고 말할 수는 없다.
+          </p>
+        </div>
+      </div>
+
+      <div class="chart-box full">
+        <h3>함의</h3>
+        <div class="impl-grid">
+          <div class="impl">
+            <h5>정책·지원기관</h5>
+            <p>어음부도율과 기준금리가 6개월 선행한다는 점은, 금리 인상기 진입 시점에
+               중소기업 유동성 지원을 미리 설계할 여지가 있음을 시사한다.</p>
+          </div>
+          <div class="impl">
+            <h5>금융기관</h5>
+            <p>가계대출 연체율이 기업 연체율을 4개월 선행하므로, 가계 부문 신호를
+               기업 여신 심사의 조기 참고지표로 쓸 수 있다.</p>
+          </div>
+          <div class="impl">
+            <h5>지표 설계</h5>
+            <p>BSI는 절대 수준이 아니라 전년동월대비 변화로 읽어야 한다.
+               수준 기준 경보는 상시 점등되어 판별력이 없다.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-box full">
+        <h3>한계와 향후 과제</h3>
+        <ul class="lim">
+          <li><strong>중소기업 전용 연체율이 없다.</strong> ECOS는 월별로 기업대출 전체만 제공하며
+              중소기업 통계표는 2015~2016년 연간 재무비율뿐이다. 현재 분석의 연체율은
+              대기업을 포함한 기업 전체 기준이므로, 중소기업 고유 신호는 과소 포착될 수 있다.</li>
+          <li><strong>상관은 인과가 아니다.</strong> 교차상관으로 시차만 확인했을 뿐,
+              공통요인(경기 사이클)이 두 계열을 동시에 움직였을 가능성을 배제하지 못한다.
+              Granger 인과검정과 통제변수 투입이 필요하다.</li>
+          <li><strong>표본 기간이 특수하다.</strong> 2018~2026년은 코로나 충격, 급격한 금리 인상·인하,
+              통상 마찰, 중동 확전이 겹친 구간이다. 이 기간에서 추정한 시차가 평시에도
+              유지되는지는 검증되지 않았다.</li>
+          <li><strong>뉴스 데이터의 편향.</strong> Google News RSS는 최신 기사 비중이 높아
+              월별 기사 수의 절대량을 시점 간 비교하기 어렵다. 토픽 구성 변화를 읽는 용도로 한정했다.</li>
+          <li><strong>종합지수는 동일가중이다.</strong> 24개 지표를 같은 비중으로 평균했으며,
+              상관 크기나 선행성에 따른 가중은 적용하지 않았다. 향후 주성분분석이나
+              로지스틱 회귀로 가중치를 추정할 수 있다.</li>
+        </ul>
       </div>
     </div>
   </div>
@@ -584,7 +722,7 @@ fetch('data/ecos.json').then(r => r.json()).then(E => {
   // 4) 연체율 — 기업 vs 가계
   const corp = pick(S.delinq_corp.obs, '202001');
   const house = pick(S.delinq_house.obs, '202001');
-  new Chart(document.getElementById('chart-delinq'), {
+  const chDelinq = new Chart(document.getElementById('chart-delinq'), {
     type: 'line',
     data: {
       labels: corp.map(o => fmtT(o.t)),
@@ -607,7 +745,7 @@ fetch('data/ecos.json').then(r => r.json()).then(E => {
   const sme = pick(S.rate_sme.obs, '202001');
   const lrg = pick(S.rate_large.obs, '202001');
   const base = pick(S.base_rate.obs, '202001');
-  new Chart(document.getElementById('chart-closure'), {
+  const chRate = new Chart(document.getElementById('chart-closure'), {
     type: 'line',
     data: {
       labels: sme.map(o => fmtT(o.t)),
@@ -631,7 +769,7 @@ fetch('data/ecos.json').then(r => r.json()).then(E => {
   const cap = pick(S.capex.obs, '202001');
   const prod = pick(S.production.obs, '202001');
   const dis = pick(S.dishonor.obs, '202001');
-  new Chart(document.getElementById('chart-real'), {
+  const chReal = new Chart(document.getElementById('chart-real'), {
     type: 'line',
     data: {
       labels: cap.map(o => fmtT(o.t)),
@@ -655,6 +793,51 @@ fetch('data/ecos.json').then(r => r.json()).then(E => {
               grid: { drawOnChartArea: false } },
         x: { ticks: { maxTicksLimit: 10, font: { size: 10 } } } } }
   });
+
+  /* ── 재무·신용 지표 기간 슬라이더 ────────────────
+     연체율·금리·실물지표 세 차트를 같은 기간으로 함께 움직인다.
+     세 차트의 x축 길이가 조금씩 달라(발표 시차) 가장 긴 것을 기준으로 잡고,
+     각 차트에는 자기 길이로 잘라 적용한다. */
+  (function () {
+    const base = pick(S.delinq_corp.obs, '202001').map(o => o.t);   // 78개월
+    const N = base.length - 1;
+    const fMin = document.getElementById('fin-min');
+    const fMax = document.getElementById('fin-max');
+    const fFill = document.getElementById('fin-fill');
+    const fVal = document.getElementById('fin-val');
+    if (!fMin) return;
+    [fMin, fMax].forEach(el => { el.min = 0; el.max = N; });
+    fMin.value = 0; fMax.value = N;
+
+    const CH = [chDelinq, chRate, chReal];
+
+    function apply() {
+      let a = parseInt(fMin.value, 10), b = parseInt(fMax.value, 10);
+      if (a > b) { [a, b] = [b, a]; }
+      if (b - a < 2) {
+        if (parseInt(fMin.value, 10) === a) b = Math.min(N, a + 2);
+        else a = Math.max(0, b - 2);
+      }
+      const pa = (a / N) * 100, pb = (b / N) * 100;
+      fFill.style.left = pa + '%';
+      fFill.style.width = (pb - pa) + '%';
+      fVal.textContent = fmtT(base[a]) + ' — ' + fmtT(base[b]) + '  (' + (b - a + 1) + '개월)';
+
+      CH.forEach(function (ch) {
+        if (!ch) return;
+        const n = ch.data.labels.length - 1;
+        ch.zoomScale('x', { min: Math.min(a, n), max: Math.min(b, n) }, 'none');
+      });
+    }
+
+    fMin.addEventListener('input', apply);
+    fMax.addEventListener('input', apply);
+    document.getElementById('fin-reset').addEventListener('click', function () {
+      fMin.value = 0; fMax.value = N; apply();
+    });
+    apply();
+  })();
+
   // 6) 타임라인 — 연체율 + 종합 위기지수, 드래그로 구간 선택
   const EVT = [
     // 일자와 출처가 확인된 사실만 싣는다.
