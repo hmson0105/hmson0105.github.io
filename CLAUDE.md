@@ -52,6 +52,10 @@ GIT_SSH_COMMAND="ssh -i ~/.ssh/id_ed25519_github -o IdentitiesOnly=yes" git push
 curl -s "https://hmson0105.github.io/assets/site.css?cb=$RANDOM" | grep "찾을문자열"
 ```
 
+`assets/site.css` 와 `site.js` 는 `?v=3` 처럼 버전을 달고 참조한다. GitHub Pages
+가 에셋에 `max-age=600` 을 주기 때문에, 버전을 올리지 않으면 재방문자가 최대
+10분 동안 이전 파일을 그대로 받는다. 두 파일을 고칠 때마다 숫자를 올린다.
+
 ---
 
 ## 라우팅

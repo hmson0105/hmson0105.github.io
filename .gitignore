@@ -6,3 +6,8 @@ dashboards/*/analysis/_kmap_src.json
 dashboards/*/analysis/raw/
 keys.env
 참고논문/
+
+# 로컬 작업 폴더 (저장소에 올리지 않는다)
+_workspace/
+KIET/
+.DS_Store
