@@ -185,6 +185,11 @@ img, svg, canvas { max-width: 100%; }
 .find .num { font-weight: 700; color: #1B3A5C; }
 .find.warn { border-left-color: #E74C3C; }
 .find.warn h4 { color: #b23b2e; }
+
+.nc-w { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; padding-top:14px; border-top:1px solid #ECEDEA; }
+.nc-w span { font-size:12.5px; color:#4D5258; background:#F4F7FA; border-radius:999px; padding:5px 11px; }
+.nc-w span b { color:#2E75B6; }
+
 .impl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 6px; }
 .impl { background: #f7fafc; border-radius: 9px; padding: 15px 16px; }
 .impl h5 { font-size: 12.5px; color: #1B3A5C; margin-bottom: 6px; letter-spacing: .02em; }
@@ -740,9 +745,59 @@ table { font-size: 15px; }
     <div class="readme"><span class="k">분석 결과</span><p><b>서비스업 비중이 높은 지역에서 연체율이 높게 나타난다.</b> 전문·과학기술 서비스업 비중과 연체율의 상관이 +0.64로 가장 높고 도매·소매업이 +0.43으로 뒤를 잇는다. 반면 <b>제조업(−0.36)과 건설업(−0.59)</b> 비중이 높은 지역은 낮게 나타난다.</p><p>사업체 수와는 관련성이 확인되지 않는다. 사업체 수 1위인 경기(160만)는 위험도 하위(−0.60), 2위인 서울(118만)은 상위(+0.99)에 위치한다.</p><span class="plain">※ 서비스업 비중이 높은 지역은 대부분 대도시에 해당하여, 산업 구성 효과와 도시 규모 효과를 본 자료만으로 분리할 수 없다. 광주(+2.59)는 어음부도율 단일 항목이 높게 산출된 사례로, 단월 값이 아닌 추세 확인이 필요하다.</span></div>
   </div>
 
+
+  <!-- 내일채움공제 -->
+  <div class="section">
+    <div class="eyebrow-num">09 · Deferred Compensation</div>
+    <h2>공제 해지의 3분의 2는 기업이 아니라 사람이 떠나서 발생한다</h2>
+    <div class="subtitle">내일채움공제 중도해지 132,109건의 사유 구성을 확인하고, 각 사유에 대응하는 공개 지역지표로 시도별 해지 위험을 추정하였다.</div>
+
+    <div class="chart-grid">
+      <div class="chart-box">
+        <h3>중도해지 사유 상위 8 (전국 누적)</h3>
+        <canvas id="chart-nc-reason"></canvas>
+        <p class="src" id="nc-reason-src">—</p>
+      </div>
+      <div class="chart-box">
+        <h3>귀책계약자 구성</h3>
+        <canvas id="chart-nc-blame"></canvas>
+        <p class="src">기업 귀책은 폐업·권고사직·납입부담, 핵심인력 귀책은 이직·학업·창업 등을 포함한다.</p>
+      </div>
+    </div>
+
+    <div class="readme"><span class="k">분석 결과</span><p><b>해지 사유의 최대 항목은 '이직에 의한 퇴직'이다.</b> 전체 <span id="nc-total">—</span>건 중 <span id="nc-quit-share">—</span>를 차지한다. 귀책계약자 기준으로는 핵심인력이 <span id="nc-blame-emp">—</span>, 기업이 <span id="nc-blame-firm">—</span>이다.</p><p>이는 <b>공제 해지 위험이 기업 부실만의 문제가 아님</b>을 보여준다. 기업이 정상적으로 운영되더라도 근로자가 이직하면 해지로 이어진다. 따라서 해지 위험이 높은 지역을 찾으려면 기업 신용지표와 함께 <b>노동 이동성</b>을 보아야 한다.</p></div>
+
+    <div class="chart-box full" style="margin-top:20px">
+      <h3>시도별 해지 위험 추정</h3>
+      <p class="src" style="margin:0 0 10px">지역별 해지 통계는 공개되지 않는다. 위 사유 비중을 가중치로 삼아 대응하는 공개 지역지표를 결합한 <b>추정치</b>이며, 실제 해지율이 아니다.</p>
+      <canvas id="chart-nc-region" style="max-height:420px"></canvas>
+      <div id="nc-weights" class="nc-w"></div>
+    </div>
+
+    <div class="readme"><span class="k">분석 결과</span><p id="nc-finding">—</p><p><b>가중치는 임의로 정하지 않았다.</b> 전국 해지 실적에서 각 사유가 차지하는 건수 비중을 그대로 사용하였다. 대응하는 공개 지역지표가 있는 사유는 전체의 <span id="nc-cov">—</span>이며, 나머지(개인 경제적 부담·학업·기타)는 지수에 반영되지 않는다.</p><span class="plain">※ 이직률은 공제 가입자가 아니라 지역 전체 사업체를 센 값이다. 전국 사유 비중이 모든 지역에서 동일하다고 가정하였으며 이를 검증할 공개 자료는 없다. 순위는 점검 우선순위를 정하는 참고치이며 인과관계의 근거가 아니다. 세종은 시도별 연체율·어음부도율이 제공되지 않아 노동지표만으로 산출되었다.</span></div>
+
+    <div class="chart-box full" style="margin-top:20px">
+      <h3>공제사업 활용 방안</h3>
+      <div class="impl-grid">
+        <div class="impl">
+          <h4>해지 위험 상위 지역 선제 안내</h4>
+          <p>추정 상위 지역의 가입기업·가입자를 대상으로 만기 혜택과 중도해지 시 손실을 사전 안내한다. 이직이 최대 사유인 만큼 안내 대상은 기업뿐 아니라 <b>핵심인력 본인</b>이어야 한다.</p>
+        </div>
+        <div class="impl">
+          <h4>귀책 유형별 대응 분리</h4>
+          <p>기업 재무 악화가 두드러지는 지역은 정책자금·경영지원과 연계하고, 자발적 이직이 두드러지는 지역은 재직 유인 강화에 초점을 둔다. 같은 '위험'이라도 처방이 다르다.</p>
+        </div>
+        <div class="impl">
+          <h4>월 단위 모니터링</h4>
+          <p>사용 지표가 모두 월 단위 공개 API이므로 스크립트 재실행만으로 갱신된다. 분기·연 단위 내부 집계보다 빠르게 변화를 감지할 수 있다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 분석 결과 -->
   <div class="section">
-    <div class="eyebrow-num">09 · SUMMARY</div>
+    <div class="eyebrow-num">10 · SUMMARY</div>
     <h2>종합</h2>
     <div class="subtitle">각 분석 화면에서 도출된 결과를 네 항목으로 요약하였다.</div>
 
@@ -1241,6 +1296,136 @@ fetch('data/ecos.json').then(r => r.json()).then(E => {
 /* ── 지역별 산업·신용 지도 ──────────────────────────
    통계청 시도 경계를 build_map.py 로 단순화해 SVG path 로 미리 투영했다.
    (원본 7.5MB → 41KB) 클라이언트는 path 를 그리고 색만 칠하면 된다. */
+
+/* ── 내일채움공제 해지 위험 ──────────────────────────────────
+   nacham.json 은 build_nacham.py 가 만든다. 전국 사유 비중(실적)과
+   시도별 추정치(대리지표)를 함께 담고 있다. 화면에서도 둘을 구분해
+   표기한다 — 추정치를 실적처럼 보이게 하지 않는다.             */
+fetch('data/nacham.json').then(r => r.json()).then(N => {
+  var pct = function (n, d) { return (n / d * 100).toFixed(1) + '%'; };
+  var set = function (id, v) { var e = document.getElementById(id); if (e) e.textContent = v; };
+
+  var nat = N.national, tot = nat.total;
+
+  // 1) 사유 상위 8
+  var reasons = Object.entries(nat.by_reason).slice(0, 8);
+  var firmWords = ['기업', '폐업', '권고사직', '미납', '대기업'];
+  var isFirm = function (name) { return firmWords.some(function (w) { return name.indexOf(w) >= 0; }); };
+  new Chart(document.getElementById('chart-nc-reason'), {
+    type: 'bar',
+    data: {
+      labels: reasons.map(function (r) { return r[0].length > 18 ? r[0].slice(0, 17) + '…' : r[0]; }),
+      datasets: [{
+        label: '건수',
+        data: reasons.map(function (r) { return r[1]; }),
+        backgroundColor: reasons.map(function (r) { return isFirm(r[0]) ? colors.orange : colors.blue; }),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function (c) {
+          return reasons[c.dataIndex][0] + ' — ' + c.raw.toLocaleString() + '건 (' + pct(c.raw, tot) + ')';
+        } } }
+      },
+      scales: { x: { beginAtZero: true, title: { display: true, text: '건수' } },
+                y: { ticks: { font: { size: 11 } } } }
+    }
+  });
+  set('nc-reason-src', nat.citation + ' · 파랑 = 핵심인력 귀책, 주황 = 기업 귀책');
+
+  // 2) 귀책계약자 구성
+  var blame = Object.entries(nat.by_blame).sort(function (a, b) { return b[1] - a[1]; });
+  new Chart(document.getElementById('chart-nc-blame'), {
+    type: 'doughnut',
+    data: {
+      labels: blame.map(function (b) { return b[0]; }),
+      datasets: [{
+        data: blame.map(function (b) { return b[1]; }),
+        backgroundColor: [colors.blue, colors.orange, colors.gray], borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true, cutout: '58%',
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 12 }, boxWidth: 12 } },
+        tooltip: { callbacks: { label: function (c) {
+          return c.label + ' ' + c.raw.toLocaleString() + '건 (' + pct(c.raw, tot) + ')';
+        } } }
+      }
+    }
+  });
+
+  var quitN = nat.by_reason['이직에 의한 퇴직'] || 0;
+  set('nc-total', tot.toLocaleString());
+  set('nc-quit-share', quitN.toLocaleString() + '건, ' + pct(quitN, tot));
+  var bl = {}; blame.forEach(function (b) { bl[b[0]] = b[1]; });
+  set('nc-blame-emp', pct(bl['핵심인력'] || 0, tot));
+  set('nc-blame-firm', pct(bl['기업'] || 0, tot));
+  set('nc-cov', (N.coverage * 100).toFixed(1) + '%');
+
+  // 3) 시도별 추정
+  var rs = N.regions.filter(function (r) { return r.score !== null; });
+  var bandColor = function (b) {
+    return b === '높음' ? colors.red : b === '주의' ? colors.orange
+         : b === '보통' ? colors.blue : colors.gray;
+  };
+  new Chart(document.getElementById('chart-nc-region'), {
+    type: 'bar',
+    data: {
+      labels: rs.map(function (r) { return r.name; }),
+      datasets: [{
+        label: '해지 위험 추정(z)',
+        data: rs.map(function (r) { return r.score; }),
+        backgroundColor: rs.map(function (r) { return bandColor(r.band); }),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function (c) {
+          var r = rs[c.dataIndex];
+          return [
+            r.band + ' (z = ' + r.score.toFixed(2) + ')',
+            '자발적 이직률 ' + (r.quit_rate != null ? r.quit_rate + '%' : '—'),
+            '비자발적 이직률 ' + (r.layoff_rate != null ? r.layoff_rate + '%' : '—'),
+            '중소기업 연체율 ' + (r.delinq != null ? r.delinq + '%' : '자료 없음')
+          ];
+        } } }
+      },
+      scales: {
+        x: { title: { display: true, text: '표준화 점수 (0 = 전국 평균 수준)' },
+             grid: { color: function (c) { return c.tick.value === 0 ? '#9AAAC4' : '#EEF1F4'; } } },
+        y: { ticks: { font: { size: 12 } } }
+      }
+    }
+  });
+
+  // 가중치 칩
+  var w = document.getElementById('nc-weights');
+  if (w) {
+    w.innerHTML = Object.keys(N.weights).map(function (k) {
+      var x = N.weights[k];
+      return '<span>' + x.label + ' <b>' + (x.w * 100).toFixed(1) + '%</b></span>';
+    }).join('') + '<span>최근 6개월 평균 기준</span>';
+  }
+
+  // 발견 문장
+  var top = rs.slice(0, 3), low = rs[rs.length - 1];
+  if (top.length) {
+    set('nc-finding', '');
+    var el = document.getElementById('nc-finding');
+    el.innerHTML = '<b>해지 위험이 높게 추정된 지역은 ' +
+      top.map(function (r) { return r.name + '(' + r.score.toFixed(2) + ')'; }).join(', ') +
+      '이다.</b> 공통점은 자발적 이직률이 전국 평균을 웃돈다는 점이며, 기업 신용지표만으로는 같은 순위가 나오지 않는다. ' +
+      '가장 낮게 추정된 지역은 ' + low.name + '(' + low.score.toFixed(2) + ')이다.';
+  }
+}).catch(function (e) { console.warn('nacham.json 로드 실패', e); });
+
 Promise.all([
   fetch('data/region.json').then(r => r.json()),
   fetch('data/kmap.json').then(r => r.json())
