@@ -173,9 +173,11 @@
           <code class="cmd">/quant-research-plan 초안파일.md</code>
         </div>
       </div>
-      <p>파일 경로가 오면 점검, 주제 설명이 오면 작성으로 갈라집니다. 결과는
-        <code>outputs/</code>에 저장되고, 되물을 사람이 없는 실행에서는 필요한 가정을
-        결과 맨 위에 적고 진행합니다.</p>
+      <p>모드는 입력의 형태로 갈립니다 — 파일 경로가 오면 점검, 주제 설명이 오면 작성.
+        결과는 <code>outputs/</code>에 <code>check_&lt;초안파일명&gt;.md</code> 또는
+        <code>plan_&lt;주제&gt;.md</code>로 저장하고, 저장 경로와 규칙 판정 집계를
+        한 줄로 알립니다. 되물을 사람이 없는 실행(<code>claude -p</code>)에서는 질문 대신
+        가정을 세우고 그 내용을 결과 맨 위에 밝힙니다.</p>
     </section>
 
     <section class="block container">
@@ -286,7 +288,8 @@
           </tbody>
         </table>
       </div>
-      <div class="note-box"><b>위반 3건(규칙 1·7·8)은 두 번 모두 같았습니다.</b>
+      <div class="note-box">1회차 충족 2 · 보완 3 · 위반 3, 2회차 충족 3 · 보완 2 · 위반 3.
+        <b>위반 3건(규칙 1·7·8)은 두 번 모두 같았습니다.</b>
         갈린 것은 규칙 2 하나로, 1회차는 제목이 “재택근무”인데 모형은 “재택근무 <b>강도</b>”라는
         점을 보완으로 봤고 2회차는 네 변수가 일치하므로 충족으로 봤습니다.
         <b>명백한 위반은 안정적으로 잡지만, 보완과 충족의 경계는 실행마다 흔들릴 수 있습니다.</b>
@@ -347,7 +350,9 @@
       <h3 style="font-size:1rem;margin-top:1.4em">들어 있는 파일</h3>
       <ul class="files">
         <li><a class="fname" href="skill/">.claude/skills/quant-research-plan/SKILL.md</a>
-          <span class="fdesc">스킬 본체 — 절차·판단 기준·출력 양식 · <a href="https://github.com/hmson0105/hmson0105.github.io/blob/main/projects/quant-research-plan/files/SKILL.md" target="_blank" rel="noopener">깃허브 원문</a></span></li>
+          <span class="fdesc">스킬 본체 — 모드 선택·절차·판단 기준·출력 양식 · <a href="https://github.com/hmson0105/hmson0105.github.io/blob/main/projects/quant-research-plan/files/SKILL.md" target="_blank" rel="noopener">깃허브 원문</a></span></li>
+        <li><a class="fname" href="skill/#examples">.claude/skills/quant-research-plan/examples.md</a>
+          <span class="fdesc">출력 형식 안내 — 필요할 때만 읽힘</span></li>
         <li><a class="fname" href="files/README.md">README.md</a>
           <span class="fdesc">설치와 실행 방법</span></li>
         <li><a class="fname" href="files/examples/01_%EC%9A%94%EC%B2%AD%EB%AC%B8.md">examples/01_요청문.md</a>

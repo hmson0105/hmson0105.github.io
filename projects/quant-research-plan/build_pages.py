@@ -25,8 +25,10 @@ HERE = pathlib.Path(__file__).resolve().parent
 FILES = HERE / "files"
 
 # zip 안의 경로 → 저장소 안의 경로
+ROOT = "quant-research-plan-cc"
 ZIP_LAYOUT = {
     ".claude/skills/quant-research-plan/SKILL.md": "SKILL.md",
+    ".claude/skills/quant-research-plan/examples.md": "examples.md",
     "README.md": "README.md",
     "outputs/.gitkeep": "outputs/.gitkeep",
 }
@@ -56,7 +58,18 @@ def inline(s):
     s = html.escape(protect(s))
     s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
     s = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", s)
+    s = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", link, s)
     return restore(s)
+
+
+def link(m):
+    """SKILL.md 가 같은 폴더의 examples.md 를 가리킨다. 한 페이지에 둘 다
+    싣고 있으므로 파일 링크가 아니라 페이지 안 앵커로 보낸다."""
+    text, href = m.group(1), m.group(2)
+    if href == "examples.md":
+        href = "#examples"
+    ext = ' target="_blank" rel="noopener"' if href.startswith("http") else ""
+    return '<a href="%s"%s>%s</a>' % (href, ext, text)
 
 
 def cells(row):
@@ -239,11 +252,14 @@ def main():
         "<tr><td><code>%s</code></td><td>%s</td></tr>" % (k, inline(v.strip().strip('"')))
         for k, v in (l.split(":", 1) for l in meta.split("\n") if ":" in l))
 
+    examples_md = (FILES / "examples.md").read_text(encoding="utf-8")
+
     skill_head = """    <section class="hero container">
       <span class="paper-tag">SKILL.md</span>
       <h1>스킬 본문</h1>
-      <p class="lede">클로드 코드가 <code>/quant-research-plan</code> 을 실행할 때 읽는 파일 전문이다.
-        절차·판단 기준·출력 양식 세 부분으로 되어 있다.</p>
+      <p class="lede">클로드 코드가 <code>/quant-research-plan</code> 을 실행할 때 읽는 파일
+        전문입니다. 모드 선택·절차·판단 기준·출력 양식 네 부분이고, 끝에 출력 형식을 따로
+        안내하는 <code>examples.md</code> 를 함께 실었습니다.</p>
       <div class="dl">
         <a class="ghost" href="https://github.com/hmson0105/hmson0105.github.io/blob/main/projects/quant-research-plan/files/SKILL.md" target="_blank" rel="noopener">깃허브에서 원문 보기</a>
         <a class="ghost" href="../plan/">입력 → 결과 보기</a>
@@ -256,7 +272,10 @@ def main():
         "quant-research-plan 스킬이 실행 시 읽는 SKILL.md 전문.",
         skill_head,
         '<div class="metatbl"><div class="tscroll"><table><thead><tr><th>필드</th><th>값</th></tr>'
-        '</thead><tbody>%s</tbody></table></div></div>\n%s' % (meta_rows, render(skill_body, 1))),
+        '</thead><tbody>%s</tbody></table></div></div>\n%s\n'
+        '<h2 id="examples">부록 — examples.md</h2>\n%s'
+        % (meta_rows, render(skill_body, 1),
+           render(re.sub(r"^#\s+.*\n", "", examples_md), 1))),
         encoding="utf-8")
 
     req = (FILES / "examples" / "01_요청문.md").read_text(encoding="utf-8").strip()
@@ -298,9 +317,9 @@ def main():
     z = HERE / "quant-research-plan-cc.zip"
     with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED) as zf:
         for inner, src in ZIP_LAYOUT.items():
-            zf.write(FILES / src, inner)
+            zf.write(FILES / src, ROOT + "/" + inner)
         for p in sorted((FILES / "examples").iterdir()):
-            zf.write(p, "examples/" + p.name)
+            zf.write(p, ROOT + "/examples/" + p.name)
 
     print("skill/index.html, plan/index.html,", z.name,
           "(%d개 항목)" % len(zipfile.ZipFile(z).namelist()))
