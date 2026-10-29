@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>quant-research-plan — 양적연구 계획서 점검 스킬 | 손혜미</title>
+<meta name="description" content="양적연구 계획서를 22개 구성요소와 정합성 규칙 8개로 작성·점검하는 Claude Code 스킬. 같은 초안을 두 번 점검해 판정의 재현성을 측정한 결과를 함께 싣는다.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #1E40AF; --secondary: #3B82F6; --accent: #60A5FA;
+    --bg: #F8FAFC; --bg-elev: #FFFFFF; --bg-soft: #EFF4FB;
+    --text-primary: #0F172A; --text-secondary: #475569; --text-muted: #94A3B8;
+    --border: #E2E8F0; --bad: #DC2626; --warn: #B45309; --ok: #15803D;
+    --shadow-sm: 0 1px 2px rgba(15,23,42,.04);
+    --radius-sm: 6px; --radius-md: 10px;
+    --max-width: 880px;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+  body {
+    margin: 0; font-family: "Inter","Noto Sans KR",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-size: 16px; line-height: 1.65; color: var(--text-primary); background: var(--bg);
+    word-break: keep-all; -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { color: var(--secondary); }
+  h1, h2, h3 { color: var(--text-primary); line-height: 1.3; margin: 0 0 .5em; font-weight: 700; }
+  p { margin: 0 0 1em; color: var(--text-secondary); }
+  code { font-family: ui-monospace, Menlo, "SF Mono", monospace; font-size: .88em;
+         background: var(--bg-soft); padding: 1px 5px; border-radius: 4px; color: var(--text-primary); }
+  .container { max-width: var(--max-width); margin: 0 auto; padding: 0 24px; }
+
+  header.site-nav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(248,250,252,.9); backdrop-filter: saturate(180%) blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 60px; gap: 16px; flex-wrap: wrap; }
+  .nav-back { font-size: .85rem; font-weight: 600; color: var(--text-secondary); }
+  .nav-back:hover { color: var(--primary); }
+  .nav-links { display: flex; gap: 20px; list-style: none; padding: 0; margin: 0; flex-wrap: wrap; }
+  .nav-links a { font-size: .82rem; font-weight: 500; color: var(--text-secondary); }
+  .nav-links a:hover { color: var(--primary); }
+
+  .hero { padding: 56px 0 8px; }
+  .paper-tag {
+    display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--primary); background: var(--bg-soft);
+    border: 1px solid #D5E2F7; padding: 4px 10px; border-radius: 999px; margin-bottom: 18px;
+  }
+  .hero h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); letter-spacing: -.02em; margin-bottom: .35em; }
+  .en-title { font-size: 1rem; color: var(--text-muted); font-weight: 500; margin: 0 0 1.1em;
+              font-family: ui-monospace, Menlo, "SF Mono", monospace; }
+  .lede { font-size: 1.06rem; color: var(--text-secondary); max-width: 44em; }
+  .aff { font-size: .86rem; color: var(--text-muted); margin: 0; }
+
+  .block { padding: 40px 0 8px; }
+  .section-label {
+    font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 10px;
+  }
+  .block h2 { font-size: 1.32rem; margin-bottom: .7em; }
+
+  .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 0 0 20px; }
+  .mode-card { background: var(--bg-elev); border: 1px solid var(--border);
+               border-radius: var(--radius-md); padding: 20px 22px; box-shadow: var(--shadow-sm); }
+  .mode-card h3 { font-size: 1rem; margin-bottom: .45em; }
+  .mode-card p { font-size: .92rem; margin: 0 0 .8em; }
+  .mode-card p:last-child { margin-bottom: 0; }
+  .mode-card .cmd { display: block; background: #0F172A; color: #E2E8F0; font-size: .8rem;
+                    padding: 9px 12px; border-radius: var(--radius-sm); overflow-x: auto;
+                    font-family: ui-monospace, Menlo, "SF Mono", monospace; }
+
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; background: var(--bg-elev);
+          margin: 0 0 16px; }
+  thead th { background: var(--primary); color: #fff; font-weight: 600; font-size: .78rem;
+             letter-spacing: .03em; padding: 9px 12px; text-align: left; }
+  tbody td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text-secondary);
+             vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 1px solid #CBD5E1; }
+  td.n { text-align: center; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+  .tscroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .st { display: inline-block; font-size: .74rem; font-weight: 700; padding: 2px 8px;
+        border-radius: 4px; border: 1px solid; white-space: nowrap; }
+  .st.bad  { color: var(--bad);  border-color: #F0BDBD; background: #FDF3F3; }
+  .st.warn { color: var(--warn); border-color: #EBD2A4; background: #FDF8EF; }
+  .st.ok   { color: var(--ok);   border-color: #AFD4BB; background: #F3FAF5; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+               border-top: 2px solid var(--primary); border-bottom: 1px solid var(--border);
+               margin: 0 0 18px; background: var(--bg-elev); }
+  .stat-card { padding: 16px 18px; border-right: 1px solid var(--border); }
+  .stat-card:last-child { border-right: none; }
+  .stat-num { font-size: 1.8rem; font-weight: 700; color: var(--primary); line-height: 1;
+              font-variant-numeric: tabular-nums; }
+  .stat-label { font-size: .78rem; color: var(--text-muted); margin-top: 6px; }
+
+  .note-box { background: var(--bg-soft); border-left: 3px solid var(--secondary);
+              padding: 14px 18px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+              font-size: .9rem; color: var(--text-secondary); margin: 0 0 16px; }
+  .note-box b { color: var(--text-primary); }
+
+  .dl { display: flex; gap: 12px; flex-wrap: wrap; margin: 0 0 16px; }
+  .dl a { display: inline-flex; align-items: center; gap: 8px; font-size: .9rem; font-weight: 600;
+          padding: 11px 20px; border-radius: var(--radius-sm); border: 1px solid var(--primary);
+          background: var(--primary); color: #fff; }
+  .dl a:hover { background: #17358f; color: #fff; }
+  .dl a.ghost { background: var(--bg-elev); color: var(--primary); }
+  .dl a.ghost:hover { background: var(--bg-soft); }
+
+  .files { list-style: none; padding: 0; margin: 0 0 16px; }
+  .files li { border-bottom: 1px solid var(--border); padding: 9px 0; font-size: .9rem;
+              display: flex; gap: 12px; flex-wrap: wrap; align-items: baseline; }
+  .files li:last-child { border-bottom: none; }
+  .files .fname { font-family: ui-monospace, Menlo, "SF Mono", monospace; font-size: .84rem;
+                  min-width: 20em; }
+  .files .fdesc { color: var(--text-muted); font-size: .85rem; }
+
+  footer { margin-top: 56px; border-top: 1px solid var(--border); background: var(--bg-elev); }
+  .footer-inner { display: flex; justify-content: space-between; align-items: center;
+                  padding: 22px 24px; font-size: .84rem; color: var(--text-muted); flex-wrap: wrap; gap: 10px; }
+
+  @media (max-width: 720px) {
+    .mode-grid { grid-template-columns: 1fr; }
+    .stat-grid { grid-template-columns: 1fr 1fr; }
+    .stat-card:nth-child(2) { border-right: none; }
+    .stat-card:nth-child(1), .stat-card:nth-child(2) { border-bottom: 1px solid var(--border); }
+    .files .fname { min-width: 0; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="site-nav">
+    <div class="container nav-inner">
+      <a class="nav-back" href="../">← Projects</a>
+      <ul class="nav-links">
+        <li><a href="../../about/">About</a></li>
+        <li><a href="../../research/">Research</a></li>
+        <li><a href="../">Projects</a></li>
+        <li><a href="../../contact/">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero container">
+      <span class="paper-tag">Claude Code Skill · 2026</span>
+      <h1>양적연구 계획서 설계·점검 스킬</h1>
+      <p class="en-title">quant-research-plan</p>
+      <p class="lede">계획서의 항목을 채우는 데서 그치지 않고, <b>앞에서 정한 것과 뒤에서
+        쓰는 것이 어긋나지 않는지</b>를 규칙으로 대조합니다. 22개 구성요소와 정합성 규칙
+        8개로 초안을 작성하거나 기존 초안을 점검합니다.</p>
+      <p class="aff">손혜미 · KAIST 기술경영전문대학원</p>
+    </section>
+
+    <section class="block container">
+      <div class="section-label">What it does</div>
+      <h2>두 가지 모드</h2>
+      <div class="mode-grid">
+        <div class="mode-card">
+          <h3>작성 모드</h3>
+          <p>주제·변수·데이터 수집 방식을 설명하면 22개 구성요소를 순서대로 채운
+            초안과 자체 점검표를 함께 냅니다.</p>
+          <code class="cmd">/quant-research-plan 재택근무와 직무만족…</code>
+        </div>
+        <div class="mode-card">
+          <h3>점검 모드</h3>
+          <p>초안 파일 경로를 주면 요소별 상태와 규칙 판정만 냅니다.
+            <b>초안을 다시 쓰지 않습니다</b> — 무엇을 어떤 순서로 고칠지만 돌려줍니다.</p>
+          <code class="cmd">/quant-research-plan 초안파일.md</code>
+        </div>
+      </div>
+      <p>파일 경로가 오면 점검, 주제 설명이 오면 작성으로 갈라집니다. 결과는
+        <code>outputs/</code>에 저장되고, 되물을 사람이 없는 실행에서는 필요한 가정을
+        결과 맨 위에 적고 진행합니다.</p>
+    </section>
+
+    <section class="block container">
+      <div class="section-label">Structure</div>
+      <h2>22개 구성요소</h2>
+      <div class="tscroll">
+        <table>
+          <thead><tr><th style="width:7em">묶음</th><th>구성요소</th></tr></thead>
+          <tbody>
+            <tr><td>뼈대</td><td>① 제목 · ② 유형(횡단/종단 명시) · ③ 연구모형 · ④ 가설</td></tr>
+            <tr><td>정당성</td><td>⑤ 배경 · ⑥ 이론(1개) · ⑦ 선행연구(그 이론을 쓴 실증 3편) · ⑧ 차별성(2가지)</td></tr>
+            <tr><td>데이터</td><td>⑨ 데이터 · ⑩ 분석단위 · ⑪ 측정수준 · ⑫ 모집단 N · ⑬ 표본 n(검정력 근거) · ⑭ 표집방법(장점·한계)</td></tr>
+            <tr><td>분석</td><td>⑮ 종속변수 분포 · ⑯ 변수 간 예상관계 · ⑰ 분석방법 · ⑱ 가상결과</td></tr>
+            <tr><td>의미</td><td>⑲ 이론적 함의(2) · ⑳ 정책 함의(2) · ㉑ 한계(3개 이상) · ㉒ 결론(5개 항목 각 1문장)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 style="margin-top:1.6em">정합성 규칙 8개</h2>
+      <p>요소를 다 채워도 서로 어긋나면 결론이 흔들립니다. 이 스킬이 실제로 대조하는 것은
+        이 여덟 쌍입니다.</p>
+      <div class="tscroll">
+        <table>
+          <thead><tr><th style="width:3em">#</th><th>규칙</th><th style="width:7em">대조 요소</th></tr></thead>
+          <tbody>
+            <tr><td class="n">1</td><td>가설 수 = 모형 화살표 수 (통제변수 경로 제외)</td><td>③↔④</td></tr>
+            <tr><td class="n">2</td><td>제목의 변수 = 모형의 변수</td><td>①↔③</td></tr>
+            <tr><td class="n">3</td><td>고른 이론이 이론적 함의에서 다시 다뤄짐</td><td>⑥↔⑲</td></tr>
+            <tr><td class="n">4</td><td>차별성이 분석결과로 실제 드러날 수 있음</td><td>⑧↔⑱</td></tr>
+            <tr><td class="n">5</td><td>데이터 단위 = 분석 단위 = 표본 단위</td><td>⑨↔⑩↔⑬</td></tr>
+            <tr><td class="n">6</td><td>분석방법이 종속변수 측정수준에 맞음</td><td>⑪⑮↔⑰</td></tr>
+            <tr><td class="n">7</td><td>정책 논조의 강도 = 결과의 강도 · 측정하지 않은 변수로 권고하지 않음</td><td>⑱↔⑳㉒</td></tr>
+            <tr><td class="n">8</td><td>횡단면 자료이면 “영향을 미친다” 같은 인과 표현을 쓰지 않음</td><td>②↔①④⑱~㉒</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note-box">판정은 세 등급입니다. <b>위반</b> — 규칙이 깨져 결론이 흔들림 ·
+        <b>보완</b> — 표현이나 일부 누락 수준 · <b>충족</b>.</div>
+    </section>
+
+    <section class="block container">
+      <div class="section-label">Result</div>
+      <h2>실제 점검 결과</h2>
+      <p>스킬 없이 생성한 석사논문 계획서 초안(재택근무–직무만족, 매개·조절 모형)을
+        점검 모드로 돌린 결과입니다.</p>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-num">8</div><div class="stat-label">요소 충족</div></div>
+        <div class="stat-card"><div class="stat-num">13</div><div class="stat-label">요소 보완</div></div>
+        <div class="stat-card"><div class="stat-num">1</div><div class="stat-label">요소 누락</div></div>
+        <div class="stat-card"><div class="stat-num">3</div><div class="stat-label">규칙 위반</div></div>
+      </div>
+      <p>분석단위·측정수준·분석방법은 서로 맞았습니다. 문제는 <b>가설–모형 대응, 인과 표현,
+        정책 논조</b> 세 곳에 몰려 있었습니다.</p>
+      <div class="tscroll">
+        <table>
+          <thead><tr><th style="width:9em">위반 규칙</th><th>초안에서 실제로 걸린 것</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="st bad">규칙 1</span><br>가설 = 화살표</td>
+              <td>모형 화살표는 4개(c′·a·b·조절)인데 가설은 H1~H6 여섯 개입니다. 그림의
+                “(조절: H4)”는 본문에서 H5입니다. 가설 번호로 모형 경로를 찾아갈 수 없습니다.</td>
+            </tr>
+            <tr>
+              <td><span class="st bad">규칙 7</span><br>논조 = 결과</td>
+              <td>전자적 모니터링, 1:1 면담, 연결되지 않을 권리 — 모두 <b>측정하지 않은
+                변수</b>인데 권고가 나옵니다. 정작 가상결과의 직접효과는 매개 투입 후
+                유의하지 않습니다.</td>
+            </tr>
+            <tr>
+              <td><span class="st bad">규칙 8</span><br>횡단 ≠ 인과</td>
+              <td>연구유형을 횡단으로 명시해 놓고 제목 “<b>미치는 영향</b>”, 가설 “정(+)의
+                영향을 미칠 것이다”, 결론 “규명”을 씁니다. 한계에서는 스스로 역인과
+                가능성을 인정해 내부 모순입니다.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="block container">
+      <div class="section-label">Reproducibility</div>
+      <h2>같은 초안을 두 번 점검하면</h2>
+      <p>판정이 실행할 때마다 달라지는지 확인하려고, 동일한 초안을 두 번 돌려
+        규칙 판정을 그대로 대조했습니다.</p>
+      <div class="tscroll">
+        <table>
+          <thead>
+            <tr><th style="width:3em">#</th><th>규칙</th>
+              <th style="width:7em">1회차</th><th style="width:7em">2회차</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="n">1</td><td>가설 수 = 모형 화살표 수</td>
+              <td><span class="st bad">위반</span></td><td><span class="st bad">위반</span></td></tr>
+            <tr><td class="n">2</td><td>제목의 변수 = 모형의 변수</td>
+              <td><span class="st warn">보완</span></td><td><span class="st ok">충족</span></td></tr>
+            <tr><td class="n">3</td><td>이론 ↔ 이론적 함의</td>
+              <td><span class="st warn">보완</span></td><td><span class="st warn">보완</span></td></tr>
+            <tr><td class="n">4</td><td>차별성 ↔ 가상결과</td>
+              <td><span class="st warn">보완</span></td><td><span class="st warn">보완</span></td></tr>
+            <tr><td class="n">5</td><td>데이터 = 분석 = 표본 단위</td>
+              <td><span class="st ok">충족</span></td><td><span class="st ok">충족</span></td></tr>
+            <tr><td class="n">6</td><td>분석방법 ↔ 측정수준</td>
+              <td><span class="st ok">충족</span></td><td><span class="st ok">충족</span></td></tr>
+            <tr><td class="n">7</td><td>논조 강도 = 결과 강도</td>
+              <td><span class="st bad">위반</span></td><td><span class="st bad">위반</span></td></tr>
+            <tr><td class="n">8</td><td>횡단면 자료의 인과 표현</td>
+              <td><span class="st bad">위반</span></td><td><span class="st bad">위반</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note-box"><b>위반 3건(규칙 1·7·8)은 두 번 모두 같았습니다.</b>
+        갈린 것은 규칙 2 하나로, 1회차는 제목이 “재택근무”인데 모형은 “재택근무 <b>강도</b>”라는
+        점을 보완으로 봤고 2회차는 네 변수가 일치하므로 충족으로 봤습니다.
+        <b>명백한 위반은 안정적으로 잡지만, 보완과 충족의 경계는 실행마다 흔들릴 수 있습니다.</b>
+        두 실행 결과를 모두 아래에 싣습니다.</div>
+    </section>
+
+    <section class="block container">
+      <div class="section-label">Before / After</div>
+      <h2>같은 요청, 스킬 적용 전과 후</h2>
+      <div class="tscroll">
+        <table>
+          <thead><tr><th style="width:8em">항목</th><th>스킬 없이</th><th>스킬 적용</th></tr></thead>
+          <tbody>
+            <tr><td>제목</td>
+              <td>재택근무<b>가</b> 직무만족<b>에 미치는 영향</b></td>
+              <td>재택근무 <b>강도</b>와 직무만족<b>의 관계</b></td></tr>
+            <tr><td>독립변수</td>
+              <td>“재택근무” — 여부인지 강도인지 제목에서 갈리지 않음</td>
+              <td>최근 3개월 주당 평균 재택근무 일수(0~5일)로 고정</td></tr>
+            <tr><td>가설</td>
+              <td>H1~H6 여섯 개, 모형 화살표는 네 개</td>
+              <td>경로 가설과 파생 검정을 나눠 표기</td></tr>
+            <tr><td>가정·출처</td>
+              <td>본문에 섞여 있음</td>
+              <td>결과 맨 위에 가정 블록 · 미확인 문헌은
+                <code>[저자, 연도]</code>로 남김</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>횡단면 설계에서는 “영향”을 쓸 수 없다는 규칙 8이 제목·가설·결론을 한꺼번에
+        바꿉니다. 초안을 다 쓴 뒤 고치면 여러 장을 되돌려야 하는 항목입니다.</p>
+    </section>
+
+    <section class="block container">
+      <div class="section-label">Limits</div>
+      <h2>걸러지지 않는 것</h2>
+      <p>규칙 8개 밖의 오류는 잡히지 않습니다. 예를 들어 표본 수 산정의 세부 계산이
+        맞는지는 이 스킬이 보지 않습니다. 가상결과의 수치는 모두 예시이고, 확인되지
+        않은 통계·문헌은 <code>[저자, 연도]</code> 자리표시로 남으므로 직접 확인해
+        채워야 합니다.</p>
+    </section>
+
+    <section class="block container">
+      <div class="section-label">Download</div>
+      <h2>내려받아 실행하기</h2>
+      <div class="dl">
+        <a href="quant-research-plan-cc.zip" download>패키지 내려받기 (.zip)</a>
+        <a class="ghost" href="files/.claude/skills/quant-research-plan/SKILL.md">SKILL.md 보기</a>
+        <a class="ghost" href="files/README.md">README 보기</a>
+      </div>
+      <p>압축을 푼 폴더에서 <code>claude</code>를 실행하면 <code>/quant-research-plan</code>
+        명령이 바로 잡힙니다. 모든 프로젝트에서 쓰려면 스킬 폴더를
+        <code>~/.claude/skills/</code>로 복사합니다.</p>
+
+      <h3 style="font-size:1rem;margin-top:1.4em">들어 있는 파일</h3>
+      <ul class="files">
+        <li><a class="fname" href="files/.claude/skills/quant-research-plan/SKILL.md">.claude/skills/quant-research-plan/SKILL.md</a>
+          <span class="fdesc">스킬 본체 — 절차·판단 기준·출력 양식</span></li>
+        <li><a class="fname" href="files/README.md">README.md</a>
+          <span class="fdesc">설치와 실행 방법</span></li>
+        <li><a class="fname" href="files/examples/01_%EC%9A%94%EC%B2%AD%EB%AC%B8.md">examples/01_요청문.md</a>
+          <span class="fdesc">작성 모드 예시 입력</span></li>
+        <li><a class="fname" href="files/examples/02_%EC%8A%A4%ED%82%AC%EB%AF%B8%EC%A0%81%EC%9A%A9_%EC%B4%88%EC%95%88.md">examples/02_스킬미적용_초안.md</a>
+          <span class="fdesc">스킬 없이 생성한 초안 — 점검 대상</span></li>
+        <li><a class="fname" href="files/examples/03_%EC%8B%A4%ED%96%89%EA%B2%B0%EA%B3%BC_%EC%A0%90%EA%B2%80%EB%AA%A8%EB%93%9C.md">examples/03_실행결과_점검모드.md</a>
+          <span class="fdesc">점검 1회차</span></li>
+        <li><a class="fname" href="files/examples/04_%EC%8B%A4%ED%96%89%EA%B2%B0%EA%B3%BC_%EC%9E%91%EC%84%B1%EB%AA%A8%EB%93%9C.md">examples/04_실행결과_작성모드.md</a>
+          <span class="fdesc">작성 모드 결과</span></li>
+        <li><a class="fname" href="files/examples/05_ClaudeCode_%EC%A0%90%EA%B2%80%EB%AA%A8%EB%93%9C_%EC%8B%A4%ED%96%89%EA%B2%B0%EA%B3%BC.md">examples/05_ClaudeCode_점검모드_실행결과.md</a>
+          <span class="fdesc">점검 2회차 — Claude Code에서 실행</span></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <a href="../">← Back to projects</a>
+      <span>&copy; 2026 손혜미 (Hyemi Son)</span>
+    </div>
+  </footer>
+
+</body>
+</html>
