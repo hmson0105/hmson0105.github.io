@@ -8,9 +8,12 @@
     plan/index.html    처음 입력값(01) + 작성 모드 결과(04)
     quant-research-plan-cc.zip
 
-깃허브 페이지는 Jekyll 이 점으로 시작하는 경로를 빼고 배포한다. 그래서
-`.claude/skills/...` 를 저장소에 그대로 두면 404 가 난다. 저장소에는
-`files/SKILL.md` 한 벌만 두고, zip 안에서만 `.claude/` 밑으로 옮긴다.
+깃허브 페이지(Jekyll)가 거는 제약 두 가지를 피해 간다.
+    1. 점으로 시작하는 경로는 배포에서 빠진다 → `.claude/skills/...` 는 404 가 난다.
+       저장소에는 `files/SKILL.md` 한 벌만 두고 zip 안에서만 `.claude/` 밑으로 옮긴다.
+    2. YAML 프런트매터가 있는 .md 는 정적 파일이 아니라 페이지로 처리되어
+       `SKILL.html` 로 바뀐다 → `files/SKILL.md` 주소 자체가 생기지 않는다.
+       그래서 원문 링크는 깃허브 blob 주소로 보낸다.
 """
 
 import html
@@ -242,7 +245,7 @@ def main():
       <p class="lede">클로드 코드가 <code>/quant-research-plan</code> 을 실행할 때 읽는 파일 전문이다.
         절차·판단 기준·출력 양식 세 부분으로 되어 있다.</p>
       <div class="dl">
-        <a class="ghost" href="../files/SKILL.md" download>원문 내려받기 (.md)</a>
+        <a class="ghost" href="https://github.com/hmson0105/hmson0105.github.io/blob/main/projects/quant-research-plan/files/SKILL.md" target="_blank" rel="noopener">깃허브에서 원문 보기</a>
         <a class="ghost" href="../plan/">입력 → 결과 보기</a>
       </div>
     </section>"""
