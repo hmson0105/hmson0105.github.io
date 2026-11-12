@@ -1,9 +1,9 @@
 // 우리집 미니월드 — 가족 캘린더 + 층별 미니룸
-import * as D from './dates.js?v=2';
-import * as M from './model.js?v=2';
-import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=2';
-import { buildICS, parseICS, downloadText } from './ics.js?v=2';
-import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG } from './scene.js?v=2';
+import * as D from './dates.js?v=3';
+import * as M from './model.js?v=3';
+import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=3';
+import { buildICS, parseICS, downloadText } from './ics.js?v=3';
+import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG } from './scene.js?v=3';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -942,7 +942,7 @@ function toggleIssue(id, checked) {
   if (checked) celebrate(is); else renderAll();
 }
 function exportEvents(events, filename) {
-  const ctx = { memberName, placeName: id => place(id)?.name || '', rule };
+  const ctx = { memberName, memberRole: id => member(id)?.role || '', placeName: id => place(id)?.name || '', rule };
   downloadText(filename.replace(/[\\/:*?"<>|]/g, '_'), buildICS(events, ctx));
   S.sync.apple.lastExportAt = new Date().toISOString();
   persist(); renderHeader();
@@ -967,7 +967,7 @@ async function importICS(file) {
       </ul>
       <ul class="imp-prev">${res.events.slice(0, 8).map(e => `<li><em>${D.fmtDate(e.startDate)} ${e.allDay ? '하루 종일' : e.timeUnset ? '시간 미정' : e.startTime}</em> ${esc(e.title)}</li>`).join('')}${res.events.length > 8 ? `<li class="muted">… 외 ${res.events.length - 8}건</li>` : ''}</ul>
       <div class="fld-row">
-        <label class="fld"><span>가져온 일정의 담당자</span><select name="ownerId">${memberOpts(ui.viewer)}</select></label>
+        <label class="fld"><span>담당자가 적혀 있지 않은 일정의 담당자</span><select name="ownerId">${memberOpts(ui.viewer)}</select></label>
         <label class="fld"><span>공개 범위</span><select name="visibility">${opt(M.VISIBILITY, 'family')}</select></label>
       </div>`,
     actions: '<span class="sp"></span><button type="submit" value="save" class="btn-p">가져오기</button>',
@@ -991,7 +991,10 @@ async function importICS(file) {
         };
         if (ev) { Object.assign(ev, fields); updated++; }
         else {
-          ev = { id: M.newId('ev'), externalUid: x.uid, ownerId: f.ownerId.value, attendeeIds: [f.ownerId.value], visibility: f.visibility.value, recurrenceRuleId: null, createdBy: ui.viewer, createdAt: now, ...fields };
+          const byRole = r => S.members.find(m => m.role === r)?.id;
+          const ownerId = byRole(x.ownerRole) || f.ownerId.value;
+          const att = [...new Set([ownerId, ...x.attendeeRoles.map(byRole).filter(Boolean)])];
+          ev = { id: M.newId('ev'), externalUid: x.uid, ownerId, attendeeIds: att, visibility: f.visibility.value, recurrenceRuleId: null, createdBy: ui.viewer, createdAt: now, ...fields };
           S.events.push(ev); added++;
         }
         if (x.rrule) {

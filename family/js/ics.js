@@ -1,7 +1,7 @@
 // iCalendar(.ics) 가져오기·내보내기. Apple 캘린더와 주고받는 현재 방식이다.
 // 양방향 자동 동기화가 아니라 "파일을 주고받는" 수동 연결이다.
 
-import { TZ, addDays, seoul, wallToUTC, addMinutes, DAYCODES } from './dates.js?v=2';
+import { TZ, addDays, seoul, wallToUTC, addMinutes, DAYCODES } from './dates.js?v=3';
 
 const PRODID = '-//family-home//miniworld//KO';
 
@@ -67,6 +67,13 @@ export function buildICS(events, ctx) {
     L.push(`DESCRIPTION:${escText([ev.memo, who.join(' · ')].filter(Boolean).join('\n'))}`);
     L.push(`STATUS:${{ confirmed: 'CONFIRMED', tentative: 'TENTATIVE', cancelled: 'CANCELLED' }[ev.status] || 'CONFIRMED'}`);
     if (ev.timeUnset) L.push('X-FAMILY-TIME-UNSET:TRUE');
+    // 우리 앱끼리 주고받을 때 담당자·참석자를 보존한다(이름이 아닌 역할 코드만 적는다).
+    if (ctx.memberRole) {
+      const r = ctx.memberRole(ev.ownerId);
+      if (r) L.push(`X-FAMILY-OWNER:${r}`);
+      const rs = (ev.attendeeIds || []).map(ctx.memberRole).filter(Boolean);
+      if (rs.length) L.push(`X-FAMILY-ATTENDEES:${rs.join(',')}`);
+    }
     const rule = ctx.rule(ev.recurrenceRuleId);
     if (rule) {
       const parts = [`FREQ=${rule.freq}`];
@@ -166,6 +173,8 @@ export function parseICS(text) {
       case 'EXDATE': for (const x of val.split(',')) { const d = parseDT(x, params); if (d) cur.exdates.push(d.date); } break;
       case 'RECURRENCE-ID': cur.recurrenceId = true; break;
       case 'X-FAMILY-TIME-UNSET': cur.timeUnset = /TRUE/i.test(val); break;
+      case 'X-FAMILY-OWNER': cur.ownerRole = val.trim(); break;
+      case 'X-FAMILY-ATTENDEES': cur.attendeeRoles = val.split(',').map(x => x.trim()).filter(Boolean); break;
     }
   }
 
@@ -190,6 +199,7 @@ export function parseICS(text) {
       endDate, endTime: allDay ? null : endTime,
       allDay: allDay && !timeUnset, timeUnset,
       rrule: e.rrule || null, exDates: e.exdates,
+      ownerRole: e.ownerRole || null, attendeeRoles: e.attendeeRoles || [],
     };
   });
   return { events, skippedOverrides, unsupportedRules };

@@ -11,7 +11,7 @@
 //
 // 일정(Event) = 언제·어디서 무엇을 하는지. 이슈(Issue) = 그날 기억·준비할 것.
 
-import { addDays, weekday, diffDays, startOfWeek, DAYCODES } from './dates.js?v=2';
+import { addDays, weekday, diffDays, startOfWeek, DAYCODES } from './dates.js?v=3';
 
 export const SCHEMA_VERSION = 1;
 
