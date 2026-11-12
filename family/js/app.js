@@ -690,7 +690,7 @@ function syncCardBody() {
     <form class="sync-form sync-col" data-submit="sync-login">
       <input type="email" name="email" required autocomplete="email" placeholder="이메일 주소" aria-label="이메일 주소">
       <input type="password" name="password" required minlength="8" autocomplete="current-password" placeholder="비밀번호 (8자 이상)" aria-label="비밀번호">
-      <div class="sync-row"><button class="btn-p" name="how" value="in">로그인</button><button class="btn-s" name="how" value="up">처음이에요 (계정 만들기)</button></div>
+      <div class="sync-row"><button class="btn-p" name="how" value="up">🌱 처음이에요 · 계정 만들기</button><button class="btn-s" name="how" value="in">이미 계정이 있어요 · 로그인</button></div>
     </form>
     <p class="small muted">비밀번호는 이 앱이 아니라 가족 서버(Supabase)의 로그인 기능이 안전하게 보관해요. 다른 곳과 같은 비밀번호는 쓰지 마세요.</p>`;
   if (s.state === 'connecting') return '<p>연결하는 중이에요…</p>';
@@ -1658,7 +1658,7 @@ document.addEventListener('submit', e => {
       .catch(err => {
         done();
         const m = err?.message || '';
-        toast(/Invalid login/i.test(m) ? '이메일이나 비밀번호가 맞지 않아요.' : /already registered/i.test(m) ? '이미 있는 계정이에요. 로그인을 눌러 주세요.' : /rate|too many/i.test(m) ? '잠시 뒤 다시 시도해 주세요.' : /confirm/i.test(m) ? '메일 확인이 아직 안 됐어요.' : '로그인하지 못했어요.', 'err');
+        toast(/Invalid login/i.test(m) ? '로그인하지 못했어요. 처음이면 「처음이에요 · 계정 만들기」를 눌러 주세요. 계정이 있다면 이메일·비밀번호를 확인해 주세요.' : /already registered/i.test(m) ? '이미 있는 계정이에요. 로그인을 눌러 주세요.' : /rate|too many/i.test(m) ? '잠시 뒤 다시 시도해 주세요.' : /confirm/i.test(m) ? '메일 확인이 아직 안 됐어요.' : '로그인하지 못했어요.', 'err');
       });
     return;
   }
