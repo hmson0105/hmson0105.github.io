@@ -191,7 +191,8 @@ function renderBanner() {
   if (ui.saveError) b.push(`<div class="banner banner-err" role="alert"><b>저장 실패</b> ${esc(ui.saveError)}</div>`);
   if (bootNote) b.push(`<div class="banner banner-warn">${esc(bootNote)}</div>`);
   const hasDemo = S.events.some(e => e.sourceId === 'src_demo') || S.issues.some(i => i.sourceId === 'src_demo');
-  if (hasDemo) b.push(`<div class="banner banner-demo"><span>🧸 지금 보이는 일정·이슈 중 <b>예시</b> 표시가 붙은 것은 데모 데이터예요.</span><button type="button" class="btn-s" data-action="strip-demo">예시 지우고 시작하기</button></div>`);
+  if (hasDemo) b.push(`<div class="banner banner-demo"><span>🧸 지금 보이는 일정·이슈 중 <b>예시</b> 표시가 붙은 것은 데모 데이터예요. 다른 기기의 일정은 <b>연동 › 다른 기기로 옮기기</b> 링크로 가져올 수 있어요.</span><button type="button" class="btn-s" data-action="strip-demo">예시 지우고 시작하기</button></div>`);
+  if (hasUndo()) b.push(`<div class="banner banner-warn"><span>↩️ 예시를 지웠어요. 잘못 눌렀다면 되돌릴 수 있어요.</span><span class="btn-row" style="margin:0"><button type="button" class="btn-s" data-action="undo-strip">되돌리기</button><button type="button" class="btn-g" data-action="drop-undo">괜찮아요</button></span></div>`);
   $('#banner').innerHTML = b.join('');
 }
 
@@ -572,6 +573,12 @@ function renderSync() {
   <section class="card card-soon"><header class="card-h"><h2>💬 카톡 텍스트로 일정 후보 만들기</h2><span class="pill pill-off">준비 중</span></header>
     <p>카카오톡 메시지를 자동으로 읽지 않아요. 나중에 카톡에서 <b>직접 복사한 글</b>을 붙여 넣으면 날짜·시간·장소를 찾아 <b>일정 후보</b>로 보여 주고, 가족이 확인한 것만 저장하도록 데이터 구조(출처: 카톡 붙여넣기, 후보 목록)를 마련해 두었어요.</p>
     <textarea disabled rows="2" placeholder="예) 토요일 3시 치과 예약했어요. 진료카드 챙겨요! — 아직 사용할 수 없어요"></textarea>
+  </section>
+  <section class="card"><header class="card-h"><h2>📲 다른 기기로 옮기기</h2></header>
+    <p>가족 데이터는 기기마다 따로 저장돼요. 이 기기의 일정·이슈·여행·살 것 목록을 <b>링크 하나</b>에 담아 다른 기기(아이폰 등)에서 열면 합쳐져요. 예시와 '본인만' 항목, 사진은 빠져요.</p>
+    <button type="button" class="btn-p" data-action="make-share">🔗 옮기기 링크 만들기</button>
+    <div id="shareOut" hidden><input class="share-url" readonly aria-label="옮기기 링크" onclick="this.select()"></div>
+    <p class="small muted">링크에는 일정 내용이 들어 있어요. 주소의 # 뒤 부분은 웹사이트 서버로 전송되지 않지만, 메신저로 보내면 그 메신저에는 남을 수 있으니 AirDrop이나 나에게 보내기처럼 가족만 보는 곳으로 보내 주세요. 아직 자동 공유는 아니라서, 한쪽에서 고친 뒤 다시 옮겨야 해요.</p>
   </section>
   <section class="card"><header class="card-h"><h2>💾 데이터 저장 범위</h2><span class="pill ${ui.saveError ? 'pill-err' : 'pill-on'}">${ui.saveError ? '저장 실패' : '저장됨'}</span></header>
     <dl class="kv kv-wide">
@@ -1327,8 +1334,30 @@ const ACTIONS = {
   },
   backup,
   'strip-demo': () => {
-    if (!confirm('예시(데모) 일정·이슈·글·방명록을 지울까요? 직접 넣은 내용은 남아요.')) return;
-    M.stripDemo(S); persist(); renderAll(); toast('예시 데이터를 지웠어요. 이제 우리 가족 일정을 넣어 보세요!');
+    const mine = S.events.filter(e => e.sourceId !== 'src_demo').length;
+    const msg = mine
+      ? `'예시' 표시가 붙은 항목만 지워요. 직접 넣거나 가져온 일정 ${mine}개는 그대로 남아요.\n계속할까요? (지운 뒤 되돌릴 수 있어요)`
+      : `이 기기에는 직접 넣은 일정이 아직 없어서, 예시를 지우면 캘린더가 비어요.\n다른 기기에 넣은 일정은 '연동 › 다른 기기로 옮기기' 링크로 가져올 수 있어요.\n그래도 지울까요? (지운 뒤 되돌릴 수 있어요)`;
+    if (!confirm(msg)) return;
+    try { localStorage.setItem(UNDO_KEY, JSON.stringify(S)); } catch { /* 되돌리기 없이 진행 */ }
+    M.stripDemo(S); persist(); renderAll(); toast('예시 데이터를 지웠어요.');
+  },
+  'undo-strip': () => {
+    try {
+      const snap = JSON.parse(localStorage.getItem(UNDO_KEY));
+      if (snap && Array.isArray(snap.members)) { S = M.migrate(snap); localStorage.removeItem(UNDO_KEY); persist(); renderAll(); toast('되돌렸어요.'); }
+    } catch { toast('되돌리기 정보를 찾지 못했어요.', 'err'); }
+  },
+  'drop-undo': () => { try { localStorage.removeItem(UNDO_KEY); } catch { /* 무시 */ } renderBanner(); },
+  'make-share': async () => {
+    try {
+      const url = await makeShareLink();
+      const box = $('#shareOut');
+      box.hidden = false;
+      box.querySelector('input').value = url;
+      try { await navigator.clipboard.writeText(url); toast('링크를 복사했어요. 다른 기기에서 열어 주세요.'); }
+      catch { toast('아래 링크를 길게 눌러 복사해 주세요.'); }
+    } catch { toast('이 브라우저에서는 링크를 만들 수 없어요.', 'err'); }
   },
   'reset-demo': () => {
     if (!confirm('모든 데이터를 지우고 예시 데이터로 되돌릴까요? 되돌릴 수 없어요.')) return;
@@ -1394,9 +1423,64 @@ setInterval(() => {
 }, 15000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !$('#dlg').open) renderAll(); });
 
+// ───────────────────────── 다른 기기로 옮기기 ─────────────────────────
+// 데이터를 gzip+base64url 로 압축해 주소의 # 뒤(fragment)에 담는다.
+// fragment 는 브라우저가 서버로 보내지 않으므로 GitHub 서버에도 남지 않는다.
+const UNDO_KEY = 'family-home:undo';
+function hasUndo() { try { return !!localStorage.getItem(UNDO_KEY); } catch { return false; } }
+const SHARE_KEYS = ['events', 'issues', 'trips', 'boardItems', 'places', 'recurrenceRules', 'sources'];
+const b64url = buf => { let s = ''; const b = new Uint8Array(buf); for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+const unb64url = str => { const s = atob(str.replace(/-/g, '+').replace(/_/g, '/')); const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; };
+async function makeShareLink() {
+  const pick = arr => (arr || []).filter(x => x.sourceId !== 'src_demo' && x.visibility !== 'private');
+  const payload = { kind: 'family-share', v: 1, at: new Date().toISOString() };
+  for (const k of SHARE_KEYS) payload[k] = k === 'places' || k === 'recurrenceRules' || k === 'sources' ? (S[k] || []) : pick(S[k]);
+  payload.statuses = S.members.map(m => ({ id: m.id, status: m.status && !m.status.demo && m.status.visibility !== 'private' ? m.status : null }));
+  const gz = new Blob([JSON.stringify(payload)]).stream().pipeThrough(new CompressionStream('gzip'));
+  return `${location.origin}${location.pathname}#import=${b64url(await new Response(gz).arrayBuffer())}`;
+}
+async function readShareLink() {
+  const m = location.hash.match(/^#import=([A-Za-z0-9_-]+)$/);
+  if (!m) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  let data;
+  try {
+    const st = new Blob([unb64url(m[1])]).stream().pipeThrough(new DecompressionStream('gzip'));
+    data = JSON.parse(await new Response(st).text());
+    if (data.kind !== 'family-share') throw new Error('kind');
+  } catch { toast('링크에 담긴 데이터를 읽지 못했어요.', 'err'); return; }
+  const n = (data.events || []).length, t = (data.trips || []).length, b = (data.boardItems || []).length;
+  openDialog({
+    title: '다른 기기에서 보낸 가족 데이터', cls: 'dlg-import',
+    body: `<p>일정 <b>${n}</b>개 · 이슈 ${(data.issues || []).length}개 · 여행 ${t}개 · 살 것/준비할 것 ${b}개가 들어 있어요.</p>
+      <ul class="imp-prev">${(data.events || []).slice(0, 8).map(e => `<li><em>${D.fmtDate(e.startDate)} ${e.startTime || ''}</em> ${esc(e.title)}${e.recurrenceRuleId ? ' 🔁' : ''}</li>`).join('')}</ul>
+      <p class="small muted"><b>합치기</b>는 이 기기 데이터를 지우지 않고 없는 항목만 더하고, 같은 항목은 더 최근에 고친 쪽으로 맞춰요.</p>`,
+    actions: '<span class="sp"></span><button type="submit" value="save" class="btn-p">합치기</button>',
+    onSubmit() {
+      let added = 0;
+      for (const k of SHARE_KEYS) {
+        S[k] ||= [];
+        for (const x of data[k] || []) {
+          const i = S[k].findIndex(y => y.id === x.id);
+          if (i < 0) { S[k].push(x); if (k === 'events') added++; }
+          else if ((x.updatedAt || '') > (S[k][i].updatedAt || '')) S[k][i] = x;
+        }
+      }
+      for (const s of data.statuses || []) {
+        const mm = member(s.id);
+        if (mm && s.status && (!mm.status || (s.status.setAt || '') > (mm.status.setAt || ''))) mm.status = s.status;
+      }
+      persist(); renderAll(); toast(`가져왔어요 · 새 일정 ${added}개`);
+      return true;
+    },
+  });
+}
+
 // 시작
 persist(); // 첫 실행·이전 데이터 변환(migrate) 결과를 바로 저장
 ui.lastMinute = D.seoul().time;
 setView('world');
 renderHeader();
 renderBanner();
+readShareLink();
+window.addEventListener('hashchange', readShareLink);
