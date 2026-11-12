@@ -11,7 +11,7 @@
 //
 // 일정(Event) = 언제·어디서 무엇을 하는지. 이슈(Issue) = 그날 기억·준비할 것.
 
-import { addDays, weekday, diffDays, startOfWeek, DAYCODES } from './dates.js?v=3';
+import { addDays, weekday, diffDays, startOfWeek, DAYCODES } from './dates.js?v=4';
 
 export const SCHEMA_VERSION = 1;
 
@@ -77,6 +77,11 @@ export const STICKERS = [
 // 스티커 자리(방 그림 위 %, 고정 슬롯). 고른 순서대로 채운다.
 export const STICKER_SLOTS = [[12, 14], [86, 12], [8, 52], [92, 48], [20, 86], [80, 88], [50, 6], [96, 74]];
 
+export const BOARD_KINDS = [
+  { k: 'buy', l: '살 것', e: '🛒' },
+  { k: 'prep', l: '준비할 것', e: '🎒' },
+];
+
 export const SOURCES_BASE = [
   { id: 'src_manual', kind: 'manual', label: '직접 입력' },
   { id: 'src_demo', kind: 'demo', label: '데모(예시)' },
@@ -136,6 +141,8 @@ function baseState() {
     issues: [],
     posts: [],
     guestbook: [],
+    trips: [],      // 여행 계획: { id, title, startDate, endDate, destination, memberIds, plan:[{id,date,time,title,memo}], eventId, ... }
+    boardItems: [], // 살 것·준비할 것: { id, title, kind:'buy'|'prep', qty, ownerId, tripId, dueDate, done, ... }
     candidates: [], // 카톡 붙여넣기 등에서 만든 '일정 후보'(확인 전) 자리. 아직 생성 기능 없음.
     sync: {
       apple: { mode: 'manual-ics', lastImportAt: null, lastImportFile: null, lastImportCount: 0, lastExportAt: null },
@@ -158,7 +165,6 @@ export function demoState(T) {
   const pGma = place('pl_gma', '할머니 댁');
   const pRes = place('pl_res', '동네 파스타집');
 
-  S.recurrenceRules.push({ id: 'rr_weekday', freq: 'WEEKLY', interval: 1, byDay: ['MO', 'TU', 'WE', 'TH', 'FR'], until: null, count: null });
 
   const ev = (o) => S.events.push({
     id: newId('ev'), endDate: o.startDate, startTime: null, endTime: null, allDay: false, timeUnset: false,
@@ -168,8 +174,6 @@ export function demoState(T) {
   }) && S.events[S.events.length - 1].id;
 
   // 반복 일정은 이번 주 월요일부터 시작하게 둔다.
-  const monday = addDays(startOfWeek(T), 1);
-  const eDay = ev({ title: '어린이집 등원', startDate: monday, startTime: '09:00', endTime: '16:00', ownerId: 'm_kid', attendeeIds: ['m_kid'], placeId: pDay, recurrenceRuleId: 'rr_weekday', memo: '평일 등원' });
   const eSem = ev({ title: '랩 세미나 발표', startDate: T, startTime: '10:00', endTime: '12:00', ownerId: 'm_dad', placeId: pSem, memo: '발표 20분 + 질의응답' });
   ev({ title: '유안이 하원 픽업', startDate: T, startTime: '18:30', endTime: '19:00', ownerId: 'm_mom', attendeeIds: ['m_mom', 'm_kid'], placeId: pDay });
   const eDen = ev({ title: '치과 진료', startDate: D(1), startTime: '15:00', endTime: '16:00', ownerId: 'm_mom', attendeeIds: ['m_mom', 'm_kid'], placeId: pDen, memo: '유안이 정기 검진' });
@@ -182,7 +186,7 @@ export function demoState(T) {
     id: newId('is'), type: 'prep', ownerId: '', done: false, priority: 'normal', eventId: null,
     sourceId: 'src_demo', visibility: 'family', createdBy: 'm_mom', createdAt: now, updatedAt: now, ...o,
   });
-  iss({ title: '체육복 가방에 넣기', date: T, ownerId: 'm_mom', priority: 'high', eventId: eDay });
+  iss({ title: '체육복 가방에 넣기', date: T, ownerId: 'm_mom', priority: 'high' });
   iss({ title: '발표 자료 USB에 백업', date: T, ownerId: 'm_dad', eventId: eSem });
   iss({ title: '저녁 미세먼지 나쁨 · 마스크 챙기기', date: T, type: 'caution', ownerId: '' });
   iss({ title: '우유 사 오기', date: T, type: 'memo', ownerId: 'm_dad', done: true, priority: 'low' });
@@ -193,6 +197,29 @@ export function demoState(T) {
   setSt('m_dad', { text: '논문 마감 주간! 커피 수혈 중', mood: 'focused', activity: 'busy' });
   setSt('m_mom', { text: '오늘은 칼퇴가 목표예요', mood: 'happy', activity: 'rest' });
   // 유안이는 상태를 일부러 비워 두어 '상태 미설정' 표시를 보여 준다.
+
+  // 예시 여행과 살 것·준비할 것
+  const tStart = D(20), tEnd = D(22);
+  const tripId = 'trip_demo';
+  const tripEv = ev({ title: '🧳 제주 가족여행', startDate: tStart, endDate: tEnd, allDay: true, ownerId: 'm_dad', attendeeIds: ['m_dad', 'm_mom', 'm_kid'], memo: '여행 계획표에서 자세히 보기', tripId });
+  S.trips.push({
+    id: tripId, title: '제주 가족여행', startDate: tStart, endDate: tEnd, destination: '제주', memberIds: ['m_dad', 'm_mom', 'm_kid'],
+    memo: '렌터카 카시트 꼭 확인', eventId: tripEv, visibility: 'family', sourceId: 'src_demo', createdBy: 'm_dad', createdAt: now, updatedAt: now,
+    plan: [
+      { id: newId('tp'), date: tStart, time: '09:30', title: '김포공항 출발', memo: '' },
+      { id: newId('tp'), date: tStart, time: '12:00', title: '렌터카 받고 점심', memo: '고기국수' },
+      { id: newId('tp'), date: tStart, time: '15:00', title: '숙소 체크인', memo: '' },
+      { id: newId('tp'), date: addDays(tStart, 1), time: '10:00', title: '아쿠아리움', memo: '유안이 최애' },
+      { id: newId('tp'), date: addDays(tStart, 1), time: '', title: '바닷가 산책', memo: '' },
+      { id: newId('tp'), date: tEnd, time: '17:00', title: '제주공항 출발', memo: '' },
+    ],
+  });
+  const bi = (o) => S.boardItems.push({ id: newId('bi'), kind: 'buy', qty: '', ownerId: '', tripId: null, dueDate: null, done: false, memo: '', visibility: 'family', sourceId: 'src_demo', createdBy: 'm_mom', createdAt: now, updatedAt: now, ...o });
+  bi({ title: '유아용 선크림', qty: '1개', ownerId: 'm_mom', tripId });
+  bi({ title: '여벌 옷 3벌 챙기기', kind: 'prep', ownerId: 'm_mom', tripId });
+  bi({ title: '카시트 예약 확인', kind: 'prep', ownerId: 'm_dad', tripId, done: true });
+  bi({ title: '우유', qty: '2팩', ownerId: 'm_dad' });
+  bi({ title: '기저귀 · 물티슈', qty: '각 1팩', ownerId: '' });
 
   S.posts.push(
     { id: newId('po'), memberId: 'm_dad', text: '연구실 창밖 은행잎이 노랗게 물들었어요.', photo: null, createdAt: now, createdBy: 'm_dad', visibility: 'family', sourceId: 'src_demo' },
@@ -213,6 +240,8 @@ export function stripDemo(S) {
   S.events = keepEv;
   S.issues = S.issues.filter(i => !isDemo(i)).map(i => (i.eventId && !keepIds.has(i.eventId) ? { ...i, eventId: null } : i));
   S.posts = S.posts.filter(p => !isDemo(p));
+  S.trips = (S.trips || []).filter(t => !isDemo(t));
+  S.boardItems = (S.boardItems || []).filter(b => !isDemo(b));
   S.guestbook = S.guestbook.filter(g => !isDemo(g));
   for (const m of S.members) if (m.status && m.status.demo) m.status = null;
   const usedRules = new Set(S.events.map(e => e.recurrenceRuleId).filter(Boolean));
@@ -230,6 +259,14 @@ export function migrate(S) {
   S.sync.apple = { ...base.sync.apple, ...(S.sync.apple || {}) };
   for (const s of SOURCES_BASE) if (!S.sources.some(x => x.id === s.id)) S.sources.push({ ...s });
   for (const e of S.events) { e.exDates ||= []; e.attendeeIds ||= []; e.visibility ||= 'family'; }
+  // 어린이집은 매일 가므로 데모 '어린이집 등원' 반복 일정을 지운다.
+  const daycare = S.events.filter(e => e.sourceId === 'src_demo' && e.title === '어린이집 등원');
+  if (daycare.length) {
+    const ids = new Set(daycare.map(e => e.id));
+    S.events = S.events.filter(e => !ids.has(e.id));
+    S.recurrenceRules = S.recurrenceRules.filter(r => !daycare.some(e => e.recurrenceRuleId === r.id));
+    S.issues.forEach(i => { if (ids.has(i.eventId)) i.eventId = null; });
+  }
   // 아이 호칭 변경(콩이 → 유안이)을 이미 저장된 데이터에도 반영한다.
   const kid = S.members.find(m => m.id === 'm_kid');
   if (kid && kid.displayName === '콩이') {

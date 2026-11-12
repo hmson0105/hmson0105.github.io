@@ -535,3 +535,56 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
   .dlg-f { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
   .deco { display: none; }
 }
+
+/* ── 여행 계획 · 살 것/준비할 것 ── */
+.plan-body { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 16px; align-items: start; }
+.plan-board { position: sticky; top: 92px; display: grid; gap: 12px; }
+.plan-board .card-h { margin-bottom: 0; }
+.trip-list { list-style: none; margin: 0 0 14px; padding: 0 0 4px; display: flex; gap: 10px; overflow-x: auto; }
+.trip-card { display: grid; gap: 2px; text-align: left; min-width: 180px; padding: 10px 14px; border-radius: 16px; border: 2px solid var(--line); background: var(--sky); }
+.trip-card b { font-family: var(--font-d); font-weight: 400; font-size: 17px; }
+.trip-card span { font-size: 13px; color: var(--ink-2); }
+.trip-card em { font-style: normal; font-family: var(--font-d); color: var(--sky-d); }
+.trip-card.on { border-color: var(--sky-d); box-shadow: 0 3px 0 var(--sky-d); background: #fff; }
+.trip-card.past { opacity: .6; }
+.trip-h { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 16px; border-radius: 18px; background: linear-gradient(120deg, var(--sky), var(--lav)); }
+.trip-title { font-size: 26px; margin: 2px 0 8px; }
+.trip-memo { margin: 8px 0 0; font-size: 14.5px; }
+.trip-btns { display: flex; gap: 6px; align-items: flex-start; flex-wrap: wrap; }
+.trip-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; margin-top: 6px; }
+.tday { background: var(--pink-xl); border-radius: 16px; padding: 10px 12px; margin-bottom: 10px; border: 2px solid var(--line); }
+.tday-h { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--ink-2); }
+.tday-h b { font-family: var(--font-d); font-weight: 400; color: var(--pink-d); font-size: 17px; }
+.tday-h .btn-g { margin-left: auto; }
+.tday-empty { margin: 4px 0 0; }
+.tplan { list-style: none; margin: 6px 0 0; padding: 0 0 0 14px; border-left: 3px dotted var(--pink); display: grid; gap: 6px; }
+.tplan button { all: unset; cursor: pointer; display: grid; grid-template-columns: 4.4em 1fr; gap: 8px; width: 100%; padding: 6px 10px; background: #fff; border-radius: 12px; box-sizing: border-box; }
+.tplan button:focus-visible { outline: 3px solid var(--yellow); }
+.tplan em { font-style: normal; font-family: var(--font-d); color: var(--sky-d); }
+.tplan small { display: block; color: var(--ink-3); font-size: 13px; }
+.prog { height: 10px; border-radius: 99px; background: var(--pink-l); overflow: hidden; margin-bottom: 10px; }
+.prog i { display: block; height: 100%; background: var(--pink); border-radius: 99px; transition: width .4s; }
+.bd-add { display: grid; grid-template-columns: auto 4.5em minmax(0, 1fr) auto; gap: 6px; margin-bottom: 10px; }
+.bd-add input[name=title] { grid-column: 1 / -1; order: -1; }
+.bd-add input, .bd-add select { min-width: 0; border: 2px solid var(--line); border-radius: 12px; padding: 7px 8px; background: #fff; font-size: 15px; }
+.bd-row { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; padding: 10px 12px; border-radius: 16px; background: var(--cream); border: 2px solid #F6E6C8; }
+.bd-row.k-prep { background: #F3F9FF; border-color: #D4EAFB; }
+.bd-row.is-done { opacity: .6; }
+.bd-row.is-done .is-title { text-decoration: line-through; }
+.trip-mini { all: unset; cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 0 8px; padding: 10px 14px; border-radius: 16px; background: linear-gradient(120deg, var(--sky), var(--lav)); width: 100%; box-sizing: border-box; }
+.trip-mini b { font-family: var(--font-d); font-weight: 400; font-size: 17px; }
+.trip-mini span { grid-column: 1; font-size: 13.5px; color: var(--ink-2); }
+.trip-mini em { grid-row: 1 / 3; grid-column: 2; align-self: center; font-style: normal; font-family: var(--font-d); color: var(--sky-d); font-size: 18px; }
+.board-count { margin: 10px 0 0; font-size: 15px; }
+.board-count b { font-family: var(--font-d); font-weight: 400; color: var(--pink-d); font-size: 18px; }
+.trip-note { margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--sky); font-size: 14px; }
+@media (max-width: 1100px) {
+  .plan-body { grid-template-columns: 1fr; }
+  .plan-board { position: static; }
+}
+@media (max-width: 760px) {
+  .trip-grid { grid-template-columns: 1fr; }
+  .bd-add { grid-template-columns: 1fr 1fr; }
+  .bottom-nav { grid-template-columns: repeat(4, 1fr); }
+  .trip-title { font-size: 22px; }
+}

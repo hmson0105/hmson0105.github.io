@@ -1,9 +1,9 @@
 // 우리집 미니월드 — 가족 캘린더 + 층별 미니룸
-import * as D from './dates.js?v=3';
-import * as M from './model.js?v=3';
-import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=3';
-import { buildICS, parseICS, downloadText } from './ics.js?v=3';
-import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG } from './scene.js?v=3';
+import * as D from './dates.js?v=4';
+import * as M from './model.js?v=4';
+import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=4';
+import { buildICS, parseICS, downloadText } from './ics.js?v=4';
+import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG } from './scene.js?v=4';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -31,6 +31,7 @@ const ui = {
   viewer: loadPref('viewer') || 'm_mom',
   cal: { mode: mobileMQ.matches ? 'day' : 'month', cursor: D.today(), selected: D.today(), filter: new Set(S.members.map(m => m.id)) },
   saveError: canStore ? null : '이 브라우저에서는 저장할 수 없어요(개인정보 보호 모드 등). 새로고침하면 입력한 내용이 사라져요.',
+  plan: { tripId: null, filter: 'all' },
   elevating: false,
   celebrate: null,
   lastMinute: '',
@@ -315,7 +316,8 @@ function lobbyPanels() {
   </section>
   <section class="card o-7"><header class="card-h"><h2>다가오는 일정</h2><button type="button" class="btn-g" data-action="view" data-view="cal">캘린더 →</button></header>
     ${up.length ? `<ul class="ev-list ev-compact">${up.map(i => evRow(i, { showDate: true })).join('')}</ul>` : empty('📭', '앞으로 7일 동안 예정된 일정이 없어요.')}
-  </section>`;
+  </section>
+  ${planSummaryCard()}`;
   return { main, side };
 }
 
@@ -666,6 +668,7 @@ function eventDialog(ev, occDate) {
     <label class="fld"><span>공개 범위</span><select name="visibility">${opt(M.VISIBILITY, ev.visibility)}</select></label>
     <label class="fld"><span>메모</span><textarea name="memo" rows="2" maxlength="300">${esc(ev.memo)}</textarea></label>
     <p class="meta-line">출처: <b>${esc(src?.label || '직접 입력')}</b>${ev.updatedAt ? ` · 마지막 수정 ${D.fmtStamp(ev.updatedAt)}` : ''}${rr && occDate ? ` · 반복 일정은 전체가 함께 수정돼요` : ''}</p>
+    ${ev.tripId ? `<p class="trip-note">🧳 여행 계획과 연결된 일정이에요. 날짜·참여자는 <button type="button" class="btn-s btn-sm" data-action="open-trip" data-id="${ev.tripId}">여행 계획표</button>에서 바꾸면 함께 바뀌어요.</p>` : ''}
     ${isNew ? '' : `<div class="linked"><h3 class="sub-h">연결된 준비 항목</h3>${linked.length ? `<ul class="is-list">${linked.map(i => issueRow(i, { showDate: true })).join('')}</ul>` : '<p class="muted small">아직 없어요.</p>'}<button type="button" class="btn-s btn-sm" data-action="new-issue" data-date="${occDate || ev.startDate}" data-event="${ev.id}" data-owner="${ev.ownerId}">+ 준비 항목 추가</button></div>`}`;
   const actions = `${isNew ? '' : `<button type="submit" value="apple" class="btn-g" formnovalidate>🍎 Apple 캘린더에 추가</button>`}
     ${!isNew && rr && occDate ? `<button type="submit" value="skip" class="btn-g" formnovalidate>이 날만 취소</button>` : ''}
@@ -697,6 +700,7 @@ function eventDialog(ev, occDate) {
         S.events = S.events.filter(e => e.id !== ev.id);
         if (rr) S.recurrenceRules = S.recurrenceRules.filter(r => r.id !== rr.id);
         S.issues.forEach(i => { if (i.eventId === ev.id) i.eventId = null; });
+        (S.trips || []).forEach(t => { if (t.eventId === ev.id) t.eventId = null; });
         persist(); renderAll(); toast('일정을 삭제했어요.');
         return true;
       }
@@ -924,6 +928,239 @@ function decorateDialog(id) {
   });
 }
 
+
+// ───────────────────────── 여행 계획 · 살 것/준비할 것 ─────────────────────────
+const trips = () => (S.trips || []).filter(canSee).sort((a, b) => a.startDate.localeCompare(b.startDate));
+const boardItems = () => (S.boardItems || []).filter(canSee);
+const tripById = id => (S.trips || []).find(t => t.id === id);
+function dday(d) {
+  const n = D.diffDays(D.today(), d);
+  return n > 0 ? `D-${n}` : n === 0 ? 'D-DAY' : null;
+}
+function tripStatus(t) {
+  const today = D.today();
+  if (t.endDate < today) return '다녀왔어요';
+  if (t.startDate <= today) return '여행 중';
+  return dday(t.startDate);
+}
+function pickTrip() {
+  const list = trips();
+  if (ui.plan.tripId && list.some(t => t.id === ui.plan.tripId)) return tripById(ui.plan.tripId);
+  const t = list.find(x => x.endDate >= D.today()) || list.at(-1) || null;
+  ui.plan.tripId = t?.id || null;
+  return t;
+}
+function planSummaryCard() {
+  const next = trips().find(t => t.endDate >= D.today());
+  const open = boardItems().filter(b => !b.done);
+  const buy = open.filter(b => b.kind === 'buy').length, prep = open.length - buy;
+  return `<section class="card o-8"><header class="card-h"><h2>🧳 여행 · 🛒 살 것</h2><button type="button" class="btn-g" data-action="view" data-view="plan">보드 →</button></header>
+    ${next ? `<button type="button" class="trip-mini" data-action="open-trip" data-id="${next.id}"><b>${esc(next.title)}</b><span>${D.fmtDate(next.startDate, { wd: false })} – ${D.fmtDate(next.endDate, { wd: false })}</span><em>${tripStatus(next)}</em></button>` : '<p class="muted small">예정된 여행이 없어요.</p>'}
+    <p class="board-count">🛒 살 것 <b>${buy}</b> · 🎒 준비할 것 <b>${prep}</b> 남았어요</p>
+  </section>`;
+}
+function boardRow(b, { showTrip = true } = {}) {
+  const k = M.BOARD_KINDS.find(x => x.k === b.kind) || M.BOARD_KINDS[0];
+  const t = b.tripId && tripById(b.tripId);
+  return `<li class="bd-row${b.done ? ' is-done' : ''} k-${b.kind}">
+    <label class="chk" title="${b.done ? '되돌리기' : '완료'}"><input type="checkbox" data-change="toggle-board" data-id="${b.id}" ${b.done ? 'checked' : ''}><span aria-hidden="true"></span><b class="sr">${esc(b.title)} 완료</b></label>
+    <button type="button" class="is-main" data-action="open-board" data-id="${b.id}">
+      <span class="is-type">${k.e} ${k.l}${b.qty ? ` · ${esc(b.qty)}` : ''}${b.dueDate ? ` · ${D.fmtDate(b.dueDate)}까지` : ''}</span>
+      <span class="is-title">${esc(b.title)}</span>
+    </button>
+    <div class="is-meta">${srcTag(b)}${pchip(b.ownerId)}${showTrip && t ? `<button type="button" class="link-ev" data-action="open-trip" data-id="${t.id}">🧳 ${esc(t.title)}</button>` : ''}</div>
+  </li>`;
+}
+function boardAddForm(tripId = '') {
+  return `<form class="bd-add" data-submit="board-add">
+    <select name="kind" aria-label="종류">${M.BOARD_KINDS.map(k => `<option value="${k.k}">${k.e} ${k.l}</option>`).join('')}</select>
+    <input name="title" maxlength="50" required placeholder="예) 선크림, 여권 챙기기" aria-label="내용">
+    <input name="qty" maxlength="12" placeholder="수량" aria-label="수량" class="bd-qty">
+    <select name="ownerId" aria-label="담당자">${memberOpts('', true)}</select>
+    <input type="hidden" name="tripId" value="${tripId}">
+    <button class="btn-p btn-sm">추가</button>
+  </form>`;
+}
+function renderPlan() {
+  const list = trips();
+  const t = pickTrip();
+  const today = D.today();
+  const tripCards = list.length ? list.map(x => `<li><button type="button" class="trip-card${x.id === t?.id ? ' on' : ''}${x.endDate < today ? ' past' : ''}" data-action="select-trip" data-id="${x.id}">
+      <b>${esc(x.title)}</b>
+      <span>${D.fmtDate(x.startDate, { wd: false })} – ${D.fmtDate(x.endDate, { wd: false })}${x.destination ? ` · 📍${esc(x.destination)}` : ''}</span>
+      <em>${tripStatus(x) || ''}</em>
+    </button></li>`).join('') : '';
+  let detail;
+  if (!t) detail = empty('🧳', '아직 여행 계획이 없어요. 여행을 만들면 날짜별 계획표와 준비물 목록이 함께 생겨요.', '<button type="button" class="btn-p" data-action="new-trip">+ 여행 만들기</button>');
+  else {
+    const n = Math.min(30, D.diffDays(t.startDate, t.endDate) + 1);
+    const days = [...Array(n)].map((_, k) => D.addDays(t.startDate, k));
+    const items = boardItems().filter(b => b.tripId === t.id).sort((a, b) => a.done - b.done);
+    const doneN = items.filter(b => b.done).length;
+    detail = `<header class="trip-h">
+        <div><p class="hello-date">${D.fmtDate(t.startDate, { year: true })} – ${D.fmtDate(t.endDate)} · ${n - 1}박 ${n}일${t.destination ? ` · 📍 ${esc(t.destination)}` : ''}</p>
+        <h2 class="trip-title">${esc(t.title)} <span class="tag tag-today">${tripStatus(t) || ''}</span>${srcTag(t)}</h2>
+        <div class="ev-people">${(t.memberIds || []).map(id => pchip(id)).join('')}</div>
+        ${t.memo ? `<p class="trip-memo">📝 ${esc(t.memo)}</p>` : ''}</div>
+        <div class="trip-btns"><button type="button" class="btn-s btn-sm" data-action="edit-trip" data-id="${t.id}">여행 정보 수정</button>${t.eventId ? `<button type="button" class="btn-g btn-sm" data-action="open-event" data-id="${t.eventId}" data-date="${t.startDate}">📅 캘린더에서 보기</button>` : ''}</div>
+      </header>
+      <div class="trip-grid">
+        <section><h3 class="sub-h">🗺️ 여행 계획표</h3>
+          ${days.map((d, k) => {
+            const its = (t.plan || []).filter(p => p.date === d).sort((a, b) => (a.time || '99').localeCompare(b.time || '99'));
+            return `<div class="tday"><div class="tday-h"><b>${k + 1}일차</b> ${D.fmtDate(d)}<button type="button" class="btn-g btn-sm" data-action="new-plan" data-id="${t.id}" data-date="${d}">+ 추가</button></div>
+              ${its.length ? `<ol class="tplan">${its.map(p => `<li><button type="button" data-action="edit-plan" data-id="${t.id}" data-item="${p.id}"><em>${p.time || '시간 미정'}</em><span>${esc(p.title)}${p.memo ? `<small>${esc(p.memo)}</small>` : ''}</span></button></li>`).join('')}</ol>` : '<p class="muted small tday-empty">아직 계획이 없어요</p>'}
+            </div>`;
+          }).join('')}
+        </section>
+        <section><h3 class="sub-h">🎒 이 여행 준비물 · 살 것 <small class="muted">${doneN}/${items.length} 완료</small></h3>
+          <div class="prog" aria-hidden="true"><i style="width:${items.length ? doneN / items.length * 100 : 0}%"></i></div>
+          ${boardAddForm(t.id)}
+          ${items.length ? `<ul class="is-list">${items.map(b => boardRow(b, { showTrip: false })).join('')}</ul>` : '<p class="muted small">준비물을 추가해 보세요.</p>'}
+        </section>
+      </div>`;
+  }
+  const f = ui.plan.filter;
+  const all = boardItems().filter(b => f === 'all' || b.kind === f).sort((a, b) => (a.done - b.done) || (a.dueDate || '9').localeCompare(b.dueDate || '9'));
+  const doneCount = boardItems().filter(b => b.done).length;
+  $('#planBody').innerHTML = `
+    <div class="plan-trips card">
+      <header class="card-h"><h2>🧳 여행 계획</h2><button type="button" class="btn-p btn-sm" data-action="new-trip">+ 여행 만들기</button></header>
+      ${list.length ? `<ul class="trip-list">${tripCards}</ul>` : ''}
+      <div class="trip-detail">${detail}</div>
+    </div>
+    <aside class="card plan-board">
+      <header class="card-h"><h2>🛒 살 것 · 준비할 것</h2>${doneCount ? `<button type="button" class="btn-g btn-sm" data-action="clear-board">완료 ${doneCount}개 정리</button>` : ''}</header>
+      <div class="seg" role="group" aria-label="종류">${[['all', '전체'], ['buy', '🛒 살 것'], ['prep', '🎒 준비할 것']].map(([k, l]) => `<button type="button" data-action="board-filter" data-k="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
+      ${boardAddForm('')}
+      ${all.length ? `<ul class="is-list">${all.map(b => boardRow(b)).join('')}</ul>` : empty('🛍️', '적어 둔 살 것·준비할 것이 없어요.')}
+      <p class="small muted">가족 누구나 추가하고 체크할 수 있어요. 여행과 연결한 항목은 여행 계획표에도 함께 보여요.</p>
+    </aside>`;
+}
+function syncTripEvent(t) {
+  const now = new Date().toISOString();
+  let ev = t.eventId && S.events.find(e => e.id === t.eventId);
+  if (!ev) {
+    ev = { id: M.newId('ev'), sourceId: 'src_manual', externalUid: null, exDates: [], recurrenceRuleId: null, createdBy: ui.viewer, createdAt: now, status: 'confirmed' };
+    S.events.push(ev); t.eventId = ev.id;
+  }
+  let placeId = null;
+  if (t.destination) {
+    let p = S.places.find(x => x.name === t.destination);
+    if (!p) { p = { id: M.newId('pl'), name: t.destination }; S.places.push(p); }
+    placeId = p.id;
+  }
+  const members = t.memberIds?.length ? t.memberIds : [ui.viewer];
+  Object.assign(ev, {
+    title: `🧳 ${t.title}`, startDate: t.startDate, endDate: t.endDate, startTime: null, endTime: null, allDay: true, timeUnset: false,
+    placeId, ownerId: members[0], attendeeIds: members, memo: '여행 계획표에서 자세히 보기', visibility: t.visibility, tripId: t.id, updatedAt: now,
+  });
+}
+function tripDialog(t) {
+  const isNew = !t;
+  const x = t || { title: '', startDate: D.today(), endDate: D.addDays(D.today(), 1), destination: '', memberIds: S.members.map(m => m.id), memo: '', visibility: 'family' };
+  openDialog({
+    title: isNew ? '새 여행 만들기' : '여행 정보', cls: 'dlg-trip',
+    body: `<label class="fld"><span>여행 이름</span><input name="title" required maxlength="40" value="${esc(x.title)}" placeholder="예) 제주 가족여행"></label>
+      <div class="fld-row">
+        <label class="fld"><span>가는 날</span><input type="date" name="startDate" required value="${x.startDate}"></label>
+        <label class="fld"><span>오는 날</span><input type="date" name="endDate" required value="${x.endDate}"></label>
+      </div>
+      <label class="fld"><span>여행지</span><input name="destination" maxlength="40" value="${esc(x.destination || '')}" placeholder="도시·지역 이름만"></label>
+      <fieldset class="fld chips"><legend>함께 가는 가족</legend>${S.members.map(m => `<label style="--c:${m.color}"><input type="checkbox" name="mem" value="${m.id}" ${(x.memberIds || []).includes(m.id) ? 'checked' : ''}><span>${face(m)}${esc(m.displayName)}</span></label>`).join('')}</fieldset>
+      <label class="fld"><span>메모</span><textarea name="memo" rows="2" maxlength="200">${esc(x.memo || '')}</textarea></label>
+      <label class="fld"><span>공개 범위</span><select name="visibility">${opt(M.VISIBILITY, x.visibility)}</select></label>
+      <p class="meta-line">저장하면 가족 캘린더에 여행 기간이 하루 종일 일정으로 함께 표시돼요.</p>`,
+    actions: `${isNew ? '' : '<button type="submit" value="delete" class="btn-g danger" formnovalidate>여행 삭제</button>'}<span class="sp"></span><button type="submit" value="save" class="btn-p">${isNew ? '만들기' : '저장'}</button>`,
+    onMount(f) { f.startDate.addEventListener('change', () => { if (f.endDate.value < f.startDate.value) f.endDate.value = f.startDate.value; }); if (isNew) f.title.focus(); },
+    onSubmit(f, sub) {
+      if (sub === 'delete') {
+        if (!confirm(`'${x.title}' 여행을 삭제할까요? 계획표와 캘린더 일정도 함께 지워져요. 준비물은 남겨 둘게요.`)) return false;
+        S.trips = S.trips.filter(tt => tt.id !== x.id);
+        S.events = S.events.filter(e => e.id !== x.eventId);
+        S.boardItems.forEach(b => { if (b.tripId === x.id) b.tripId = null; });
+        ui.plan.tripId = null;
+        persist(); renderAll(); toast('여행을 삭제했어요.');
+        return true;
+      }
+      const fd = new FormData(f);
+      const title = String(fd.get('title')).trim();
+      if (!title) return '여행 이름을 적어 주세요.';
+      const startDate = fd.get('startDate'), endDate = fd.get('endDate');
+      if (endDate < startDate) return '오는 날이 가는 날보다 빨라요.';
+      if (D.diffDays(startDate, endDate) > 30) return '여행 기간은 31일까지 만들 수 있어요.';
+      const now = new Date().toISOString();
+      const target = isNew ? { id: M.newId('trip'), plan: [], sourceId: 'src_manual', createdBy: ui.viewer, createdAt: now } : x;
+      Object.assign(target, {
+        title, startDate, endDate, destination: String(fd.get('destination') || '').trim(),
+        memberIds: S.members.map(m => m.id).filter(id => fd.getAll('mem').includes(id)),
+        memo: String(fd.get('memo') || '').trim(), visibility: fd.get('visibility'), updatedAt: now,
+      });
+      if (isNew) { S.trips ||= []; S.trips.push(target); }
+      syncTripEvent(target);
+      ui.plan.tripId = target.id;
+      persist();
+      if (ui.view !== 'plan') setView('plan'); else renderAll();
+      toast(isNew ? '여행을 만들었어요 🧳' : '여행 정보를 저장했어요.');
+      return true;
+    },
+  });
+}
+function planItemDialog(t, itemId, date) {
+  const it = itemId ? (t.plan || []).find(p => p.id === itemId) : null;
+  const n = Math.min(30, D.diffDays(t.startDate, t.endDate) + 1);
+  const days = [...Array(n)].map((_, k) => D.addDays(t.startDate, k));
+  const cur = it?.date || date || t.startDate;
+  openDialog({
+    title: it ? '계획 수정' : '계획 추가', cls: 'dlg-plan',
+    body: `<label class="fld"><span>할 일 · 갈 곳</span><input name="title" required maxlength="50" value="${esc(it?.title || '')}" placeholder="예) 아쿠아리움"></label>
+      <div class="fld-row">
+        <label class="fld"><span>날짜</span><select name="date">${days.map((d, k) => `<option value="${d}" ${d === cur ? 'selected' : ''}>${k + 1}일차 · ${D.fmtDate(d)}</option>`).join('')}</select></label>
+        <label class="fld"><span>시간 <small>(비워 두면 시간 미정)</small></span><input type="time" name="time" value="${it?.time || ''}"></label>
+      </div>
+      <label class="fld"><span>메모</span><input name="memo" maxlength="80" value="${esc(it?.memo || '')}"></label>`,
+    actions: `${it ? '<button type="submit" value="delete" class="btn-g danger" formnovalidate>삭제</button>' : ''}<span class="sp"></span><button type="submit" value="save" class="btn-p">${it ? '저장' : '추가'}</button>`,
+    onMount(f) { if (!it) f.title.focus(); },
+    onSubmit(f, sub) {
+      t.plan ||= [];
+      if (sub === 'delete') { t.plan = t.plan.filter(p => p.id !== it.id); persist(); renderAll(); return true; }
+      const title = f.title.value.trim();
+      if (!title) return '내용을 적어 주세요.';
+      const v = { date: f.date.value, time: f.time.value || '', title, memo: f.memo.value.trim() };
+      if (it) Object.assign(it, v); else t.plan.push({ id: M.newId('tp'), ...v });
+      t.updatedAt = new Date().toISOString();
+      persist(); renderAll(); toast('계획표에 담았어요.');
+      return true;
+    },
+  });
+}
+function boardDialog(b) {
+  openDialog({
+    title: '살 것 · 준비할 것', cls: 'dlg-board',
+    body: `<label class="fld"><span>내용</span><input name="title" required maxlength="50" value="${esc(b.title)}"></label>
+      <div class="fld-row">
+        <label class="fld"><span>종류</span><select name="kind">${M.BOARD_KINDS.map(k => `<option value="${k.k}" ${k.k === b.kind ? 'selected' : ''}>${k.e} ${k.l}</option>`).join('')}</select></label>
+        <label class="fld"><span>수량</span><input name="qty" maxlength="12" value="${esc(b.qty || '')}"></label>
+      </div>
+      <div class="fld-row">
+        <label class="fld"><span>담당자</span><select name="ownerId">${memberOpts(b.ownerId, true)}</select></label>
+        <label class="fld"><span>언제까지</span><input type="date" name="dueDate" value="${b.dueDate || ''}"></label>
+      </div>
+      <label class="fld"><span>연결된 여행</span><select name="tripId"><option value="">없음</option>${trips().map(t => `<option value="${t.id}" ${t.id === b.tripId ? 'selected' : ''}>${esc(t.title)}</option>`).join('')}</select></label>
+      <label class="fld"><span>메모</span><input name="memo" maxlength="80" value="${esc(b.memo || '')}"></label>
+      <label class="fld fld-check"><input type="checkbox" name="done" ${b.done ? 'checked' : ''}><span>완료했어요</span></label>`,
+    actions: '<button type="submit" value="delete" class="btn-g danger" formnovalidate>삭제</button><span class="sp"></span><button type="submit" value="save" class="btn-p">저장</button>',
+    onSubmit(f, sub) {
+      if (sub === 'delete') { S.boardItems = S.boardItems.filter(x => x.id !== b.id); persist(); renderAll(); return true; }
+      const title = f.title.value.trim();
+      if (!title) return '내용을 적어 주세요.';
+      Object.assign(b, { title, kind: f.kind.value, qty: f.qty.value.trim(), ownerId: f.ownerId.value, dueDate: f.dueDate.value || null, tripId: f.tripId.value || null, memo: f.memo.value.trim(), done: f.done.checked, updatedAt: new Date().toISOString() });
+      persist(); renderAll(); toast('저장했어요.');
+      return true;
+    },
+  });
+}
+
 // ───────────────────────── 동작 ─────────────────────────
 function celebrate(issue) {
   const m = member(issue.ownerId);
@@ -1033,6 +1270,7 @@ function setView(v) {
 function renderView() {
   if (ui.view === 'world') renderWorld();
   else if (ui.view === 'cal') renderCal();
+  else if (ui.view === 'plan') renderPlan();
   else renderSync();
 }
 function renderAll() { renderHeader(); renderBanner(); renderView(); }
@@ -1057,6 +1295,19 @@ const ACTIONS = {
   'del-post': b => { if (confirm('이 글을 삭제할까요?')) { S.posts = S.posts.filter(p => p.id !== b.dataset.id); persist(); renderAll(); } },
   'del-gb': b => { if (confirm('이 방명록을 삭제할까요?')) { S.guestbook = S.guestbook.filter(g => g.id !== b.dataset.id); persist(); renderAll(); } },
   decorate: b => decorateDialog(b.dataset.id),
+  'new-trip': () => { if ($('#dlg').open) $('#dlg').close(); tripDialog(null); },
+  'edit-trip': b => tripDialog(tripById(b.dataset.id)),
+  'select-trip': b => { ui.plan.tripId = b.dataset.id; renderPlan(); },
+  'open-trip': b => { if ($('#dlg').open) $('#dlg').close(); ui.plan.tripId = b.dataset.id; setView('plan'); scrollTopIfMobile(); },
+  'new-plan': b => planItemDialog(tripById(b.dataset.id), null, b.dataset.date),
+  'edit-plan': b => planItemDialog(tripById(b.dataset.id), b.dataset.item),
+  'open-board': b => { const it = (S.boardItems || []).find(x => x.id === b.dataset.id); if (it) boardDialog(it); },
+  'board-filter': b => { ui.plan.filter = b.dataset.k; renderPlan(); },
+  'clear-board': () => {
+    const n = S.boardItems.filter(b => b.done && canSee(b)).length;
+    if (!confirm(`완료한 ${n}개를 목록에서 지울까요?`)) return;
+    S.boardItems = S.boardItems.filter(b => !(b.done && canSee(b))); persist(); renderAll(); toast('정리했어요.');
+  },
   'cal-prev': () => calMove(-1),
   'cal-next': () => calMove(1),
   'cal-today': () => { ui.cal.cursor = ui.cal.selected = D.today(); renderCal(); },
@@ -1103,11 +1354,26 @@ document.addEventListener('change', e => {
   if (t.id === 'viewerSel') { ui.viewer = t.value; savePref('viewer', t.value); renderAll(); toast(`${viewerName()}(으)로 보고 있어요. (로그인이 아니라 보기 전환이에요)`); return; }
   const a = t.dataset.change;
   if (a === 'toggle-issue') toggleIssue(t.dataset.id, t.checked);
+  if (a === 'toggle-board') {
+    const b = (S.boardItems || []).find(x => x.id === t.dataset.id);
+    if (b) { b.done = t.checked; b.updatedAt = new Date().toISOString(); persist(); renderAll(); if (t.checked) toast(`✅ '${b.title}' 완료!`); }
+  }
   if (a === 'import-ics' && t.files[0]) { importICS(t.files[0]); t.value = ''; }
   if (a === 'restore' && t.files[0]) { restore(t.files[0]); t.value = ''; }
 });
 document.addEventListener('submit', e => {
   const f = e.target;
+  if (f.dataset.submit === 'board-add') {
+    e.preventDefault();
+    const title = f.title.value.trim();
+    if (!title) return;
+    const now = new Date().toISOString();
+    S.boardItems ||= [];
+    S.boardItems.push({ id: M.newId('bi'), title, kind: f.kind.value, qty: f.qty.value.trim(), ownerId: f.ownerId.value, tripId: f.tripId.value || null, dueDate: null, done: false, memo: '', visibility: 'family', sourceId: 'src_manual', createdBy: ui.viewer, createdAt: now, updatedAt: now });
+    persist(); renderAll(); toast('목록에 추가했어요.');
+    setTimeout(() => $(`form[data-submit=board-add] input[name=title]`)?.focus(), 0);
+    return;
+  }
   if (f.dataset.submit !== 'guestbook') return;
   e.preventDefault();
   const text = f.text.value.trim();

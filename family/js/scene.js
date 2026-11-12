@@ -13,7 +13,7 @@ export const ASSETS = {
   avatars: {
     mom: 'img/avatar-mom.png', // Higgsfield · Nano Banana 2, 배경 제거
     kid: 'img/avatar-kid.png',
-    // dad: 'img/avatar-dad.png', ← 생성 후 추가 (지금은 SVG)
+    dad: 'img/avatar-dad.png', // Higgsfield · Z Image, 배경 제거
   },
 };
 
