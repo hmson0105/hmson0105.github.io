@@ -342,6 +342,14 @@ body.landing .menu-btn { border-color: rgba(255,255,255,.45); }
 body.landing .menu-btn i,
 body.landing .menu-btn i::before,
 body.landing .menu-btn i::after { background: #FFFFFF; }
+/* The switch sits over footage, so it follows the same two chrome modes
+   as the brand and the menu rather than the paper-background palette. */
+body.landing .lang button { color: rgba(255,255,255,.62); }
+body.landing .lang button:hover { color: #FFFFFF; }
+body.landing .lang button[aria-pressed="true"] {
+  color: #FFFFFF; border-bottom-color: rgba(255,255,255,.7);
+}
+body.landing .lang .sep { color: rgba(255,255,255,.38); }
 
 @media (max-width: 760px) {
   body.landing .menu { background: rgba(14,15,16,.94); border-bottom-color: rgba(255,255,255,.16); }
@@ -372,6 +380,12 @@ body.landing.chrome-dark .menu-btn { border-color: rgba(23,25,27,.35); }
 body.landing.chrome-dark .menu-btn i,
 body.landing.chrome-dark .menu-btn i::before,
 body.landing.chrome-dark .menu-btn i::after { background: var(--ink); }
+body.landing.chrome-dark .lang button { color: var(--ink-3); }
+body.landing.chrome-dark .lang button:hover { color: var(--ink); }
+body.landing.chrome-dark .lang button[aria-pressed="true"] {
+  color: var(--ink); border-bottom-color: var(--ink);
+}
+body.landing.chrome-dark .lang .sep { color: var(--line-2); }
 @media (max-width: 760px) {
   body.landing.chrome-dark .menu { background: rgba(246,246,244,.96); border-bottom-color: var(--line); }
   body.landing.chrome-dark .menu li + li { border-top-color: var(--line); }

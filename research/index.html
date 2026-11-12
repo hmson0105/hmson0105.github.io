@@ -13,6 +13,16 @@
   <meta property="og:url" content="https://hmson0105.github.io/research/">
   <meta property="og:image" content="https://hmson0105.github.io/assets/og-cover.png?v=2">
   <meta name="twitter:card" content="summary_large_image">
+  <!-- Apply the remembered language before the first paint. Without this the
+       page renders in English for a frame and then swaps, which reads as a
+       flicker to anyone who chose Korean. Kept inline and tiny on purpose:
+       an external file would arrive too late to prevent it. -->
+  <script>
+    try {
+      var l = localStorage.getItem("hs-lang");
+      if (l === "ko" || l === "en") document.documentElement.lang = l;
+    } catch (e) { /* site data blocked — English stays */ }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
@@ -94,15 +104,22 @@
   <header class="masthead">
     <div class="masthead-in">
       <a class="brand" href="../">Hyemi Son <span class="brand-en">Portfolio</span></a>
-      <button class="menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><i></i></button>
-      <nav aria-label="Primary">
-        <ul class="menu" id="menu">
-          <li><a href="../about/">About</a></li>
-          <li><a href="../research/" aria-current="page">Research</a></li>
-          <li><a href="../projects/">Projects</a></li>
-          <li><a href="../contact/">Contact</a></li>
-        </ul>
-      </nav>
+      <div class="masthead-right">
+        <nav aria-label="Primary">
+          <ul class="menu" id="menu">
+            <li><a href="../about/">About</a></li>
+            <li><a href="../research/" aria-current="page">Research</a></li>
+            <li><a href="../projects/">Projects</a></li>
+            <li><a href="../contact/">Contact</a></li>
+          </ul>
+        </nav>
+        <div class="lang" data-lang-switch role="group" aria-label="Language / 언어">
+          <button type="button" data-lang="ko" aria-pressed="false">KOR</button>
+          <span class="sep" aria-hidden="true">/</span>
+          <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        </div>
+        <button class="menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><i></i></button>
+      </div>
     </div>
   </header>
 
@@ -110,57 +127,81 @@
     <div class="rs-wrap">
 
 
-      <h2 class="rs-group">Publication</h2>
+      <h2 class="rs-group" lang="en">Publication</h2>
+      <h2 class="rs-group" lang="ko">논문</h2>
       <ul class="rs-list">
         <li class="rs-item">
-          <p class="rs-title">Analyzing the Policy Mix of Japan's EV Battery Industrial Policy: Integrating Economic Security and Carbon Neutrality</p>
-          <p class="rs-authors"><b>Hyemi Son</b>, Jeong-Gyu Park</p>
-          <p class="rs-venue">Journal of Mobility Studies, vol. 6, no. 2, pp. 65–98 (2026, KCI)</p>
+          <p class="rs-title" lang="en">Analyzing the Policy Mix of Japan's EV Battery Industrial Policy: Integrating Economic Security and Carbon Neutrality</p>
+          <p class="rs-title" lang="ko">일본 전기차 배터리 산업정책의 정책조합 분석: 경제안보와 탄소중립의 결합을 중심으로</p>
+          <p class="rs-authors" lang="en"><b>Hyemi Son</b>, Jeong-Gyu Park</p>
+          <p class="rs-authors" lang="ko"><b>손혜미</b>, 박정규</p>
+          <p class="rs-venue" lang="en">Journal of Mobility Studies, vol. 6, no. 2, pp. 65–98 (2026, KCI)</p>
+          <p class="rs-venue" lang="ko">『모빌리티연구』 제6권 제2호, 65–98쪽 (2026, KCI)</p>
           <p class="rs-links">
-            <a href="../papers/japan-ev-battery/">overview</a>
-            <a href="https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART003381288" target="_blank" rel="noopener">paper</a>
+            <a href="../papers/japan-ev-battery/" lang="en">overview</a>
+            <a href="../papers/japan-ev-battery/" lang="ko">연구 개요</a>
+            <a href="https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART003381288" target="_blank" rel="noopener" lang="en">paper</a>
+            <a href="https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART003381288" target="_blank" rel="noopener" lang="ko">논문 보기</a>
           </p>
         </li>
       </ul>
 
-      <h2 class="rs-group">Patent</h2>
+      <h2 class="rs-group" lang="en">Patent</h2>
+      <h2 class="rs-group" lang="ko">특허</h2>
       <ul class="rs-list">
         <li class="rs-item">
-          <p class="rs-title">Method and System for Diagnosing and Controlling Organizational Operational Health Based on Separation of AI Computing Power</p>
-          <p class="rs-authors"><b>Hyemi Son</b></p>
-          <p class="rs-venue">Korea Advanced Institute of Science and Technology (2026, filing in preparation)</p>
-          <p class="rs-note">Technical details are withheld until filing.</p>
+          <p class="rs-title" lang="en">Method and System for Diagnosing and Controlling Organizational Operational Health Based on Separation of AI Computing Power</p>
+          <p class="rs-title" lang="ko">AI 연산전력 분리 기반 조직 운영 건전성 진단·제어 방법 및 시스템</p>
+          <p class="rs-authors" lang="en"><b>Hyemi Son</b></p>
+          <p class="rs-authors" lang="ko"><b>손혜미</b></p>
+          <p class="rs-venue" lang="en">Korea Advanced Institute of Science and Technology (filed August 2026)</p>
+          <p class="rs-venue" lang="ko">한국과학기술원(KAIST) (2026.8 특허출원)</p>
+          <p class="rs-note" lang="en">Technical details are withheld pending publication.</p>
         </li>
       </ul>
 
-      <h2 class="rs-group">Competition</h2>
+      <h2 class="rs-group" lang="en">Competition</h2>
+      <h2 class="rs-group" lang="ko">수상 · 공모</h2>
       <ul class="rs-list">
         <li class="rs-item">
-          <p class="rs-title">Patent Strategy for Tactile Sensing Technology: Strengthening ETRI's Omnidirectional Tactile Robot Hand Portfolio</p>
-          <p class="rs-authors"><b>Hyemi Son</b>, Hyeong-bae Gil, Hyeon-a Lee</p>
-          <p class="rs-venue">Patent Universiade, Patent Strategy Division (2026)</p>
+          <p class="rs-title" lang="en">Patent Strategy for Tactile Sensing Technology: Strengthening ETRI's Omnidirectional Tactile Robot Hand Portfolio</p>
+          <p class="rs-title" lang="ko">촉각 센싱 기술 특허전략: ETRI 전방위 촉각 로봇핸드 포트폴리오</p>
+          <p class="rs-authors" lang="en"><b>Hyemi Son</b>, Hyeong-bae Gil, Hyeon-a Lee</p>
+          <p class="rs-authors" lang="ko"><b>손혜미</b>, 길형배, 이현아</p>
+          <p class="rs-venue" lang="en">Patent Universiade, Patent Strategy Division (2026)</p>
+          <p class="rs-venue" lang="ko">특허 유니버시아드 특허전략 수립 부문 (2026)</p>
           <p class="rs-links">
-            <a href="../dashboards/tactile-sensor-ip/">overview</a>
+            <a href="../dashboards/tactile-sensor-ip/" lang="en">overview</a>
+            <a href="../dashboards/tactile-sensor-ip/" lang="ko">연구 개요</a>
           </p>
         </li>
       </ul>
 
-      <h2 class="rs-group">Research Project</h2>
+      <h2 class="rs-group" lang="en">Research Project</h2>
+      <h2 class="rs-group" lang="ko">연구과제</h2>
       <ul class="rs-list">
         <li class="rs-item">
-          <p class="rs-title">Patent Landscape of Semiconductor Etching and Plasma Processing</p>
-          <p class="rs-authors"><b>Hyemi Son</b></p>
-          <p class="rs-venue">Innovation Management, KAIST (2025)</p>
+          <p class="rs-title" lang="en">Patent Landscape of Semiconductor Etching and Plasma Processing</p>
+          <p class="rs-title" lang="ko">반도체 식각 및 플라즈마 공정 특허 지형 분석</p>
+          <p class="rs-authors" lang="en"><b>Hyemi Son</b></p>
+          <p class="rs-authors" lang="ko"><b>손혜미</b></p>
+          <p class="rs-venue" lang="en">Innovation Management, KAIST (2025)</p>
+          <p class="rs-venue" lang="ko">KAIST 이노베이션경영 (2025)</p>
           <p class="rs-links">
-            <a href="../dashboards/patent-atlas/">overview</a>
+            <a href="../dashboards/patent-atlas/" lang="en">overview</a>
+            <a href="../dashboards/patent-atlas/" lang="ko">연구 개요</a>
           </p>
         </li>
         <li class="rs-item">
-          <p class="rs-title">Early-Warning Indicators for SME Distress</p>
-          <p class="rs-authors"><b>Hyemi Son</b></p>
-          <p class="rs-venue">Pilot study (2026)</p>
+          <p class="rs-title" lang="en">Early-Warning Indicators for SME Distress</p>
+          <p class="rs-title" lang="ko">중소기업 부실 조기경보 지표 분석</p>
+          <p class="rs-authors" lang="en"><b>Hyemi Son</b></p>
+          <p class="rs-authors" lang="ko"><b>손혜미</b></p>
+          <p class="rs-venue" lang="en">Pilot study (2026)</p>
+          <p class="rs-venue" lang="ko">예비 연구 (2026)</p>
           <p class="rs-links">
-            <a href="../dashboards/sme-crisis-index/">overview</a>
+            <a href="../dashboards/sme-crisis-index/" lang="en">overview</a>
+            <a href="../dashboards/sme-crisis-index/" lang="ko">연구 개요</a>
           </p>
         </li>
       </ul>

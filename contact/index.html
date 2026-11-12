@@ -13,6 +13,16 @@
   <meta property="og:url" content="https://hmson0105.github.io/contact/">
   <meta property="og:image" content="https://hmson0105.github.io/assets/og-cover.png?v=2">
   <meta name="twitter:card" content="summary_large_image">
+  <!-- Apply the remembered language before the first paint. Without this the
+       page renders in English for a frame and then swaps, which reads as a
+       flicker to anyone who chose Korean. Kept inline and tiny on purpose:
+       an external file would arrive too late to prevent it. -->
+  <script>
+    try {
+      var l = localStorage.getItem("hs-lang");
+      if (l === "ko" || l === "en") document.documentElement.lang = l;
+    } catch (e) { /* site data blocked — English stays */ }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -23,26 +33,39 @@
   <header class="masthead">
     <div class="masthead-in">
       <a class="brand" href="../">Hyemi Son <span class="brand-en">Portfolio</span></a>
-      <button class="menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><i></i></button>
-      <nav aria-label="Primary">
-        <ul class="menu" id="menu">
-          <li><a href="../about/">About</a></li>
-          <li><a href="../research/">Research</a></li>
-          <li><a href="../projects/">Projects</a></li>
-          <li><a href="../contact/" aria-current="page">Contact</a></li>
-        </ul>
-      </nav>
+      <div class="masthead-right">
+        <nav aria-label="Primary">
+          <ul class="menu" id="menu">
+            <li><a href="../about/">About</a></li>
+            <li><a href="../research/">Research</a></li>
+            <li><a href="../projects/">Projects</a></li>
+            <li><a href="../contact/" aria-current="page">Contact</a></li>
+          </ul>
+        </nav>
+        <div class="lang" data-lang-switch role="group" aria-label="Language / 언어">
+          <button type="button" data-lang="ko" aria-pressed="false">KOR</button>
+          <span class="sep" aria-hidden="true">/</span>
+          <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        </div>
+        <button class="menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><i></i></button>
+      </div>
     </div>
   </header>
 
   <div class="wrap">
     <div class="page-head">
-      <p class="eyebrow">Contact</p>
-      <h1 class="page-title">Contact</h1>
-      <p class="page-lede">
+      <p class="eyebrow" lang="en">Contact</p>
+      <p class="eyebrow" lang="ko">연락처</p>
+      <h1 class="page-title" lang="en">Contact</h1>
+      <h1 class="page-title" lang="ko">연락처</h1>
+      <p class="page-lede" lang="en">
         Inquiries are welcome regarding joint research, industry–academia projects,
         talks, and advisory work. A short description of the problem is sufficient to
         begin. Replies are generally sent within two to three days.
+      </p>
+      <p class="page-lede" lang="ko">
+        공동연구와 산학 프로젝트, 강연, 자문에 관한 문의를 받는다. 다루려는 문제를
+        짧게 적어 보내는 것으로 충분하다. 회신은 보통 2~3일 안에 이루어진다.
       </p>
     </div>
   </div>
@@ -51,9 +74,15 @@
     <div class="wrap">
       <section class="block">
         <ul class="contact-list">
-          <li>
+          <li lang="en">
             <a href="mailto:hmson0105@kaist.ac.kr">
               <span class="k">Email</span>
+              <span class="v">hmson0105@kaist.ac.kr</span>
+            </a>
+          </li>
+          <li lang="ko">
+            <a href="mailto:hmson0105@kaist.ac.kr">
+              <span class="k">이메일</span>
               <span class="v">hmson0105@kaist.ac.kr</span>
             </a>
           </li>
@@ -69,17 +98,27 @@
               <span class="v">@hmson_</span>
             </a>
           </li>
-          <li>
+          <li lang="en">
             <span class="row">
               <span class="k">Affiliation</span>
               <span class="v">Graduate School of Innovation &amp; Technology Management (I&amp;TM), KAIST<br>
                 Risk &amp; Compliance Office, Korea SMEs and Startups Agency</span>
             </span>
           </li>
+          <li lang="ko">
+            <span class="row">
+              <span class="k">소속</span>
+              <span class="v">KAIST 기술경영전문대학원(I&amp;TM)<br>
+                중소벤처기업진흥공단 리스크준법실</span>
+            </span>
+          </li>
         </ul>
 
-        <p style="margin-top:34px;font-size:.86rem;color:var(--ink-3);max-width:640px">
+        <p lang="en" style="margin-top:34px;font-size:.86rem;color:var(--ink-3);max-width:640px">
           A CV is available on request.
+        </p>
+        <p lang="ko" style="margin-top:34px;font-size:.86rem;color:var(--ink-3);max-width:640px">
+          이력서는 요청하면 보낸다.
         </p>
       </section>
     </div>

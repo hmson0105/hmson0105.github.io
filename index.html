@@ -17,6 +17,16 @@
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
 
+  <!-- Apply the remembered language before the first paint. Without this the
+       page renders in English for a frame and then swaps, which reads as a
+       flicker to anyone who chose Korean. Kept inline and tiny on purpose:
+       an external file would arrive too late to prevent it. -->
+  <script>
+    try {
+      var l = localStorage.getItem("hs-lang");
+      if (l === "ko" || l === "en") document.documentElement.lang = l;
+    } catch (e) { /* site data blocked — English stays */ }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -60,22 +70,29 @@
         Hyemi Son <span class="brand-en">Portfolio</span>
       </a>
 
-      <button class="menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu">
-        <i></i>
-      </button>
-
-      <nav aria-label="Primary">
-        <ul class="menu" id="menu">
-          <li><a href="about/">About</a></li>
-          <li><a href="research/">Research</a></li>
-          <li><a href="projects/">Projects</a></li>
-          <li><a href="contact/">Contact</a></li>
-        </ul>
-      </nav>
+      <div class="masthead-right">
+        <nav aria-label="Primary">
+          <ul class="menu" id="menu">
+            <li><a href="about/">About</a></li>
+            <li><a href="research/">Research</a></li>
+            <li><a href="projects/">Projects</a></li>
+            <li><a href="contact/">Contact</a></li>
+          </ul>
+        </nav>
+        <div class="lang" data-lang-switch role="group" aria-label="Language / 언어">
+          <button type="button" data-lang="ko" aria-pressed="false">KOR</button>
+          <span class="sep" aria-hidden="true">/</span>
+          <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        </div>
+        <button class="menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu">
+          <i></i>
+        </button>
+      </div>
     </div>
   </header>
 
-  <h1 class="sr-only">Hyemi Son — technology management research</h1>
+  <h1 class="sr-only" lang="en">Hyemi Son — technology management research</h1>
+  <h1 class="sr-only" lang="ko">손혜미 — 기술경영 연구</h1>
 
   <span class="stage-mark bl">KAIST I&amp;TM</span>
   <span class="stage-mark br">MMXXVI</span>
