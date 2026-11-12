@@ -11,7 +11,7 @@
 //
 // 일정(Event) = 언제·어디서 무엇을 하는지. 이슈(Issue) = 그날 기억·준비할 것.
 
-import { addDays, weekday, diffDays, startOfWeek, DAYCODES } from './dates.js?v=4';
+import { addDays, weekday, diffDays, startOfWeek, DAYCODES } from './dates.js?v=5';
 
 export const SCHEMA_VERSION = 1;
 
@@ -142,6 +142,7 @@ function baseState() {
     posts: [],
     guestbook: [],
     trips: [],      // 여행 계획: { id, title, startDate, endDate, destination, memberIds, plan:[{id,date,time,title,memo}], eventId, ... }
+    tripComments: [], // 여행 댓글: { id, tripId, authorId, text, createdAt, visibility }
     boardItems: [], // 살 것·준비할 것: { id, title, kind:'buy'|'prep', qty, ownerId, tripId, dueDate, done, ... }
     candidates: [], // 카톡 붙여넣기 등에서 만든 '일정 후보'(확인 전) 자리. 아직 생성 기능 없음.
     sync: {
@@ -214,6 +215,10 @@ export function demoState(T) {
       { id: newId('tp'), date: tEnd, time: '17:00', title: '제주공항 출발', memo: '' },
     ],
   });
+  S.tripComments.push(
+    { id: newId('tc'), tripId, authorId: 'm_mom', text: '아쿠아리움은 오전에 가면 덜 붐빈대요!', createdAt: now, visibility: 'family', sourceId: 'src_demo' },
+    { id: newId('tc'), tripId, authorId: 'm_dad', text: '좋아요. 렌터카는 제가 예약할게요 🚗', createdAt: now, visibility: 'family', sourceId: 'src_demo' },
+  );
   const bi = (o) => S.boardItems.push({ id: newId('bi'), kind: 'buy', qty: '', ownerId: '', tripId: null, dueDate: null, done: false, memo: '', visibility: 'family', sourceId: 'src_demo', createdBy: 'm_mom', createdAt: now, updatedAt: now, ...o });
   bi({ title: '유아용 선크림', qty: '1개', ownerId: 'm_mom', tripId });
   bi({ title: '여벌 옷 3벌 챙기기', kind: 'prep', ownerId: 'm_mom', tripId });
@@ -242,6 +247,7 @@ export function stripDemo(S) {
   S.posts = S.posts.filter(p => !isDemo(p));
   S.trips = (S.trips || []).filter(t => !isDemo(t));
   S.boardItems = (S.boardItems || []).filter(b => !isDemo(b));
+  S.tripComments = (S.tripComments || []).filter(c => !isDemo(c) && S.trips.some(t => t.id === c.tripId));
   S.guestbook = S.guestbook.filter(g => !isDemo(g));
   for (const m of S.members) if (m.status && m.status.demo) m.status = null;
   const usedRules = new Set(S.events.map(e => e.recurrenceRuleId).filter(Boolean));

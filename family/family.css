@@ -589,3 +589,14 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
   .trip-title { font-size: 22px; }
 }
 .share-url { width: 100%; margin-top: 10px; border: 2px solid var(--pink); border-radius: 12px; padding: 9px 12px; font-size: 13px; background: var(--pink-xl); }
+/* 가족 동기화 · 여행 댓글 */
+.dot-err { background: var(--err); }
+.card-sync { border-color: var(--pink); }
+.sync-form { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.sync-form input[type=email], .sync-row input { flex: 1 1 220px; min-width: 0; border: 2px solid var(--line); border-radius: 12px; padding: 9px 12px; font-size: 16px; }
+.sync-col { flex-direction: column; }
+.sync-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.sync-sent { background: var(--sky); border-radius: 12px; padding: 10px 14px; }
+.invite { font-family: ui-monospace, Menlo, monospace; font-size: 18px; letter-spacing: .08em; background: var(--yellow); border-radius: 8px; padding: 2px 8px; }
+.t-comments { margin-top: 16px; padding-top: 12px; border-top: 2px dashed var(--line); }
+.t-comments .gb-form { margin: 10px 0 0; }

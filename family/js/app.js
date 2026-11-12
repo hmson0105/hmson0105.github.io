@@ -1,9 +1,10 @@
 // 우리집 미니월드 — 가족 캘린더 + 층별 미니룸
-import * as D from './dates.js?v=4';
-import * as M from './model.js?v=4';
-import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=4';
-import { buildICS, parseICS, downloadText } from './ics.js?v=4';
-import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG } from './scene.js?v=4';
+import * as D from './dates.js?v=5';
+import * as M from './model.js?v=5';
+import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=5';
+import { buildICS, parseICS, downloadText } from './ics.js?v=5';
+import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG } from './scene.js?v=5';
+import { createSync, syncConfigured } from './sync.js?v=7';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -46,8 +47,29 @@ function persist() {
   ui.saveError = r.ok ? null : r.error;
   renderBanner();
   if (!r.ok) toast(`저장하지 못했어요 · ${r.error}`, 'err');
+  if (!fromRemote) sync?.changed();
   return r.ok;
 }
+let fromRemote = false;
+const connected = () => !!(ui.sync && ui.sync.family);
+const sync = createSync({
+  getState: () => S,
+  onRemote() {
+    fromRemote = true;
+    try { persist(); } finally { fromRemote = false; }
+    if (!$('#dlg').open && !ui.elevating) renderAll(); else renderHeader();
+  },
+  onStatus(st) {
+    const firstConnect = st.family && !connected();
+    ui.sync = st;
+    if (st.membership && ui.viewer !== st.membership.member_id) { ui.viewer = st.membership.member_id; savePref('viewer', ui.viewer); }
+    if (firstConnect) {
+      const hasDemo = S.events.some(e => e.sourceId === 'src_demo') || S.issues.some(i => i.sourceId === 'src_demo');
+      if (hasDemo) { M.stripDemo(S); fromRemote = true; try { persist(); } finally { fromRemote = false; } }
+      renderAll();
+    } else { renderHeader(); if (ui.view === 'sync' && !$('#dlg').open) renderSync(); }
+  },
+});
 
 // ───────────────────────── 조회 ─────────────────────────
 const member = id => S.members.find(m => m.id === id);
@@ -183,8 +205,16 @@ function renderHeader() {
   $('#topDate').innerHTML = `${D.fmtDate(now.date, { year: true, wd: false, long: false })} <b>${D.WD[D.weekday(now.date)]}요일</b> <span class="clock">${now.time}</span>`;
   const sel = $('#viewerSel');
   sel.innerHTML = S.members.map(m => `<option value="${m.id}" ${m.id === ui.viewer ? 'selected' : ''}>${esc(m.roleLabel === m.displayName ? m.roleLabel : `${m.roleLabel} · ${m.displayName}`)}</option>`).join('');
-  const a = S.sync.apple;
-  $('#syncPill').innerHTML = `<span class="dot ${a.lastImportAt ? 'dot-on' : ''}"></span>Apple 캘린더 · 파일로 주고받기 · ${a.lastImportAt ? `가져옴 ${D.relTime(a.lastImportAt)}` : '아직 가져온 적 없음'}`;
+  sel.disabled = connected();
+  sel.title = connected() ? '로그인한 가족 구성원으로 고정돼요' : '로그인이 아니라 보기 전환이에요';
+  const st = ui.sync || {};
+  const label = {
+    connected: `가족 동기화 · ${st.pending ? '올리는 중…' : st.realtime ? '실시간 연결됨' : '연결됨'}`,
+    connecting: '가족 동기화 · 연결 중…', error: `가족 동기화 · ${st.error || '문제가 있어요'}`,
+    'no-family': '가족 동기화 · 가족 연결 필요', 'signed-out': '가족 동기화 · 로그인 필요', off: '이 기기에만 저장',
+  }[st.state || 'off'];
+  const dot = st.state === 'connected' ? 'dot-on' : st.state === 'error' ? 'dot-err' : '';
+  $('#syncPill').innerHTML = `<span class="dot ${dot}"></span>${esc(label)}${st.state === 'connected' && st.lastSyncAt ? ` · ${D.relTime(st.lastSyncAt)}` : ''}`;
 }
 function renderBanner() {
   const b = [];
@@ -537,6 +567,9 @@ function renderSync() {
   const hasDemo = S.events.some(e => e.sourceId === 'src_demo') || S.issues.some(i => i.sourceId === 'src_demo');
   const photoBytes = S.posts.reduce((n, p) => n + (p.photo ? p.photo.length : 0), 0);
   $('#syncBody').innerHTML = `
+  <section class="card card-sync"><header class="card-h"><h2>👪 가족 자동 동기화</h2>${syncPill()}</header>
+    ${syncCardBody()}
+  </section>
   <section class="card"><header class="card-h"><h2>🍎 Apple 캘린더 연결 상태</h2></header>
     <dl class="kv kv-wide">
       <div><dt>현재 연결 방식</dt><dd><b>.ics 파일로 주고받기 (수동)</b></dd></div>
@@ -591,8 +624,8 @@ function renderSync() {
       <button type="button" class="btn-s" data-action="backup">백업 파일(JSON) 받기</button>
       <label class="btn-s file-btn"><input type="file" accept="application/json,.json" data-change="restore" hidden>백업 불러오기</label>
       ${hasDemo ? '<button type="button" class="btn-s" data-action="strip-demo">예시 데이터 지우기</button>' : ''}
-      <button type="button" class="btn-g" data-action="reset-demo">예시로 되돌리기</button>
-      <button type="button" class="btn-g danger" data-action="reset-empty">모두 지우기</button>
+      ${connected() ? '<span class="small muted">가족 동기화 중에는 전체 초기화를 막아 두었어요(다른 가족 기기까지 지워지지 않도록).</span>' : `<button type="button" class="btn-g" data-action="reset-demo">예시로 되돌리기</button>
+      <button type="button" class="btn-g danger" data-action="reset-empty">모두 지우기</button>`}
     </div>
   </section>
   <section class="card"><header class="card-h"><h2>🔒 개인정보 · 공개 범위</h2></header>
@@ -603,6 +636,54 @@ function renderSync() {
       <li><b>'본인만' 공개는 아직 잠금이 아니에요.</b> 위쪽 '지금 보는 사람'을 바꾸면 누구나 볼 수 있어요. 가족 계정이 생기면 실제 권한으로 바뀌도록 모든 항목에 공개 범위를 저장해요.</li>
     </ul>
   </section>`;
+}
+
+
+function tripCommentsHTML(t) {
+  const list = (S.tripComments || []).filter(c => c.tripId === t.id && canSee(c)).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  return `<section class="t-comments"><h3 class="sub-h">💬 여행 이야기 <small class="muted">${list.length}개</small></h3>
+    ${list.length ? `<ul class="gb-list">${list.map(c => `<li style="--c:${member(c.authorId)?.color || '#FF8FB8'}">${face(member(c.authorId))}<div><p><b>${esc(memberName(c.authorId))}</b> ${esc(c.text)}</p><small>${D.fmtStamp(c.createdAt)}${c.visibility === 'private' ? ' · 🔒' : ''}${srcTag(c)}</small></div>${c.authorId === ui.viewer ? `<button type="button" class="btn-x" data-action="del-tcomment" data-id="${c.id}" aria-label="댓글 삭제">✕</button>` : ''}</li>`).join('')}</ul>` : '<p class="muted small">가고 싶은 곳, 먹고 싶은 것, 걱정되는 것을 편하게 남겨 보세요.</p>'}
+    <form class="gb-form" data-submit="trip-comment" data-id="${t.id}">
+      <span class="gb-me">${face(member(ui.viewer))}</span>
+      <input name="text" maxlength="200" required placeholder="${esc(memberName(ui.viewer))}(으)로 댓글 남기기" aria-label="여행 댓글">
+      <button class="btn-p btn-sm">남기기</button>
+    </form>
+  </section>`;
+}
+function syncPill() {
+  const s = ui.sync || {};
+  if (s.state === 'connected') return `<span class="pill pill-on">${s.realtime ? '실시간 연결됨' : '연결됨'}</span>`;
+  if (s.state === 'error') return '<span class="pill pill-err">문제 있음</span>';
+  if (s.state === 'off') return '<span class="pill pill-off">준비 중</span>';
+  return '<span class="pill pill-off">연결 안 됨</span>';
+}
+function memberPick(name = 'memberId') {
+  return `<fieldset class="fld chips"><legend>나는 누구인가요?</legend>${S.members.map((m, i) => `<label style="--c:${m.color}"><input type="radio" name="${name}" value="${m.id}" ${m.id === ui.viewer ? 'checked' : ''} required><span>${face(m)}${esc(m.displayName)}</span></label>`).join('')}</fieldset>`;
+}
+function syncCardBody() {
+  const s = ui.sync || { state: 'off' };
+  if (!syncConfigured() || s.state === 'off') return `<p>가족 서버가 아직 연결되지 않았어요. 연결되면 가족 계정으로 로그인해 일정·이슈·여행·살 것 목록이 모든 기기에 자동으로 맞춰져요.</p>`;
+  if (s.state === 'signed-out') return `<p>가족 각자 이메일로 로그인하면, 한 사람이 고친 내용이 다른 가족의 폰·컴퓨터에도 바로 반영돼요. 비밀번호는 필요 없어요. 메일로 온 링크를 누르면 로그인돼요.</p>
+    <form class="sync-form" data-submit="sync-email">
+      <input type="email" name="email" required autocomplete="email" placeholder="이메일 주소" aria-label="이메일 주소">
+      <button class="btn-p">로그인 링크 받기</button>
+    </form>
+    <p class="small muted">링크는 이 기기에서 열어 주세요. 메일이 안 보이면 스팸함도 확인해 주세요.</p>`;
+  if (s.state === 'connecting') return '<p>연결하는 중이에요…</p>';
+  if (s.state === 'no-family') return `<p><b>${esc(s.user?.email || '')}</b>(으)로 로그인했어요. 처음이면 가족을 만들고, 이미 가족이 만들었다면 초대 코드로 참여하세요.</p>
+    <form class="sync-form sync-col" data-submit="sync-join">${memberPick()}
+      <div class="sync-row"><input name="code" maxlength="20" placeholder="초대 코드 (예: 3f9a1c2b7d4e)" aria-label="초대 코드" autocapitalize="off"><button class="btn-p" name="how" value="join">초대 코드로 참여</button></div>
+      <div class="sync-row"><span class="muted small">또는</span><button class="btn-s" name="how" value="create">우리 가족 새로 만들기</button></div>
+    </form>
+    <button type="button" class="btn-g btn-sm" data-action="sync-signout">로그아웃</button>`;
+  const me = member(s.membership?.member_id);
+  return `<dl class="kv kv-wide">
+      <div><dt>로그인</dt><dd>${esc(s.user?.email || '')} · <b>${esc(me?.displayName || '')}</b>(으)로 사용 중</dd></div>
+      <div><dt>가족 초대 코드</dt><dd><code class="invite">${esc(s.family?.invite_code || '')}</code> <button type="button" class="btn-s btn-sm" data-action="copy-invite">복사</button><br><span class="small muted">가족이 로그인한 뒤 이 코드를 넣으면 같은 가족으로 연결돼요. 가족에게만 알려 주세요.</span></dd></div>
+      <div><dt>동기화 상태</dt><dd>${s.error ? `<span class="pill pill-err">${esc(s.error)}</span>` : s.pending ? '올리는 중…' : '모두 맞춰져 있어요'}${s.lastSyncAt ? ` · 마지막 동기화 ${D.fmtStamp(s.lastSyncAt)}` : ''}${s.realtime ? ' · 실시간 수신 중' : ''}</dd></div>
+    </dl>
+    <div class="btn-row"><button type="button" class="btn-s" data-action="sync-now">지금 동기화</button><button type="button" class="btn-g" data-action="sync-signout">로그아웃</button></div>
+    <p class="small muted">일정·이슈·여행·댓글·살 것 목록·상태·방 꾸미기가 함께 맞춰져요. 예시 데이터는 올라가지 않아요. 로그아웃해도 이 기기의 데이터는 남아요.</p>`;
 }
 
 // ───────────────────────── 대화상자 ─────────────────────────
@@ -1025,7 +1106,8 @@ function renderPlan() {
           ${boardAddForm(t.id)}
           ${items.length ? `<ul class="is-list">${items.map(b => boardRow(b, { showTrip: false })).join('')}</ul>` : '<p class="muted small">준비물을 추가해 보세요.</p>'}
         </section>
-      </div>`;
+      </div>
+      ${tripCommentsHTML(t)}`;
   }
   const f = ui.plan.filter;
   const all = boardItems().filter(b => f === 'all' || b.kind === f).sort((a, b) => (a.done - b.done) || (a.dueDate || '9').localeCompare(b.dueDate || '9'));
@@ -1359,6 +1441,10 @@ const ACTIONS = {
       catch { toast('아래 링크를 길게 눌러 복사해 주세요.'); }
     } catch { toast('이 브라우저에서는 링크를 만들 수 없어요.', 'err'); }
   },
+  'del-tcomment': b => { if (confirm('이 댓글을 지울까요?')) { S.tripComments = S.tripComments.filter(c => c.id !== b.dataset.id); persist(); renderAll(); } },
+  'sync-now': async () => { await sync.syncNow(); toast('동기화했어요.'); },
+  'sync-signout': async () => { if (!confirm('이 기기에서 로그아웃할까요? 이 기기의 데이터는 남아 있어요.')) return; await sync.signOut(); renderAll(); toast('로그아웃했어요.'); },
+  'copy-invite': async () => { try { await navigator.clipboard.writeText(ui.sync.family.invite_code); toast('초대 코드를 복사했어요.'); } catch { toast('코드를 길게 눌러 복사해 주세요.'); } },
   'reset-demo': () => {
     if (!confirm('모든 데이터를 지우고 예시 데이터로 되돌릴까요? 되돌릴 수 없어요.')) return;
     S = M.demoState(D.today()); persist(); renderAll(); toast('예시 데이터로 되돌렸어요.');
@@ -1392,6 +1478,32 @@ document.addEventListener('change', e => {
 });
 document.addEventListener('submit', e => {
   const f = e.target;
+  if (f.dataset.submit === 'trip-comment') {
+    e.preventDefault();
+    const text = f.text.value.trim();
+    if (!text) return;
+    S.tripComments ||= [];
+    S.tripComments.push({ id: M.newId('tc'), tripId: f.dataset.id, authorId: ui.viewer, text, createdAt: new Date().toISOString(), visibility: 'family', sourceId: 'src_manual' });
+    persist(); renderAll(); toast('댓글을 남겼어요 💬');
+    return;
+  }
+  if (f.dataset.submit === 'sync-email') {
+    e.preventDefault();
+    const btn = f.querySelector('button'); btn.disabled = true;
+    sync.sendLink(f.email.value.trim())
+      .then(() => { f.outerHTML = `<p class="sync-sent">📬 <b>${esc(f.email.value)}</b>로 로그인 링크를 보냈어요. 메일의 링크를 이 기기에서 열어 주세요.</p>`; })
+      .catch(err => { btn.disabled = false; toast(/rate/i.test(err?.message || '') ? '메일을 너무 자주 보냈어요. 잠시 뒤 다시 시도해 주세요.' : '메일을 보내지 못했어요.', 'err'); });
+    return;
+  }
+  if (f.dataset.submit === 'sync-join') {
+    e.preventDefault();
+    const how = e.submitter?.value, mid = f.memberId.value;
+    if (!mid) return toast('나는 누구인지 골라 주세요.');
+    const p = how === 'create' ? sync.createFamily('우리 가족', mid) : (f.code.value.trim() ? sync.joinFamily(f.code.value.trim(), mid) : Promise.reject(new Error('code')));
+    p.then(() => toast(how === 'create' ? '가족을 만들었어요! 초대 코드를 가족에게 알려 주세요.' : '가족과 연결됐어요 👪'))
+      .catch(err => toast(err?.message === 'code' ? '초대 코드를 넣어 주세요.' : /invalid invite/.test(err?.message || '') ? '초대 코드가 맞지 않아요.' : '연결하지 못했어요.', 'err'));
+    return;
+  }
   if (f.dataset.submit === 'board-add') {
     e.preventDefault();
     const title = f.title.value.trim();
@@ -1428,7 +1540,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 // fragment 는 브라우저가 서버로 보내지 않으므로 GitHub 서버에도 남지 않는다.
 const UNDO_KEY = 'family-home:undo';
 function hasUndo() { try { return !!localStorage.getItem(UNDO_KEY); } catch { return false; } }
-const SHARE_KEYS = ['events', 'issues', 'trips', 'boardItems', 'places', 'recurrenceRules', 'sources'];
+const SHARE_KEYS = ['events', 'issues', 'trips', 'tripComments', 'boardItems', 'places', 'recurrenceRules', 'sources'];
 const b64url = buf => { let s = ''; const b = new Uint8Array(buf); for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
 const unb64url = str => { const s = atob(str.replace(/-/g, '+').replace(/_/g, '/')); const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; };
 async function makeShareLink() {
@@ -1483,4 +1595,5 @@ setView('world');
 renderHeader();
 renderBanner();
 readShareLink();
+sync.start();
 window.addEventListener('hashchange', readShareLink);

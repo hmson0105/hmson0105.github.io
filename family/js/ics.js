@@ -1,7 +1,7 @@
 // iCalendar(.ics) 가져오기·내보내기. Apple 캘린더와 주고받는 현재 방식이다.
 // 양방향 자동 동기화가 아니라 "파일을 주고받는" 수동 연결이다.
 
-import { TZ, addDays, seoul, wallToUTC, addMinutes, DAYCODES } from './dates.js?v=4';
+import { TZ, addDays, seoul, wallToUTC, addMinutes, DAYCODES } from './dates.js?v=5';
 
 const PRODID = '-//family-home//miniworld//KO';
 
