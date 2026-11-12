@@ -4,9 +4,9 @@ import * as M from './model.js?v=6';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=6';
 import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG } from './scene.js?v=8';
-import { createSync, syncConfigured } from './sync.js?v=9';
+import { createSync, syncConfigured } from './sync.js?v=11';
 import { parseKakao } from './kakao.js?v=4';
-import { APP_URL } from './config.js?v=9';
+import { APP_URL } from './config.js?v=10';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -686,12 +686,13 @@ function memberPick(name = 'memberId') {
 function syncCardBody() {
   const s = ui.sync || { state: 'off' };
   if (!syncConfigured() || s.state === 'off') return `<p>가족 서버가 아직 연결되지 않았어요. 연결되면 가족 계정으로 로그인해 일정·이슈·여행·살 것 목록이 모든 기기에 자동으로 맞춰져요.</p>`;
-  if (s.state === 'signed-out') return `<p>가족 각자 이메일로 로그인하면, 한 사람이 고친 내용이 다른 가족의 폰·컴퓨터에도 바로 반영돼요. 비밀번호는 필요 없어요. 메일로 온 링크를 누르면 로그인돼요.</p>
-    <form class="sync-form" data-submit="sync-email">
+  if (s.state === 'signed-out') return `<p>가족 각자 <b>이메일과 비밀번호</b>로 로그인하면, 한 사람이 고친 내용이 다른 가족의 폰·컴퓨터에도 바로 반영돼요. 처음이면 '처음이에요'로 계정을 만들어요.</p>
+    <form class="sync-form sync-col" data-submit="sync-login">
       <input type="email" name="email" required autocomplete="email" placeholder="이메일 주소" aria-label="이메일 주소">
-      <button class="btn-p">로그인 링크 받기</button>
+      <input type="password" name="password" required minlength="8" autocomplete="current-password" placeholder="비밀번호 (8자 이상)" aria-label="비밀번호">
+      <div class="sync-row"><button class="btn-p" name="how" value="in">로그인</button><button class="btn-s" name="how" value="up">처음이에요 (계정 만들기)</button></div>
     </form>
-    <p class="small muted">링크는 이 기기에서 열어 주세요. 메일이 안 보이면 스팸함도 확인해 주세요.</p>`;
+    <p class="small muted">비밀번호는 이 앱이 아니라 가족 서버(Supabase)의 로그인 기능이 안전하게 보관해요. 다른 곳과 같은 비밀번호는 쓰지 마세요.</p>`;
   if (s.state === 'connecting') return '<p>연결하는 중이에요…</p>';
   if (s.state === 'no-family') return `<p><b>${esc(s.user?.email || '')}</b>(으)로 로그인했어요. 처음이면 가족을 만들고, 이미 가족이 만들었다면 초대 코드로 참여하세요.</p>
     <form class="sync-form sync-col" data-submit="sync-join">${memberPick()}
@@ -1643,6 +1644,22 @@ document.addEventListener('submit', e => {
     S.tripComments ||= [];
     S.tripComments.push({ id: M.newId('tc'), tripId: f.dataset.id, authorId: ui.viewer, text, createdAt: new Date().toISOString(), visibility: 'family', sourceId: 'src_manual' });
     persist(); renderAll(); toast('댓글을 남겼어요 💬');
+    return;
+  }
+  if (f.dataset.submit === 'sync-login') {
+    e.preventDefault();
+    const how = e.submitter?.value, email = f.email.value.trim(), pw = f.password.value;
+    if (pw.length < 8) return toast('비밀번호는 8자 이상이에요.');
+    const btns = [...f.querySelectorAll('button')];
+    btns.forEach(x => { x.disabled = true; });
+    const done = () => btns.forEach(x => { x.disabled = false; });
+    (how === 'up' ? sync.signUp(email, pw) : sync.signIn(email, pw).then(() => ({})))
+      .then(r => { if (r.needsConfirm) { done(); toast('메일 확인이 필요해요. 받은 메일의 링크를 누르거나 가족 서버 설정에서 메일 확인을 꺼 주세요.'); } else toast('로그인했어요 👪'); })
+      .catch(err => {
+        done();
+        const m = err?.message || '';
+        toast(/Invalid login/i.test(m) ? '이메일이나 비밀번호가 맞지 않아요.' : /already registered/i.test(m) ? '이미 있는 계정이에요. 로그인을 눌러 주세요.' : /rate|too many/i.test(m) ? '잠시 뒤 다시 시도해 주세요.' : /confirm/i.test(m) ? '메일 확인이 아직 안 됐어요.' : '로그인하지 못했어요.', 'err');
+      });
     return;
   }
   if (f.dataset.submit === 'sync-email') {

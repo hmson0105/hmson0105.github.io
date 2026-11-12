@@ -4,7 +4,7 @@
 //  - 지운 항목은 deleted=true 로 올려 다른 기기에서도 지운다.
 //  - 다른 기기의 변경은 실시간(Realtime)으로 받아 바로 반영한다.
 //  - 오프라인이면 올리지 못한 변경을 남겨 두었다가 다시 연결되면 올린다.
-import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=9';
+import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=10';
 
 const COLLECTIONS = ['events', 'issues', 'trips', 'tripComments', 'boardItems', 'places', 'recurrenceRules', 'sources', 'posts', 'guestbook', 'members', 'activity'];
 const SYNCED_KEY = 'family-home:synced';
@@ -198,6 +198,17 @@ export function createSync({ getState, onRemote, onStatus }) {
       } catch { st.state = 'error'; st.error = '동기화 도구를 불러오지 못했어요(인터넷 연결 확인).'; emit(); }
     },
     changed() { if (family) schedule(); },
+    async signIn(email, password) {
+      await lib();
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    },
+    async signUp(email, password) {
+      await lib();
+      const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
+      if (error) throw error;
+      return { needsConfirm: !data.session };
+    },
     async sendLink(email) {
       await lib();
       const redirect = location.origin + location.pathname;
