@@ -265,6 +265,17 @@ strong { color: var(--ink); font-weight: 600; }
   .contact-list a, .contact-list span.row { grid-template-columns: 1fr; gap: 3px; }
 }
 
+/* A short stack of statements that need no label column — each line is
+   already self-describing, so a key/value grid would only repeat it. */
+.plain-lines {
+  list-style: none; margin: 0; padding: 0; max-width: 640px;
+  border-top: 1px solid var(--ink);
+}
+.plain-lines li {
+  padding: 16px 0; border-bottom: 1px solid var(--line);
+  font-size: 1rem; color: var(--ink);
+}
+
 /* ----------------------------------------------------------
    Footer
    ---------------------------------------------------------- */
