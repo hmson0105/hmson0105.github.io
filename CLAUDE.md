@@ -121,6 +121,16 @@ patents/ai-power-health-index/    dashboards/patent-atlas/
 `family/img/` 에 두고 `family/js/scene.js` 의 `ASSETS` 에 경로를 적는다(없는 그림은
 SVG 대체 그림). JS 는 ES 모듈이라 내부 import 에도 `?v=N` 을 달아 함께 올린다.
 
+**`/family/` 작업 규칙**
+- 기능 요청·버그는 GitHub Issues(템플릿: 가족 미니월드)에 적는다. 코드 변경은 브랜치에서
+  하고 PR 로 올린다. 검토 후 `main` 에 병합하면 GitHub Pages 가 자동으로 다시 배포한다
+  (Pages 의 "브랜치에서 배포" 설정 — 별도 Actions 워크플로 없이도 병합 = 배포).
+- **실제 가족 데이터(일정·장소·사진·이메일·초대 코드)를 코드·예시·이슈·커밋에 넣지 않는다.**
+  예시 데이터(`demoState`)는 가상의 내용만 쓴다. 고정이 필요한 실제 일정은 앱에서 📌 고정
+  표시를 하고, 데이터는 브라우저 저장소 또는 가족 동기화 서버(Supabase, RLS)에만 둔다.
+- 브라우저 코드에는 공개용 키(Supabase publishable/anon)만 둔다. service_role 등 비밀 키 금지.
+  접근 제한은 `family/supabase/schema.sql` 의 RLS(가족 구성원만)로 한다.
+
 ---
 
 ## 데이터 파이프라인

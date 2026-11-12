@@ -1,10 +1,11 @@
 // 우리집 미니월드 — 가족 캘린더 + 층별 미니룸
-import * as D from './dates.js?v=5';
-import * as M from './model.js?v=5';
-import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=5';
-import { buildICS, parseICS, downloadText } from './ics.js?v=5';
-import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG } from './scene.js?v=5';
-import { createSync, syncConfigured } from './sync.js?v=7';
+import * as D from './dates.js?v=6';
+import * as M from './model.js?v=6';
+import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
+import { buildICS, parseICS, downloadText } from './ics.js?v=6';
+import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG } from './scene.js?v=6';
+import { createSync, syncConfigured } from './sync.js?v=8';
+import { parseKakao } from './kakao.js?v=4';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -173,7 +174,7 @@ function evRow(inst, { showDate = false } = {}) {
   return `<li class="ev-row${ev.status === 'cancelled' ? ' is-cancel' : ''}" style="--c:${owner?.color || '#FF8FB8'}">
     <button type="button" class="ev-main" data-action="open-event" data-id="${ev.id}" data-date="${inst.date}">
       <span class="ev-time">${showDate ? `<em>${D.fmtDate(inst.date)}</em>` : ''}${timeLabel(ev)}</span>
-      <span class="ev-title">${esc(ev.title)}${rr ? ' <span class="rr" title="반복 일정">🔁</span>' : ''}${ev.visibility === 'private' ? ' <span class="rr" title="본인만">🔒</span>' : ''}</span>
+      <span class="ev-title">${esc(ev.title)}${rr ? ' <span class="rr" title="반복 일정">🔁</span>' : ''}${ev.visibility === 'private' ? ' <span class="rr" title="본인만">🔒</span>' : ''}${ev.pinned ? ' <span class="rr" title="고정 일정">📌</span>' : ''}</span>
       <span class="ev-sub">${pl ? `<span>📍 ${esc(pl.name)}</span>` : ''}${statusTag(ev)}${srcTag(ev)}</span>
     </button>
     <div class="ev-people">${pchip(ev.ownerId, '<i class="own">담당</i>')}${others.map(id => pchip(id)).join('')}</div>
@@ -348,6 +349,7 @@ function lobbyPanels() {
   <section class="card o-7"><header class="card-h"><h2>다가오는 일정</h2><button type="button" class="btn-g" data-action="view" data-view="cal">캘린더 →</button></header>
     ${up.length ? `<ul class="ev-list ev-compact">${up.map(i => evRow(i, { showDate: true })).join('')}</ul>` : empty('📭', '앞으로 7일 동안 예정된 일정이 없어요.')}
   </section>
+  ${activityCard()}
   ${planSummaryCard()}`;
   return { main, side };
 }
@@ -603,9 +605,9 @@ function renderSync() {
       <li>그 전까지는 <b>파일로 주고받는 수동 방식</b>만 제공하고, 화면 어디에도 '자동 동기화 중'이라고 표시하지 않아요.</li>
     </ul>
   </section>
-  <section class="card card-soon"><header class="card-h"><h2>💬 카톡 텍스트로 일정 후보 만들기</h2><span class="pill pill-off">준비 중</span></header>
-    <p>카카오톡 메시지를 자동으로 읽지 않아요. 나중에 카톡에서 <b>직접 복사한 글</b>을 붙여 넣으면 날짜·시간·장소를 찾아 <b>일정 후보</b>로 보여 주고, 가족이 확인한 것만 저장하도록 데이터 구조(출처: 카톡 붙여넣기, 후보 목록)를 마련해 두었어요.</p>
-    <textarea disabled rows="2" placeholder="예) 토요일 3시 치과 예약했어요. 진료카드 챙겨요! — 아직 사용할 수 없어요"></textarea>
+  <section class="card"><header class="card-h"><h2>💬 카톡 글로 일정 만들기</h2></header>
+    <p>단톡방에서 복사한 글을 붙여 넣으면 날짜·시간·장소·담당자를 찾아 <b>일정 후보</b>를 보여 줘요. 확인하고 저장한 것만 캘린더에 들어가요. 카톡을 자동으로 읽지는 않아요.</p>
+    <button type="button" class="btn-p" data-action="kakao">💬 카톡 글 붙여 넣기</button>
   </section>
   <section class="card"><header class="card-h"><h2>📲 다른 기기로 옮기기</h2></header>
     <p>가족 데이터는 기기마다 따로 저장돼요. 이 기기의 일정·이슈·여행·살 것 목록을 <b>링크 하나</b>에 담아 다른 기기(아이폰 등)에서 열면 합쳐져요. 예시와 '본인만' 항목, 사진은 빠져요.</p>
@@ -686,6 +688,112 @@ function syncCardBody() {
     <p class="small muted">일정·이슈·여행·댓글·살 것 목록·상태·방 꾸미기가 함께 맞춰져요. 예시 데이터는 올라가지 않아요. 로그아웃해도 이 기기의 데이터는 남아요.</p>`;
 }
 
+
+// ───────────────────────── 변경 내역 · 가족 소식 ─────────────────────────
+const FIELD_LABEL = { title: '제목', startDate: '날짜', endDate: '끝나는 날', startTime: '시작 시간', endTime: '종료 시간', allDay: '하루 종일', timeUnset: '시간 미정', placeId: '장소', ownerId: '담당자', attendeeIds: '참석자', status: '상태', visibility: '공개 범위', memo: '메모', pinned: '고정', rr: '반복' };
+function diffEvent(a, b) {
+  if (!a) return [];
+  const out = [];
+  const bb = { ...b, rr: JSON.stringify(rule(b.recurrenceRuleId) || null) };
+  for (const k of Object.keys(FIELD_LABEL)) {
+    if (JSON.stringify(a[k] ?? null) === JSON.stringify(bb[k] ?? null)) continue;
+    if (k === 'ownerId') out.push(`담당자 ${memberName(a.ownerId)} → ${memberName(b.ownerId)}`);
+    else if (k === 'startDate') out.push(`날짜 ${D.fmtDate(a.startDate)} → ${D.fmtDate(b.startDate)}`);
+    else if (k === 'startTime' && a.startTime && b.startTime) out.push(`시간 ${a.startTime} → ${b.startTime}`);
+    else if (k === 'status') out.push(`상태 ${M.EVENT_STATUS.find(x => x.k === b.status)?.l}`);
+    else out.push(`${FIELD_LABEL[k]} 변경`);
+  }
+  return [...new Set(out)];
+}
+function addHistory(ev, changes) {
+  ev.history ||= [];
+  ev.history.push({ at: new Date().toISOString(), by: ui.viewer, changes });
+  if (ev.history.length > 20) ev.history = ev.history.slice(-20);
+}
+function historyHTML(ev) {
+  const h = (ev.history || []).slice().reverse();
+  if (!h.length) return ev.createdAt ? `<p class="meta-line">만든 사람: ${esc(memberName(ev.createdBy))} · ${D.fmtStamp(ev.createdAt)}</p>` : '';
+  return `<details class="history"><summary>🕘 변경 내역 ${h.length}건</summary><ul>${h.map(x => `<li><b>${esc(memberName(x.by))}</b> · ${D.fmtStamp(x.at)}<br>${x.changes.map(esc).join(', ')}</li>`).join('')}</ul></details>`;
+}
+/** 가족 소식: 항목 하나씩 저장해 동기화 때 서로 덮어쓰지 않는다. 최근 150개만 둔다. */
+function logActivity(kind, targetId, text) {
+  S.activity ||= [];
+  S.activity.push({ id: M.newId('ac'), at: new Date().toISOString(), by: ui.viewer, kind, targetId, text, sourceId: 'src_manual' });
+  if (S.activity.length > 150) S.activity = S.activity.slice(-150);
+}
+function activityCard() {
+  const seen = loadPref(`seen:${ui.viewer}`) || '';
+  const list = (S.activity || []).slice().sort((a, b) => b.at.localeCompare(a.at)).slice(0, 8);
+  const fresh = list.filter(a => a.by !== ui.viewer && a.at > seen).length;
+  return `<section class="card o-7"><header class="card-h"><h2>🔔 가족 소식 ${fresh ? `<span class="tag tag-high">새 소식 ${fresh}</span>` : ''}</h2>${fresh ? '<button type="button" class="btn-g btn-sm" data-action="seen-activity">다 읽음</button>' : ''}</header>
+    ${list.length ? `<ul class="act-list">${list.map(a => `<li class="${a.by !== ui.viewer && a.at > seen ? 'new' : ''}" style="--c:${member(a.by)?.color || '#FF8FB8'}">${face(member(a.by))}<div><p>${esc(a.text)}</p><small>${esc(memberName(a.by))} · ${D.relTime(a.at)}</small></div>${a.kind === 'event' && S.events.some(e => e.id === a.targetId) ? `<button type="button" class="btn-g btn-sm" data-action="open-event" data-id="${a.targetId}">보기</button>` : ''}</li>`).join('')}</ul>` : '<p class="muted small">일정을 추가하거나 고치면 누가 언제 바꿨는지 여기에 쌓여요. 가족 동기화를 켜면 다른 가족의 변경도 보여요.</p>'}
+  </section>`;
+}
+
+// ───────────────────────── 카톡 붙여넣기 → 일정 후보 ─────────────────────────
+function kakaoDialog() {
+  openDialog({
+    title: '💬 카톡 글로 일정 만들기', cls: 'dlg-kakao',
+    body: `<p class="small muted">카톡을 자동으로 읽지 않아요. 단톡방에서 <b>직접 복사한 글</b>을 붙여 넣으면 날짜·시간·장소·담당자를 찾아 <b>후보</b>로 보여 드려요. 확인하고 저장하기 전에는 캘린더에 들어가지 않아요.</p>
+      <label class="fld"><span>복사한 카톡 글</span><textarea name="raw" rows="6" placeholder="예) 토요일 3시 치과 예약했어요. 진료카드 챙겨주세요!"></textarea></label>
+      <div class="kk-out"></div>`,
+    actions: '<button type="submit" value="parse" class="btn-s" formnovalidate>후보 찾기</button><span class="sp"></span><button type="submit" value="save" class="btn-p" disabled>선택한 후보 저장</button>',
+    onMount(f) { f.raw.focus(); },
+    onSubmit(f, sub) {
+      if (sub === 'parse') {
+        const res = parseKakao(f.raw.value, { today: D.today(), members: S.members, viewer: ui.viewer });
+        const out = f.querySelector('.kk-out');
+        if (!res.events.length && !res.preps.length) { out.innerHTML = '<p class="form-err">날짜나 시간을 찾지 못했어요. "11월 20일 3시 …"처럼 날짜와 시간이 들어간 글을 붙여 넣어 주세요.</p>'; return false; }
+        out.innerHTML = `<h3 class="sub-h">찾은 일정 후보 ${res.events.length}개</h3>
+          ${res.events.map((c, i) => `<div class="kk-cand${c.needsCheck ? ' check' : ''}">
+            <label class="kk-pick"><input type="checkbox" name="pick" value="${i}" checked> 저장${c.needsCheck ? ' <span class="tag tag-tent">확인 필요</span>' : ''}</label>
+            <p class="kk-src">“${esc(c.line)}”</p>
+            <div class="fld-row"><label class="fld"><span>제목</span><input name="t${i}" value="${esc(c.title)}" maxlength="60"></label><label class="fld"><span>장소</span><input name="p${i}" value="${esc(c.place)}" maxlength="40"></label></div>
+            <div class="fld-row kk-3"><label class="fld"><span>날짜</span><input type="date" name="d${i}" value="${c.date}"></label><label class="fld"><span>시작</span><input type="time" name="s${i}" value="${c.startTime || ''}"></label><label class="fld"><span>종료</span><input type="time" name="e${i}" value="${c.endTime || ''}"></label></div>
+            <label class="fld"><span>담당자</span><select name="o${i}">${memberOpts(c.ownerId || ui.viewer)}</select></label>
+          </div>`).join('')}
+          ${res.preps.length ? `<h3 class="sub-h">찾은 준비 항목 ${res.preps.length}개</h3>${res.preps.map((p, i) => `<label class="kk-prep"><input type="checkbox" name="prep" value="${i}" checked> 🎒 <input name="pt${i}" value="${esc(p.title)}" maxlength="50"> <input type="date" name="pd${i}" value="${p.date || D.today()}"></label>`).join('')}` : ''}
+          <p class="small muted">시간을 비워 두면 '시간 미정'으로 저장돼요. 저장한 항목의 출처는 '카톡 붙여넣기'로 남아요.</p>`;
+        f._kk = res;
+        f.querySelector('button[value=save]').disabled = false;
+        return false;
+      }
+      const res = f._kk;
+      if (!res) return '먼저 후보 찾기를 눌러 주세요.';
+      const now = new Date().toISOString();
+      if (!S.sources.some(x => x.id === 'src_kakao')) S.sources.push({ id: 'src_kakao', kind: 'kakao-paste', label: '카톡 붙여넣기' });
+      const picks = $$('input[name=pick]:checked', f).map(x => +x.value);
+      const made = [];
+      for (const i of picks) {
+        const title = f[`t${i}`].value.trim() || '새 일정';
+        const date = f[`d${i}`].value || D.today();
+        const st = f[`s${i}`].value || null, et = f[`e${i}`].value || null;
+        if (st && et && et <= st) return `'${title}' 종료 시간이 시작 시간보다 늦어야 해요.`;
+        const placeName = f[`p${i}`].value.trim();
+        let placeId = null;
+        if (placeName) { let p = S.places.find(x => x.name === placeName); if (!p) { p = { id: M.newId('pl'), name: placeName }; S.places.push(p); } placeId = p.id; }
+        const owner = f[`o${i}`].value;
+        const ev = { id: M.newId('ev'), title, startDate: date, endDate: date, startTime: st, endTime: st ? et : null, allDay: false, timeUnset: !st, placeId, ownerId: owner, attendeeIds: [owner], memo: res.events[i].line.slice(0, 300), status: 'confirmed', sourceId: 'src_kakao', externalUid: null, recurrenceRuleId: null, exDates: [], visibility: 'family', createdBy: ui.viewer, createdAt: now, updatedAt: now };
+        addHistory(ev, ['카톡 글에서 만듦']);
+        S.events.push(ev); made.push(ev);
+        logActivity('event', ev.id, `'${title}' 일정을 카톡 글에서 추가했어요 (${D.fmtDate(date)})`);
+      }
+      let preps = 0;
+      for (const x of $$('input[name=prep]:checked', f).map(x => +x.value)) {
+        const title = f[`pt${x}`].value.trim();
+        if (!title) continue;
+        const date = f[`pd${x}`].value || D.today();
+        const ev = made.find(e => e.startDate === date);
+        S.issues.push({ id: M.newId('is'), title, date, type: 'prep', ownerId: ev?.ownerId || '', done: false, priority: 'normal', eventId: ev?.id || null, sourceId: 'src_kakao', visibility: 'family', createdBy: ui.viewer, createdAt: now, updatedAt: now });
+        preps++;
+      }
+      if (!made.length && !preps) return '저장할 후보를 하나 이상 골라 주세요.';
+      persist(); renderAll(); toast(`카톡 글에서 일정 ${made.length}개${preps ? `, 준비 항목 ${preps}개` : ''}를 저장했어요.`);
+      return true;
+    },
+  });
+}
+
 // ───────────────────────── 대화상자 ─────────────────────────
 function openDialog({ title, body, actions, onSubmit, onMount, cls = '' }) {
   const d = $('#dlg');
@@ -754,13 +862,15 @@ function eventDialog(ev, occDate) {
     </div>
     <fieldset class="fld chips rr-week"><legend>반복 요일</legend>${D.DAYCODES.map((c, i) => `<label><input type="checkbox" name="byday" value="${c}" ${byDay.includes(c) ? 'checked' : ''}><span>${D.WD[i]}</span></label>`).join('')}</fieldset>
     <label class="fld"><span>공개 범위</span><select name="visibility">${opt(M.VISIBILITY, ev.visibility)}</select></label>
+    <label class="fld fld-check pin-check"><input type="checkbox" name="pinned" ${ev.pinned ? 'checked' : ''}><span>📌 고정 일정 <small class="muted">(예시 지우기·모두 지우기로 지워지지 않아요)</small></span></label>
     <label class="fld"><span>메모</span><textarea name="memo" rows="2" maxlength="300">${esc(ev.memo)}</textarea></label>
     <p class="meta-line">출처: <b>${esc(src?.label || '직접 입력')}</b>${ev.updatedAt ? ` · 마지막 수정 ${D.fmtStamp(ev.updatedAt)}` : ''}${rr && occDate ? ` · 반복 일정은 전체가 함께 수정돼요` : ''}</p>
     ${ev.tripId ? `<p class="trip-note">🧳 여행 계획과 연결된 일정이에요. 날짜·참여자는 <button type="button" class="btn-s btn-sm" data-action="open-trip" data-id="${ev.tripId}">여행 계획표</button>에서 바꾸면 함께 바뀌어요.</p>` : ''}
+    ${historyHTML(ev)}
     ${isNew ? '' : `<div class="linked"><h3 class="sub-h">연결된 준비 항목</h3>${linked.length ? `<ul class="is-list">${linked.map(i => issueRow(i, { showDate: true })).join('')}</ul>` : '<p class="muted small">아직 없어요.</p>'}<button type="button" class="btn-s btn-sm" data-action="new-issue" data-date="${occDate || ev.startDate}" data-event="${ev.id}" data-owner="${ev.ownerId}">+ 준비 항목 추가</button></div>`}`;
   const actions = `${isNew ? '' : `<button type="submit" value="apple" class="btn-g" formnovalidate>🍎 Apple 캘린더에 추가</button>`}
     ${!isNew && rr && occDate ? `<button type="submit" value="skip" class="btn-g" formnovalidate>이 날만 취소</button>` : ''}
-    ${!isNew ? `<button type="submit" value="cancel" class="btn-g" formnovalidate>${ev.status === 'cancelled' ? '취소 되돌리기' : '일정 취소'}</button><button type="submit" value="delete" class="btn-g danger" formnovalidate>삭제</button>` : ''}
+    ${!isNew ? `<button type="submit" value="cancel" class="btn-g" formnovalidate>${ev.status === 'cancelled' ? '취소 되돌리기' : '일정 취소'}</button>${ev.pinned ? '' : '<button type="submit" value="delete" class="btn-g danger" formnovalidate>삭제</button>'}` : ''}
     <span class="sp"></span><button type="submit" value="save" class="btn-p">${isNew ? '추가' : '저장'}</button>`;
 
   openDialog({
@@ -789,18 +899,23 @@ function eventDialog(ev, occDate) {
         if (rr) S.recurrenceRules = S.recurrenceRules.filter(r => r.id !== rr.id);
         S.issues.forEach(i => { if (i.eventId === ev.id) i.eventId = null; });
         (S.trips || []).forEach(t => { if (t.eventId === ev.id) t.eventId = null; });
+        logActivity('event', ev.id, `'${ev.title}' 일정을 삭제했어요`);
         persist(); renderAll(); toast('일정을 삭제했어요.');
         return true;
       }
       if (sub === 'cancel') {
         ev.status = ev.status === 'cancelled' ? 'confirmed' : 'cancelled';
         ev.updatedAt = new Date().toISOString();
+        addHistory(ev, [ev.status === 'cancelled' ? '일정 취소' : '취소 되돌림']);
+        logActivity('event', ev.id, `'${ev.title}' ${ev.status === 'cancelled' ? '일정을 취소했어요' : '취소를 되돌렸어요'}`);
         persist(); renderAll(); toast(ev.status === 'cancelled' ? '일정을 취소로 표시했어요.' : '취소를 되돌렸어요.');
         return true;
       }
       if (sub === 'skip') {
         ev.exDates = [...new Set([...(ev.exDates || []), occDate])];
         ev.updatedAt = new Date().toISOString();
+        addHistory(ev, [`${D.fmtDate(occDate)} 하루 빠짐`]);
+        logActivity('event', ev.id, `'${ev.title}' ${D.fmtDate(occDate)} 하루를 뺐어요`);
         persist(); renderAll(); toast(`${D.fmtDate(occDate)} 하루만 뺐어요.`);
         return true;
       }
@@ -833,11 +948,13 @@ function eventDialog(ev, occDate) {
       }
       const ownerId = fd.get('ownerId');
       const att = new Set(fd.getAll('att')); att.add(ownerId);
+      const before = isNew ? null : { ...target, rr: JSON.stringify(rule(target.recurrenceRuleId) || null) };
       Object.assign(target, {
         title, startDate, endDate, startTime, endTime,
         allDay: kindV === 'allday', timeUnset: kindV === 'unset',
         placeId, ownerId, attendeeIds: S.members.map(m => m.id).filter(id => att.has(id)),
         status: fd.get('status'), visibility: fd.get('visibility'), memo: String(fd.get('memo') || '').trim(),
+        pinned: fd.get('pinned') === 'on',
         updatedAt: now,
       });
       if (freq) {
@@ -849,7 +966,11 @@ function eventDialog(ev, occDate) {
         S.recurrenceRules = S.recurrenceRules.filter(r => r.id !== target.recurrenceRuleId);
         target.recurrenceRuleId = null; target.exDates = [];
       } else target.recurrenceRuleId = null;
-      if (isNew) S.events.push(target);
+      if (isNew) { S.events.push(target); addHistory(target, ['새로 만듦']); logActivity('event', target.id, `'${target.title}' 일정을 추가했어요 (${D.fmtDate(target.startDate)})`); }
+      else {
+        const ch = diffEvent(before, target);
+        if (ch.length) { addHistory(target, ch); logActivity('event', target.id, `'${target.title}' ${ch.join(', ')}`); }
+      }
       persist(); renderAll(); toast(isNew ? '일정을 추가했어요.' : '일정을 저장했어요.');
       return true;
     },
@@ -907,7 +1028,7 @@ function issueDialog(is, preset = {}) {
         priority: fd.get('priority'), eventId: fd.get('eventId') || null, visibility: fd.get('visibility'),
         done: fd.get('done') === 'on', updatedAt: now,
       });
-      if (isNew) S.issues.push(target);
+      if (isNew) { S.issues.push(target); logActivity('issue', target.id, `이슈 '${target.title}' (${D.fmtDate(target.date)})를 추가했어요`); }
       persist();
       if (target.done && !wasDone) celebrate(target); else renderAll();
       toast(isNew ? '이슈를 추가했어요.' : '저장했어요.');
@@ -940,6 +1061,7 @@ function statusDialog(m) {
       const mood = fd.get('mood') || null, activity = fd.get('activity') || null;
       if (!text && !mood && !activity) { m.status = null; persist(); renderAll(); toast('상태가 비어 있어 미설정으로 둘게요.'); return true; }
       m.status = { text, mood, activity, setAt: new Date().toISOString(), setBy: ui.viewer, visibility: fd.get('visibility') };
+      if (fd.get('visibility') !== 'private') logActivity('status', m.id, `${m.displayName} 상태: ${text || M.ACTS.find(a => a.k === activity)?.l || '바뀜'}`);
       persist();
       if (activity === 'done') { ui.celebrate = { id: m.id, until: Date.now() + 2600 }; setTimeout(() => ui.view === 'world' && renderStage(), 2700); }
       renderAll(); toast('상태를 저장했어요.');
@@ -1185,7 +1307,7 @@ function tripDialog(t) {
         memberIds: S.members.map(m => m.id).filter(id => fd.getAll('mem').includes(id)),
         memo: String(fd.get('memo') || '').trim(), visibility: fd.get('visibility'), updatedAt: now,
       });
-      if (isNew) { S.trips ||= []; S.trips.push(target); }
+      if (isNew) { S.trips ||= []; S.trips.push(target); logActivity('trip', target.id, `여행 '${target.title}'을 만들었어요`); }
       syncTripEvent(target);
       ui.plan.tripId = target.id;
       persist();
@@ -1264,6 +1386,7 @@ function toggleIssue(id, checked) {
   const is = S.issues.find(i => i.id === id);
   if (!is) return;
   is.done = checked; is.updatedAt = new Date().toISOString();
+  if (checked) logActivity('issue', is.id, `'${is.title}' 완료!`);
   persist();
   if (checked) celebrate(is); else renderAll();
 }
@@ -1445,13 +1568,15 @@ const ACTIONS = {
   'sync-now': async () => { await sync.syncNow(); toast('동기화했어요.'); },
   'sync-signout': async () => { if (!confirm('이 기기에서 로그아웃할까요? 이 기기의 데이터는 남아 있어요.')) return; await sync.signOut(); renderAll(); toast('로그아웃했어요.'); },
   'copy-invite': async () => { try { await navigator.clipboard.writeText(ui.sync.family.invite_code); toast('초대 코드를 복사했어요.'); } catch { toast('코드를 길게 눌러 복사해 주세요.'); } },
+  kakao: () => kakaoDialog(),
+  'seen-activity': () => { savePref(`seen:${ui.viewer}`, new Date().toISOString()); renderView(); },
   'reset-demo': () => {
     if (!confirm('모든 데이터를 지우고 예시 데이터로 되돌릴까요? 되돌릴 수 없어요.')) return;
-    S = M.demoState(D.today()); persist(); renderAll(); toast('예시 데이터로 되돌렸어요.');
+    const keep = M.emptyState(S); S = M.demoState(D.today()); S.events.push(...keep.events); S.recurrenceRules.push(...keep.recurrenceRules); S.places.push(...keep.places.filter(p => !S.places.some(x => x.id === p.id))); persist(); renderAll(); toast('예시 데이터로 되돌렸어요. 📌 고정 일정은 남겨 두었어요.');
   },
   'reset-empty': () => {
     if (!confirm('이 브라우저에 저장된 가족 데이터를 모두 지울까요? 백업이 없으면 되돌릴 수 없어요.')) return;
-    S = M.emptyState(); persist(); renderAll(); toast('모두 지웠어요.');
+    S = M.emptyState(S); persist(); renderAll(); toast('모두 지웠어요. 📌 고정 일정은 남겨 두었어요.');
   },
 };
 
@@ -1540,7 +1665,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 // fragment 는 브라우저가 서버로 보내지 않으므로 GitHub 서버에도 남지 않는다.
 const UNDO_KEY = 'family-home:undo';
 function hasUndo() { try { return !!localStorage.getItem(UNDO_KEY); } catch { return false; } }
-const SHARE_KEYS = ['events', 'issues', 'trips', 'tripComments', 'boardItems', 'places', 'recurrenceRules', 'sources'];
+const SHARE_KEYS = ['events', 'issues', 'trips', 'tripComments', 'boardItems', 'places', 'recurrenceRules', 'sources', 'activity'];
 const b64url = buf => { let s = ''; const b = new Uint8Array(buf); for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
 const unb64url = str => { const s = atob(str.replace(/-/g, '+').replace(/_/g, '/')); const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; };
 async function makeShareLink() {

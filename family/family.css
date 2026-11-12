@@ -600,3 +600,22 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 .invite { font-family: ui-monospace, Menlo, monospace; font-size: 18px; letter-spacing: .08em; background: var(--yellow); border-radius: 8px; padding: 2px 8px; }
 .t-comments { margin-top: 16px; padding-top: 12px; border-top: 2px dashed var(--line); }
 .t-comments .gb-form { margin: 10px 0 0; }
+/* 고정·변경 내역·가족 소식·카톡 후보 */
+.pin-check small { font-size: 12.5px; }
+.history { background: var(--pink-xl); border-radius: 12px; padding: 8px 12px; font-size: 14px; }
+.history summary { cursor: pointer; color: var(--ink-2); }
+.history ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; }
+.act-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.act-list li { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 14px; background: var(--pink-xl); border-left: 4px solid var(--c); }
+.act-list li.new { background: #FFFBE6; }
+.act-list p { margin: 0; font-size: 14.5px; }
+.act-list small { color: var(--ink-3); font-size: 12px; }
+.kk-cand { border: 2px solid var(--line); border-radius: 16px; padding: 10px 12px; display: grid; gap: 8px; margin-bottom: 10px; }
+.kk-cand.check { border-color: #F2D46B; background: #FFFDF2; }
+.kk-pick { font-family: var(--font-d); display: flex; gap: 6px; align-items: center; }
+.kk-pick input { width: 18px; height: 18px; accent-color: var(--pink); }
+.kk-src { margin: 0; font-size: 13.5px; color: var(--ink-2); background: #fff; border-radius: 10px; padding: 6px 10px; }
+.kk-3 { grid-template-columns: 1.4fr 1fr 1fr; }
+.kk-prep { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+.kk-prep input[type=text], .kk-prep input:not([type]) , .kk-prep input[type=date] { border: 2px solid var(--line); border-radius: 10px; padding: 6px 8px; min-width: 0; }
+@media (max-width: 760px) { .kk-3 { grid-template-columns: 1fr 1fr; } .kk-3 label:first-child { grid-column: 1 / -1; } }

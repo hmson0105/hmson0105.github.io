@@ -11,7 +11,7 @@
 //
 // 일정(Event) = 언제·어디서 무엇을 하는지. 이슈(Issue) = 그날 기억·준비할 것.
 
-import { addDays, weekday, diffDays, startOfWeek, DAYCODES } from './dates.js?v=5';
+import { addDays, weekday, diffDays, startOfWeek, DAYCODES } from './dates.js?v=6';
 
 export const SCHEMA_VERSION = 1;
 
@@ -142,6 +142,7 @@ function baseState() {
     posts: [],
     guestbook: [],
     trips: [],      // 여행 계획: { id, title, startDate, endDate, destination, memberIds, plan:[{id,date,time,title,memo}], eventId, ... }
+    activity: [],   // 가족 소식(변경 내역): { id, at, by, kind, targetId, text }
     tripComments: [], // 여행 댓글: { id, tripId, authorId, text, createdAt, visibility }
     boardItems: [], // 살 것·준비할 것: { id, title, kind:'buy'|'prep', qty, ownerId, tripId, dueDate, done, ... }
     candidates: [], // 카톡 붙여넣기 등에서 만든 '일정 후보'(확인 전) 자리. 아직 생성 기능 없음.
@@ -151,7 +152,18 @@ function baseState() {
   };
 }
 
-export function emptyState() { return baseState(); }
+
+/** 처음 상태로 되돌리되, 사용자가 고정(📌)한 일정과 그 반복 규칙·장소는 남긴다. */
+export function emptyState(prev) {
+  const S = baseState();
+  if (prev) {
+    const keep = (prev.events || []).filter(e => e.pinned && e.sourceId !== 'src_demo');
+    S.events = keep;
+    S.recurrenceRules = (prev.recurrenceRules || []).filter(r => keep.some(e => e.recurrenceRuleId === r.id));
+    S.places = (prev.places || []).filter(p => keep.some(e => e.placeId === p.id));
+  }
+  return S;
+}
 
 /** 오늘을 기준으로 데모 일정을 만든다. 모든 항목은 sourceId 'src_demo' 로 표시된다. */
 export function demoState(T) {
