@@ -23,6 +23,47 @@
   var y = document.querySelector("[data-year]");
   if (y) y.textContent = String(new Date().getFullYear());
 
+  /* ---- language switch ----
+     Only the pages that actually carry both languages hold a switch, so
+     this is a no-op elsewhere. Setting `lang` on <html> is what does the
+     work: the stylesheet shows the passages whose own `lang` matches and
+     removes the rest, which also keeps screen readers and find-in-page
+     on the visible language.
+
+     The choice is remembered per browser. localStorage throws in a
+     private window with site data blocked, so every access is guarded —
+     a failure just means the preference is not carried to the next page. */
+  var LANG_KEY = "hs-lang";
+  var langBox = document.querySelector("[data-lang-switch]");
+  if (langBox) {
+    var buttons = langBox.querySelectorAll("button[data-lang]");
+
+    var apply = function (lang) {
+      document.documentElement.setAttribute("lang", lang);
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].setAttribute(
+          "aria-pressed",
+          String(buttons[i].getAttribute("data-lang") === lang)
+        );
+      }
+    };
+
+    var stored = null;
+    try { stored = localStorage.getItem(LANG_KEY); } catch (e) { /* blocked */ }
+    apply(stored === "ko" || stored === "en"
+            ? stored
+            : document.documentElement.getAttribute("lang") || "en");
+
+    langBox.addEventListener("click", function (e) {
+      var b = e.target;
+      while (b && b !== langBox && !b.getAttribute("data-lang")) b = b.parentNode;
+      if (!b || b === langBox) return;
+      var lang = b.getAttribute("data-lang");
+      apply(lang);
+      try { localStorage.setItem(LANG_KEY, lang); } catch (e2) { /* blocked */ }
+    });
+  }
+
   /* ---- landing video ----
      The poster image sits underneath the <video> and is what the visitor
      sees until playback genuinely starts. The video only fades in once it

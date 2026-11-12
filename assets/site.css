@@ -113,6 +113,44 @@ img, svg, video { display: block; max-width: 100%; }
 }
 
 /* ----------------------------------------------------------
+   Language switch — KOR / EN
+
+   Pages that carry both languages mark each passage with a real
+   `lang` attribute, and the switch sets `lang` on <html>. The rule
+   below then shows only the matching passages. Markup stays
+   semantic: a screen reader announces the right language, and a
+   page without a switch is unaffected.
+
+   Only the pages that actually hold both languages get the switch.
+   A page with the switch wraps nav + switch + menu button in
+   .masthead-right so the brand stays left and the group stays right.
+   ---------------------------------------------------------- */
+.masthead-right { display: flex; align-items: center; gap: 26px; }
+
+.lang { display: inline-flex; align-items: center; gap: 6px; }
+.lang button {
+  font-family: inherit;
+  font-size: .70rem; letter-spacing: .17em; text-transform: uppercase;
+  background: none; border: 0; padding: 4px 0; cursor: pointer;
+  color: var(--ink-3);
+  border-bottom: 1px solid transparent;
+  transition: color .14s ease, border-color .14s ease;
+}
+.lang button:hover { color: var(--ink); }
+.lang button[aria-pressed="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.lang .sep { color: var(--line-2); font-size: .70rem; line-height: 1; }
+
+/* The inactive language is removed from the page, not merely faded,
+   so it is skipped by find-in-page and by screen readers alike. */
+html[lang="en"] [lang="ko"],
+html[lang="ko"] [lang="en"] { display: none; }
+
+@media (max-width: 760px) {
+  .masthead-right { gap: 14px; }
+  .lang button { font-size: .66rem; letter-spacing: .14em; }
+}
+
+/* ----------------------------------------------------------
    Page header (interior pages)
    ---------------------------------------------------------- */
 .page-head { padding: 78px 0 44px; border-bottom: 1px solid var(--line); }
