@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>우리집 미니월드</title>
+  <!-- 가족 전용 공간: 검색엔진 색인·링크 미리보기를 막는다. 데이터는 이 브라우저에만 저장된다. -->
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#FFE4EE">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="우리집">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%A0%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="family.css?v=2">
+</head>
+<body>
+  <div class="deco" aria-hidden="true"><i>☁️</i><i>⭐</i><i>💗</i><i>☁️</i><i>✨</i></div>
+
+  <header class="top">
+    <a class="brand" href="./" aria-label="우리집 미니월드 처음으로">
+      <span class="brand-ico" aria-hidden="true">🏠</span>
+      <span class="brand-t">우리집 <b>미니월드</b></span>
+    </a>
+    <p class="top-date" id="topDate"></p>
+    <div class="top-right">
+      <label class="viewer"><span>지금 보는 사람</span><select id="viewerSel" aria-describedby="viewerNote"></select></label>
+      <span id="viewerNote" class="sr">로그인이 아니라 보기 전환이에요</span>
+      <button type="button" class="sync-pill" id="syncPill" data-action="view" data-view="sync"></button>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="화면">
+    <button type="button" data-action="view" data-view="world">🏠 미니월드</button>
+    <button type="button" data-action="view" data-view="cal">📅 가족 캘린더</button>
+    <button type="button" data-action="view" data-view="sync">🔗 연동 · 데이터</button>
+  </nav>
+
+  <div id="banner" class="banners"></div>
+
+  <main>
+    <!-- 미니월드 -->
+    <section class="view world" data-view="world">
+      <aside class="dir o-2" aria-label="층별 안내">
+        <h2 class="dir-title">층별 안내</h2>
+        <div class="building">
+          <div class="shaft" aria-hidden="true"><div class="car" id="car">1F</div></div>
+          <ol class="floors" id="floorList"></ol>
+        </div>
+        <p class="dir-note">엘리베이터는 화면 이동 연출이에요.<br>가족의 실제 위치가 아니에요.</p>
+      </aside>
+
+      <div class="col-center">
+        <div id="floorHead" class="o-1"></div>
+        <section class="stage-card card o-6" aria-label="미니룸">
+          <header class="card-h" id="stageTitle"></header>
+          <div class="stage-frame" id="stageFrame">
+            <div class="stage" id="stage">
+              <div class="scene-wrap" id="sceneWrap"></div>
+              <div class="doors" aria-hidden="true">
+                <i class="door l"></i><i class="door r"></i>
+                <span class="ind" id="elevInd">1F</span>
+              </div>
+            </div>
+          </div>
+          <p class="stage-cap">캐릭터 동작은 <b>캘린더 일정</b>이나 <b>직접 설정한 상태</b>로만 정해져요. 상태가 없으면 멈춰 있고, 12시간이 지나면 ‘확인 중’으로 보여요.</p>
+        </section>
+        <div id="panelMain" class="panels"></div>
+      </div>
+
+      <div class="col-side" id="panelSide"></div>
+    </section>
+
+    <!-- 캘린더 -->
+    <section class="view cal" data-view="cal" hidden>
+      <div class="cal-top card">
+        <div class="cal-nav">
+          <button type="button" class="btn-round" data-action="cal-prev" aria-label="이전">◀</button>
+          <button type="button" class="btn-s" data-action="cal-today">오늘</button>
+          <button type="button" class="btn-round" data-action="cal-next" aria-label="다음">▶</button>
+          <h2 id="calTitle" aria-live="polite"></h2>
+        </div>
+        <div class="seg" id="calModes" role="group" aria-label="보기">
+          <button type="button" data-action="cal-mode" data-mode="month">월</button>
+          <button type="button" data-action="cal-mode" data-mode="week">주</button>
+          <button type="button" data-action="cal-mode" data-mode="day">하루</button>
+        </div>
+        <div class="cal-filter" id="calFilter" role="group" aria-label="구성원 필터"></div>
+        <div class="cal-add">
+          <button type="button" class="btn-p" data-action="new-event">+ 일정</button>
+          <button type="button" class="btn-s" data-action="new-issue">+ 이슈</button>
+        </div>
+      </div>
+      <div class="cal-body">
+        <div class="card cal-grid" id="calGrid"></div>
+        <aside class="card cal-day" id="calDay" aria-label="선택한 날"></aside>
+      </div>
+      <p class="tz-note">시간대: Asia/Seoul (한국 표준시) 기준</p>
+    </section>
+
+    <!-- 연동·데이터 -->
+    <section class="view sync" data-view="sync" hidden>
+      <div id="syncBody" class="sync-body"></div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="화면">
+    <button type="button" data-action="view" data-view="world"><span aria-hidden="true">🏠</span>홈</button>
+    <button type="button" data-action="view" data-view="cal"><span aria-hidden="true">📅</span>캘린더</button>
+    <button type="button" data-action="view" data-view="sync"><span aria-hidden="true">🔗</span>연동</button>
+  </nav>
+
+  <dialog id="dlg"></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <noscript><p class="noscript">이 페이지는 자바스크립트가 필요해요.</p></noscript>
+  <script type="module" src="js/app.js?v=3"></script>
+</body>
+</html>

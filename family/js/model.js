@@ -1,0 +1,283 @@
+// 가족 온톨로지(데이터 모델)와 데모 데이터.
+//
+//  Family 1 ─ * Member            (family.memberIds, member.familyId)
+//  Event  * ─ 1 Member(담당자)     (event.ownerId)
+//  Event  * ─ * Member(참석자)     (event.attendeeIds)
+//  Event  * ─ 0..1 Place          (event.placeId)
+//  Event  * ─ 0..1 RecurrenceRule (event.recurrenceRuleId)
+//  Issue  * ─ 0..1 Member / Event (issue.ownerId, issue.eventId) + 날짜(issue.date)
+//  Event/Issue/Post/Guestbook * ─ 1 Source (sourceId: 직접 입력, 캘린더 가져오기, 데모 …)
+//  모든 항목에 visibility: 'family'(가족 전체) | 'private'(본인만) — 나중에 권한 기능과 연결
+//
+// 일정(Event) = 언제·어디서 무엇을 하는지. 이슈(Issue) = 그날 기억·준비할 것.
+
+import { addDays, weekday, diffDays, startOfWeek, DAYCODES } from './dates.js?v=2';
+
+export const SCHEMA_VERSION = 1;
+
+export const newId = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+
+export const MOODS = [
+  { k: 'happy', e: '😊', l: '좋아요' },
+  { k: 'excited', e: '🤩', l: '신나요' },
+  { k: 'calm', e: '😌', l: '평온해요' },
+  { k: 'focused', e: '🧐', l: '집중 중' },
+  { k: 'tired', e: '😪', l: '피곤해요' },
+  { k: 'sad', e: '🥲', l: '울적해요' },
+  { k: 'sick', e: '🤒', l: '아파요' },
+];
+export const ACTS = [
+  { k: 'busy', l: '작업 중', e: '✏️' },
+  { k: 'rest', l: '휴식 중', e: '☕' },
+  { k: 'done', l: '오늘 할 일 끝!', e: '⭐' },
+  { k: 'out', l: '외출 중', e: '👟' },
+];
+export const ISSUE_TYPES = [
+  { k: 'prep', l: '준비', e: '🎒' },
+  { k: 'notice', l: '전달 사항', e: '📢' },
+  { k: 'caution', l: '주의 사항', e: '⚠️' },
+  { k: 'memo', l: '가족 메모', e: '📝' },
+];
+export const PRIORITY = [
+  { k: 'high', l: '중요' },
+  { k: 'normal', l: '보통' },
+  { k: 'low', l: '낮음' },
+];
+export const EVENT_STATUS = [
+  { k: 'confirmed', l: '확정' },
+  { k: 'tentative', l: '미정' },
+  { k: 'cancelled', l: '취소됨' },
+];
+export const VISIBILITY = [
+  { k: 'family', l: '가족 전체' },
+  { k: 'private', l: '본인만' },
+];
+export const FREQS = [
+  { k: '', l: '반복 안 함' },
+  { k: 'DAILY', l: '매일' },
+  { k: 'WEEKLY', l: '매주' },
+  { k: 'MONTHLY', l: '매월' },
+  { k: 'YEARLY', l: '매년' },
+];
+
+// 방 꾸미기: 방 그림(Higgsfield 생성 이미지 또는 SVG 대체 그림) 주변 배경과 스티커.
+export const BACKDROPS = [
+  { k: 'pinkDots', l: '핑크 도트' },
+  { k: 'lavStripes', l: '라벤더 줄무늬' },
+  { k: 'skyClouds', l: '하늘 구름' },
+  { k: 'creamHearts', l: '크림 하트' },
+  { k: 'mintCheck', l: '민트 체크' },
+];
+export const STICKERS = [
+  { k: 'star', e: '⭐', l: '별' }, { k: 'heart', e: '💖', l: '하트' }, { k: 'rainbow', e: '🌈', l: '무지개' },
+  { k: 'cloud', e: '☁️', l: '구름' }, { k: 'ribbon', e: '🎀', l: '리본' }, { k: 'bear', e: '🧸', l: '곰인형' },
+  { k: 'tulip', e: '🌷', l: '튤립' }, { k: 'note', e: '🎵', l: '음표' }, { k: 'sparkle', e: '✨', l: '반짝' },
+  { k: 'cake', e: '🍰', l: '케이크' },
+];
+// 스티커 자리(방 그림 위 %, 고정 슬롯). 고른 순서대로 채운다.
+export const STICKER_SLOTS = [[12, 14], [86, 12], [8, 52], [92, 48], [20, 86], [80, 88], [50, 6], [96, 74]];
+
+export const SOURCES_BASE = [
+  { id: 'src_manual', kind: 'manual', label: '직접 입력' },
+  { id: 'src_demo', kind: 'demo', label: '데모(예시)' },
+  // 확장 예정: { kind: 'ics-import' } (구현), { kind: 'kakao-paste' } (카톡 복사 텍스트 → 일정 후보, 미구현)
+];
+
+function baseMembers() {
+  return [
+    {
+      id: 'm_dad', familyId: 'fam_1', role: 'dad', roleLabel: '아빠', displayName: '아빠',
+      color: '#4FA3E3', floor: 4,
+      space: { kind: 'school', name: '대학원 연구실' },
+      avatar: 'dad',
+      status: null,
+      room: { backdrop: 'mintCheck', stickers: ['star', 'note'] },
+      bgm: '',
+    },
+    {
+      id: 'm_mom', familyId: 'fam_1', role: 'mom', roleLabel: '엄마', displayName: '엄마',
+      color: '#9B7BE0', floor: 3,
+      space: { kind: 'office', name: '엄마의 사무실' },
+      avatar: 'mom',
+      status: null,
+      room: { backdrop: 'lavStripes', stickers: ['tulip', 'sparkle'] },
+      bgm: '',
+    },
+    {
+      id: 'm_kid', familyId: 'fam_1', role: 'kid', roleLabel: '딸', displayName: '유안이',
+      color: '#FF6FA3', floor: 2,
+      space: { kind: 'daycare', name: '유안이의 어린이집' },
+      avatar: 'kid',
+      status: null,
+      room: { backdrop: 'skyClouds', stickers: ['rainbow', 'bear', 'star'] },
+      bgm: '',
+    },
+  ];
+}
+
+function baseState() {
+  const now = new Date().toISOString();
+  const members = baseMembers();
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    meta: { createdAt: now, updatedAt: now, storage: 'local', demo: false },
+    family: {
+      id: 'fam_1', name: '우리 가족', timezone: 'Asia/Seoul',
+      memberIds: members.map(m => m.id),
+      lobbyRoom: { backdrop: 'pinkDots', stickers: ['heart', 'cloud'] },
+      // 나중에 계정·초대 기능을 붙일 자리. 지금은 비어 있다.
+      accounts: [], invites: [],
+    },
+    members,
+    places: [],
+    recurrenceRules: [],
+    sources: SOURCES_BASE.map(s => ({ ...s })),
+    events: [],
+    issues: [],
+    posts: [],
+    guestbook: [],
+    candidates: [], // 카톡 붙여넣기 등에서 만든 '일정 후보'(확인 전) 자리. 아직 생성 기능 없음.
+    sync: {
+      apple: { mode: 'manual-ics', lastImportAt: null, lastImportFile: null, lastImportCount: 0, lastExportAt: null },
+    },
+  };
+}
+
+export function emptyState() { return baseState(); }
+
+/** 오늘을 기준으로 데모 일정을 만든다. 모든 항목은 sourceId 'src_demo' 로 표시된다. */
+export function demoState(T) {
+  const S = baseState();
+  S.meta.demo = true;
+  const now = new Date().toISOString();
+  const D = n => addDays(T, n);
+  const place = (id, name) => (S.places.push({ id, name }), id);
+  const pDay = place('pl_day', '해님어린이집');
+  const pSem = place('pl_sem', '대학원 세미나실');
+  const pDen = place('pl_den', '튼튼치과');
+  const pGma = place('pl_gma', '할머니 댁');
+  const pRes = place('pl_res', '동네 파스타집');
+
+  S.recurrenceRules.push({ id: 'rr_weekday', freq: 'WEEKLY', interval: 1, byDay: ['MO', 'TU', 'WE', 'TH', 'FR'], until: null, count: null });
+
+  const ev = (o) => S.events.push({
+    id: newId('ev'), endDate: o.startDate, startTime: null, endTime: null, allDay: false, timeUnset: false,
+    placeId: null, attendeeIds: [o.ownerId], memo: '', status: 'confirmed', sourceId: 'src_demo',
+    externalUid: null, recurrenceRuleId: null, exDates: [], visibility: 'family',
+    createdBy: o.ownerId, createdAt: now, updatedAt: now, ...o,
+  }) && S.events[S.events.length - 1].id;
+
+  // 반복 일정은 이번 주 월요일부터 시작하게 둔다.
+  const monday = addDays(startOfWeek(T), 1);
+  const eDay = ev({ title: '어린이집 등원', startDate: monday, startTime: '09:00', endTime: '16:00', ownerId: 'm_kid', attendeeIds: ['m_kid'], placeId: pDay, recurrenceRuleId: 'rr_weekday', memo: '평일 등원' });
+  const eSem = ev({ title: '랩 세미나 발표', startDate: T, startTime: '10:00', endTime: '12:00', ownerId: 'm_dad', placeId: pSem, memo: '발표 20분 + 질의응답' });
+  ev({ title: '유안이 하원 픽업', startDate: T, startTime: '18:30', endTime: '19:00', ownerId: 'm_mom', attendeeIds: ['m_mom', 'm_kid'], placeId: pDay });
+  const eDen = ev({ title: '치과 진료', startDate: D(1), startTime: '15:00', endTime: '16:00', ownerId: 'm_mom', attendeeIds: ['m_mom', 'm_kid'], placeId: pDen, memo: '유안이 정기 검진' });
+  ev({ title: '할머니 댁 방문', startDate: D(2), timeUnset: true, ownerId: 'm_dad', attendeeIds: ['m_dad', 'm_mom', 'm_kid'], placeId: pGma, status: 'tentative', memo: '시간은 토요일에 정하기' });
+  ev({ title: '논문 초안 제출 마감', startDate: D(3), allDay: true, ownerId: 'm_dad' });
+  ev({ title: '가족 외식', startDate: D(5), startTime: '19:00', endTime: '20:30', ownerId: 'm_mom', attendeeIds: ['m_dad', 'm_mom', 'm_kid'], placeId: pRes });
+  ev({ title: '엄마 팀 워크숍', startDate: D(-2), allDay: true, ownerId: 'm_mom' });
+
+  const iss = (o) => S.issues.push({
+    id: newId('is'), type: 'prep', ownerId: '', done: false, priority: 'normal', eventId: null,
+    sourceId: 'src_demo', visibility: 'family', createdBy: 'm_mom', createdAt: now, updatedAt: now, ...o,
+  });
+  iss({ title: '체육복 가방에 넣기', date: T, ownerId: 'm_mom', priority: 'high', eventId: eDay });
+  iss({ title: '발표 자료 USB에 백업', date: T, ownerId: 'm_dad', eventId: eSem });
+  iss({ title: '저녁 미세먼지 나쁨 · 마스크 챙기기', date: T, type: 'caution', ownerId: '' });
+  iss({ title: '우유 사 오기', date: T, type: 'memo', ownerId: 'm_dad', done: true, priority: 'low' });
+  iss({ title: '진료카드 챙기기', date: D(1), ownerId: 'm_mom', priority: 'high', eventId: eDen });
+  iss({ title: '오전에 택배 도착 예정', date: D(1), type: 'notice', ownerId: '' });
+
+  const setSt = (id, st) => { S.members.find(m => m.id === id).status = { ...st, setAt: now, setBy: id, visibility: 'family', demo: true }; };
+  setSt('m_dad', { text: '논문 마감 주간! 커피 수혈 중', mood: 'focused', activity: 'busy' });
+  setSt('m_mom', { text: '오늘은 칼퇴가 목표예요', mood: 'happy', activity: 'rest' });
+  // 유안이는 상태를 일부러 비워 두어 '상태 미설정' 표시를 보여 준다.
+
+  S.posts.push(
+    { id: newId('po'), memberId: 'm_dad', text: '연구실 창밖 은행잎이 노랗게 물들었어요.', photo: null, createdAt: now, createdBy: 'm_dad', visibility: 'family', sourceId: 'src_demo' },
+    { id: newId('po'), memberId: 'm_kid', text: '오늘 그린 그림: 우리 집 무지개 🌈', photo: null, createdAt: now, createdBy: 'm_mom', visibility: 'family', sourceId: 'src_demo' },
+  );
+  S.guestbook.push(
+    { id: newId('gb'), roomOwnerId: 'm_kid', authorId: 'm_dad', text: '유안이 오늘도 씩씩하게 화이팅!', createdAt: now, visibility: 'family', sourceId: 'src_demo' },
+    { id: newId('gb'), roomOwnerId: 'm_dad', authorId: 'm_mom', text: '발표 잘하고 와요 👏', createdAt: now, visibility: 'family', sourceId: 'src_demo' },
+  );
+  return S;
+}
+
+/** 데모 표시가 붙은 항목만 걷어낸다. 사용자가 직접 넣은 항목은 남는다. */
+export function stripDemo(S) {
+  const isDemo = x => x.sourceId === 'src_demo';
+  const keepEv = S.events.filter(e => !isDemo(e));
+  const keepIds = new Set(keepEv.map(e => e.id));
+  S.events = keepEv;
+  S.issues = S.issues.filter(i => !isDemo(i)).map(i => (i.eventId && !keepIds.has(i.eventId) ? { ...i, eventId: null } : i));
+  S.posts = S.posts.filter(p => !isDemo(p));
+  S.guestbook = S.guestbook.filter(g => !isDemo(g));
+  for (const m of S.members) if (m.status && m.status.demo) m.status = null;
+  const usedRules = new Set(S.events.map(e => e.recurrenceRuleId).filter(Boolean));
+  S.recurrenceRules = S.recurrenceRules.filter(r => usedRules.has(r.id));
+  const usedPlaces = new Set(S.events.map(e => e.placeId).filter(Boolean));
+  S.places = S.places.filter(p => usedPlaces.has(p.id));
+  S.meta.demo = false;
+  return S;
+}
+
+/** 이전 버전 데이터나 빠진 필드를 채운다. */
+export function migrate(S) {
+  const base = baseState();
+  for (const k of Object.keys(base)) if (S[k] === undefined) S[k] = base[k];
+  S.sync.apple = { ...base.sync.apple, ...(S.sync.apple || {}) };
+  for (const s of SOURCES_BASE) if (!S.sources.some(x => x.id === s.id)) S.sources.push({ ...s });
+  for (const e of S.events) { e.exDates ||= []; e.attendeeIds ||= []; e.visibility ||= 'family'; }
+  // 아이 호칭 변경(콩이 → 유안이)을 이미 저장된 데이터에도 반영한다.
+  const kid = S.members.find(m => m.id === 'm_kid');
+  if (kid && kid.displayName === '콩이') {
+    kid.displayName = '유안이';
+    if (kid.space?.name === '콩이의 어린이집') kid.space.name = '유안이의 어린이집';
+    const fix = s => (typeof s === 'string' ? s.replace(/콩이/g, '유안이') : s);
+    for (const e of S.events) if (e.sourceId === 'src_demo') { e.title = fix(e.title); e.memo = fix(e.memo); }
+    for (const x of [...S.posts, ...S.guestbook]) if (x.sourceId === 'src_demo') x.text = fix(x.text);
+  }
+  S.schemaVersion = SCHEMA_VERSION;
+  return S;
+}
+
+/**
+ * 반복 규칙을 펼쳐 [from, to] 범위의 발생(occurrence) 목록을 만든다.
+ * 지원: DAILY / WEEKLY(BYDAY) / MONTHLY(같은 날짜) / YEARLY, INTERVAL, UNTIL, COUNT, EXDATE.
+ */
+export function expand(ev, rule, from, to) {
+  const span = Math.max(0, diffDays(ev.startDate, ev.endDate || ev.startDate));
+  const out = [];
+  if (!rule) {
+    const e = addDays(ev.startDate, span);
+    if (e >= from && ev.startDate <= to) out.push({ ev, date: ev.startDate, endDate: e });
+    return out;
+  }
+  const base = ev.startDate;
+  const ex = new Set(ev.exDates || []);
+  const interval = Math.max(1, +rule.interval || 1);
+  const byDay = rule.byDay && rule.byDay.length ? rule.byDay.map(c => DAYCODES.indexOf(c)).filter(i => i >= 0) : [weekday(base)];
+  const limit = rule.until && rule.until < to ? rule.until : to;
+  const [by, bm, bd] = base.split('-').map(Number);
+  const baseWeek = startOfWeek(base);
+  let count = 0;
+  for (let d = base, i = 0; d <= limit && i < 5000; d = addDays(d, 1), i++) {
+    let hit = false;
+    const [y, m, day] = d.split('-').map(Number);
+    switch (rule.freq) {
+      case 'DAILY': hit = diffDays(base, d) % interval === 0; break;
+      case 'WEEKLY': hit = byDay.includes(weekday(d)) && (diffDays(baseWeek, startOfWeek(d)) / 7) % interval === 0; break;
+      case 'MONTHLY': hit = day === bd && ((y - by) * 12 + (m - bm)) % interval === 0; break;
+      case 'YEARLY': hit = day === bd && m === bm && (y - by) % interval === 0; break;
+    }
+    if (!hit) continue;
+    count++;
+    if (rule.count && count > rule.count) break;
+    if (ex.has(d)) continue;
+    const e = addDays(d, span);
+    if (e >= from && d <= to) out.push({ ev, date: d, endDate: e });
+  }
+  return out;
+}

@@ -114,6 +114,13 @@ patents/ai-power-health-index/    dashboards/patent-atlas/
 `sme-crisis-index` 는 배경 `#FBFBFA`, 본문 `#181A1D` 17px/1.62,
 컨테이너 1120px.
 
+**예외 3 — `/family/` (가족 미니월드)**: 아빠·엄마·딸 가족 캘린더 앱. 독립 문서로
+`family/family.css` 를 쓰며 사이트 메뉴에 연결하지 않고 `noindex` 를 건다.
+**가족 데이터는 방문자 브라우저의 localStorage 에만 저장한다 — 저장소에 가족 정보를
+커밋하지 않는다.** 데모 데이터는 가상의 예시다. 방·아바타 그림은 Higgsfield 로 생성해
+`family/img/` 에 두고 `family/js/scene.js` 의 `ASSETS` 에 경로를 적는다(없는 그림은
+SVG 대체 그림). JS 는 ES 모듈이라 내부 import 에도 `?v=N` 을 달아 함께 올린다.
+
 ---
 
 ## 데이터 파이프라인
