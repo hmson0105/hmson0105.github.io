@@ -4,7 +4,7 @@ import * as M from './model.js?v=6';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=6';
 import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG } from './scene.js?v=8';
-import { createSync, syncConfigured } from './sync.js?v=11';
+import { createSync, syncConfigured } from './sync.js?v=12';
 import { parseKakao } from './kakao.js?v=4';
 import { APP_URL } from './config.js?v=10';
 
@@ -35,6 +35,7 @@ const ui = {
   cal: { mode: 'month', cursor: D.today(), selected: D.today(), filter: new Set(S.members.map(m => m.id)) },
   saveError: canStore ? null : '이 브라우저에서는 저장할 수 없어요(개인정보 보호 모드 등). 새로고침하면 입력한 내용이 사라져요.',
   plan: { tripId: null, filter: 'all' },
+  admin: { accounts: null, accountsErr: null, picked: new Set() },
   elevating: false,
   celebrate: null,
   lastMinute: '',
@@ -69,7 +70,7 @@ const sync = createSync({
       const hasDemo = S.events.some(e => e.sourceId === 'src_demo') || S.issues.some(i => i.sourceId === 'src_demo');
       if (hasDemo) { M.stripDemo(S); fromRemote = true; try { persist(); } finally { fromRemote = false; } }
       renderAll();
-    } else { renderHeader(); if (ui.view === 'sync' && !$('#dlg').open) renderSync(); }
+    } else { renderHeader(); if (ui.view === 'sync' && !$('#dlg').open) renderSync(); if (ui.view === 'admin' && !$('#dlg').open) renderAdmin(); }
   },
 });
 
@@ -816,6 +817,84 @@ function kakaoDialog() {
   });
 }
 
+
+// ───────────────────────── 관리자 모드 ─────────────────────────
+// 관리자 = 가족을 처음 만든 사람. 동기화 전(이 기기 전용)에는 이 기기 사용자가 관리자다.
+// 계정 내보내기·초대 코드·가족 이름은 서버(RPC)에서도 관리자만 할 수 있게 막혀 있다.
+const isAdmin = () => !connected() || !!ui.sync?.membership?.isAdmin;
+async function loadAccounts() {
+  if (!connected()) { ui.admin.accounts = null; return; }
+  try { ui.admin.accounts = await sync.listAccounts(); ui.admin.accountsErr = null; }
+  catch { ui.admin.accountsErr = '가족 계정 목록을 불러오지 못했어요.'; }
+  if (ui.view === 'admin') renderAdmin();
+}
+function renderAdmin() {
+  const box = $('#adminBody');
+  const s = ui.sync || {};
+  if (connected() && !isAdmin()) {
+    box.innerHTML = `<section class="card"><header class="card-h"><h2>🛠 관리자 모드</h2><span class="pill pill-off">보기 전용</span></header>
+      <p>관리자는 <b>가족을 처음 만든 사람</b>이에요. 구성원 이름·방 꾸미기는 각자 방에서 바꿀 수 있고, 계정·초대 코드 관리는 관리자에게 부탁해 주세요.</p></section>`;
+    return;
+  }
+  if (connected() && !ui.admin.accounts && !ui.admin.accountsErr) loadAccounts();
+  const counts = [['일정', S.events], ['이슈', S.issues], ['여행', S.trips || []], ['여행 댓글', S.tripComments || []], ['살 것·준비할 것', S.boardItems || []], ['글', S.posts], ['방명록', S.guestbook], ['가족 소식', S.activity || []]]
+    .map(([l, a]) => [l, a.filter(x => x.sourceId !== 'src_demo').length, a.filter(x => x.sourceId === 'src_demo').length]);
+  const evs = S.events.filter(e => e.sourceId !== 'src_demo').sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const today = D.today();
+  const oldEvents = S.events.filter(e => e.sourceId !== 'src_demo' && !e.recurrenceRuleId && !e.pinned && (e.endDate || e.startDate) < D.addDays(today, -60)).length;
+  const doneIssues = S.issues.filter(i => i.done && i.date < today).length;
+  const acc = ui.admin.accounts;
+  box.innerHTML = `
+  <section class="card"><header class="card-h"><h2>🛠 관리자 모드</h2><span class="pill pill-on">${connected() ? '가족 관리자' : '이 기기 관리자'}</span></header>
+    <p class="small muted">${connected() ? `${esc(s.user?.email || '')} 계정이 이 가족을 만들어서 관리자예요.` : '아직 가족 동기화 전이라, 이 기기에서 쓰는 사람이 관리자예요. 동기화를 켜면 가족을 만든 사람이 관리자가 돼요.'}</p>
+  </section>
+
+  <section class="card"><header class="card-h"><h2>👪 가족 정보</h2></header>
+    <form class="adm-form" data-submit="adm-family">
+      <label class="fld"><span>가족 이름</span><input name="name" maxlength="20" value="${esc(s.family?.name || S.family.name || '우리 가족')}"></label>
+      <button class="btn-p btn-sm">저장</button>
+    </form>
+  </section>
+
+  <section class="card"><header class="card-h"><h2>🧑‍🤝‍🧑 구성원 프로필</h2><span class="hint">이름·역할·방 이름·색</span></header>
+    <form data-submit="adm-members" class="adm-members">
+      ${S.members.map(m => `<fieldset class="adm-mem" style="--c:${m.color}"><legend>${face(m)} ${m.floor}F</legend>
+        <label class="fld"><span>부르는 이름</span><input name="dn_${m.id}" maxlength="10" value="${esc(m.displayName)}" required></label>
+        <label class="fld"><span>역할</span><input name="rl_${m.id}" maxlength="6" value="${esc(m.roleLabel)}" required></label>
+        <label class="fld"><span>방 이름</span><input name="sp_${m.id}" maxlength="16" value="${esc(m.space.name)}" required></label>
+        <label class="fld adm-color"><span>색</span><input type="color" name="co_${m.id}" value="${m.color}"></label>
+      </fieldset>`).join('')}
+      <div class="btn-row"><button class="btn-p">프로필 저장</button></div>
+    </form>
+  </section>
+
+  ${connected() ? `<section class="card"><header class="card-h"><h2>🔑 가족 계정</h2><button type="button" class="btn-g btn-sm" data-action="adm-reload">새로고침</button></header>
+    ${ui.admin.accountsErr ? `<p class="form-err">${esc(ui.admin.accountsErr)}</p>` : !acc ? '<p class="muted small">불러오는 중…</p>' : `<ul class="adm-acc">${acc.map(a => `<li style="--c:${member(a.member_id)?.color || '#FF8FB8'}">${face(member(a.member_id))}<div><b>${esc(memberName(a.member_id))}</b>${a.admin ? ' <span class="tag tag-today">관리자</span>' : ''}${a.me ? ' <span class="tag tag-src">나</span>' : ''}<br><small>${esc(a.email || '이메일 정보 없음')} · ${D.fmtStamp(a.joined_at)} 참여</small></div>${a.me ? '' : `<button type="button" class="btn-g danger btn-sm" data-action="adm-remove" data-id="${a.user_id}" data-name="${esc(a.email || memberName(a.member_id))}">내보내기</button>`}</li>`).join('')}</ul>`}
+    <dl class="kv kv-wide"><div><dt>초대 코드</dt><dd><code class="invite">${esc(s.family?.invite_code || '')}</code> <button type="button" class="btn-s btn-sm" data-action="copy-invite">복사</button> <button type="button" class="btn-g btn-sm" data-action="adm-rotate">새 코드 만들기</button><br><span class="small muted">새 코드를 만들면 예전 코드로는 더 이상 참여할 수 없어요. 이미 참여한 가족은 그대로예요.</span></dd></div></dl>
+  </section>` : ''}
+
+  <section class="card"><header class="card-h"><h2>📊 데이터 한눈에</h2></header>
+    <table class="adm-table"><thead><tr><th>종류</th><th>우리 데이터</th><th>예시</th></tr></thead><tbody>${counts.map(([l, n, d]) => `<tr><td>${l}</td><td><b>${n}</b></td><td class="muted">${d || '-'}</td></tr>`).join('')}</tbody></table>
+    <div class="btn-row">
+      <button type="button" class="btn-s" data-action="adm-clean-old" ${oldEvents ? '' : 'disabled'}>60일 지난 일정 정리 (${oldEvents})</button>
+      <button type="button" class="btn-s" data-action="adm-clean-done" ${doneIssues ? '' : 'disabled'}>지난 완료 이슈 정리 (${doneIssues})</button>
+      <button type="button" class="btn-s" data-action="backup">백업(JSON) 받기</button>
+    </div>
+    <p class="small muted">📌 고정 일정과 반복 일정은 정리 대상에서 빠져요.</p>
+  </section>
+
+  <section class="card"><header class="card-h"><h2>📅 일정 관리</h2><span class="hint">${evs.length}개</span></header>
+    ${evs.length ? `<div class="adm-ev-wrap"><table class="adm-table adm-ev"><thead><tr><th><input type="checkbox" data-change="adm-pick-all" aria-label="모두 선택"></th><th>날짜</th><th>제목</th><th>담당</th><th>표시</th></tr></thead><tbody>
+      ${evs.map(e => `<tr><td><input type="checkbox" data-change="adm-pick" value="${e.id}" ${ui.admin.picked.has(e.id) ? 'checked' : ''} aria-label="${esc(e.title)} 선택"></td><td>${D.fmtDate(e.startDate, { wd: false })}${e.recurrenceRuleId ? ' 🔁' : ''}</td><td><button type="button" class="link-ev" data-action="open-event" data-id="${e.id}" data-date="${e.startDate}">${esc(e.title)}</button></td><td>${esc(memberName(e.ownerId))}</td><td>${e.pinned ? '📌' : ''}${e.status === 'cancelled' ? ' 취소' : ''}${e.visibility === 'private' ? ' 🔒' : ''}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="btn-row"><button type="button" class="btn-g danger" data-action="adm-delete-picked" ${ui.admin.picked.size ? '' : 'disabled'}>🗑️ 선택한 ${ui.admin.picked.size}개 삭제</button></div>` : '<p class="muted small">아직 직접 넣은 일정이 없어요.</p>'}
+  </section>
+
+  <section class="card"><header class="card-h"><h2>🕘 전체 활동 기록</h2><span class="hint">최근 ${Math.min(30, (S.activity || []).length)}건</span></header>
+    ${(S.activity || []).length ? `<ul class="act-list">${(S.activity || []).slice().sort((a, b) => b.at.localeCompare(a.at)).slice(0, 30).map(a => `<li style="--c:${member(a.by)?.color || '#FF8FB8'}">${face(member(a.by))}<div><p>${esc(a.text)}</p><small>${esc(memberName(a.by))} · ${D.fmtStamp(a.at)}</small></div></li>`).join('')}</ul>` : '<p class="muted small">아직 기록이 없어요.</p>'}
+  </section>`;
+}
+
 // ───────────────────────── 대화상자 ─────────────────────────
 function openDialog({ title, body, actions, onSubmit, onMount, cls = '' }) {
   const d = $('#dlg');
@@ -891,7 +970,7 @@ function eventDialog(ev, occDate) {
     ${historyHTML(ev)}
     ${isNew ? '' : `<div class="linked"><h3 class="sub-h">연결된 준비 항목</h3>${linked.length ? `<ul class="is-list">${linked.map(i => issueRow(i, { showDate: true })).join('')}</ul>` : '<p class="muted small">아직 없어요.</p>'}<button type="button" class="btn-s btn-sm" data-action="new-issue" data-date="${occDate || ev.startDate}" data-event="${ev.id}" data-owner="${ev.ownerId}">+ 준비 항목 추가</button></div>`}`;
   const actions = `${isNew ? '' : `<button type="submit" value="apple" class="btn-g" formnovalidate>🍎 Apple 캘린더에 추가</button>`}
-    ${!isNew && rr && occDate ? `<button type="submit" value="skip" class="btn-g" formnovalidate>이 날만 취소</button>` : ''}
+    ${!isNew && rr && occDate ? `<button type="submit" value="skip" class="btn-g" formnovalidate>이 날만 취소</button><button type="submit" value="from-here" class="btn-g danger" formnovalidate>✂️ 이 날부터 모두 삭제</button>` : ''}
     ${!isNew ? `<button type="submit" value="cancel" class="btn-g" formnovalidate>${ev.status === 'cancelled' ? '취소 되돌리기' : '일정 취소'}</button><button type="submit" value="delete" class="btn-g danger" formnovalidate>🗑️ 삭제</button>` : ''}
     <span class="sp"></span><button type="submit" value="save" class="btn-p">${isNew ? '추가' : '저장'}</button>`;
 
@@ -907,6 +986,11 @@ function eventDialog(ev, occDate) {
       };
       f.addEventListener('change', e => {
         if (e.target.name === 'startDate' && f.endDate.value < f.startDate.value) f.endDate.value = f.startDate.value;
+        if (e.target.name === 'startDate' && f.startDate.value) {
+          // 반복 요일이 하나만 골라져 있으면 새 날짜의 요일로 따라간다
+          const boxes = [...f.querySelectorAll('input[name=byday]')];
+          if (boxes.filter(x => x.checked).length <= 1) boxes.forEach(x => { x.checked = x.value === D.DAYCODES[D.weekday(f.startDate.value)]; });
+        }
         if (e.target.name === 'ownerId') { const c = f.querySelector(`input[name=att][value="${f.ownerId.value}"]`); if (c) c.checked = true; }
         sync();
       });
@@ -932,6 +1016,28 @@ function eventDialog(ev, occDate) {
         addHistory(ev, [ev.status === 'cancelled' ? '일정 취소' : '취소 되돌림']);
         logActivity('event', ev.id, `'${ev.title}' ${ev.status === 'cancelled' ? '일정을 취소했어요' : '취소를 되돌렸어요'}`);
         persist(); renderAll(); toast(ev.status === 'cancelled' ? '일정을 취소로 표시했어요.' : '취소를 되돌렸어요.');
+        return true;
+      }
+      if (sub === 'from-here') {
+        // 이 회차부터 뒤는 모두 지우고, 앞 회차는 남긴다: 반복 끝나는 날을 전날로.
+        if (occDate <= ev.startDate) {
+          if (!confirm(`'${ev.title}'의 첫 회차예요. 반복 일정 전체를 삭제할까요?`)) return false;
+          S.events = S.events.filter(e => e.id !== ev.id);
+          S.recurrenceRules = S.recurrenceRules.filter(r => r.id !== rr.id);
+          S.issues.forEach(i => { if (i.eventId === ev.id) i.eventId = null; });
+          logActivity('event', ev.id, `'${ev.title}' 반복 일정을 모두 삭제했어요`);
+          persist(); renderAll(); toast('반복 일정을 모두 삭제했어요.');
+          return true;
+        }
+        if (!confirm(`'${ev.title}'을(를) ${D.fmtDate(occDate)}부터 모두 삭제할까요?\n그 전 회차는 그대로 남아요.`)) return false;
+        const until = D.addDays(occDate, -1);
+        rr.until = rr.until && rr.until < until ? rr.until : until;
+        rr.count = null;
+        ev.exDates = (ev.exDates || []).filter(x => x < occDate);
+        ev.updatedAt = new Date().toISOString();
+        addHistory(ev, [`${D.fmtDate(occDate)}부터 반복 끝`]);
+        logActivity('event', ev.id, `'${ev.title}' ${D.fmtDate(occDate)}부터 모두 삭제했어요`);
+        persist(); renderAll(); toast(`${D.fmtDate(occDate)}부터 모두 삭제했어요.`);
         return true;
       }
       if (sub === 'skip') {
@@ -1507,6 +1613,7 @@ function renderView() {
   if (ui.view === 'world') renderWorld();
   else if (ui.view === 'cal') renderCal();
   else if (ui.view === 'plan') renderPlan();
+  else if (ui.view === 'admin') renderAdmin();
   else renderSync();
 }
 function renderAll() { renderHeader(); renderBanner(); renderView(); }
@@ -1593,6 +1700,44 @@ const ACTIONS = {
   'sync-signout': async () => { if (!confirm('이 기기에서 로그아웃할까요? 이 기기의 데이터는 남아 있어요.')) return; await sync.signOut(); renderAll(); toast('로그아웃했어요.'); },
   'copy-invite': async () => { try { await navigator.clipboard.writeText(ui.sync.family.invite_code); toast('초대 코드를 복사했어요.'); } catch { toast('코드를 길게 눌러 복사해 주세요.'); } },
   kakao: () => kakaoDialog(),
+  'adm-reload': () => { ui.admin.accounts = null; ui.admin.accountsErr = null; renderAdmin(); },
+  'adm-rotate': async () => {
+    if (!confirm('초대 코드를 새로 만들까요? 예전 코드로는 더 이상 참여할 수 없어요.')) return;
+    try { await sync.rotateInvite(); toast('새 초대 코드를 만들었어요.'); renderAdmin(); } catch { toast('관리자만 바꿀 수 있어요.', 'err'); }
+  },
+  'adm-remove': async b => {
+    if (!confirm(`${b.dataset.name} 계정을 가족에서 내보낼까요? 그 사람은 더 이상 가족 데이터를 볼 수 없어요.`)) return;
+    try { await sync.removeAccount(b.dataset.id); toast('내보냈어요.'); ui.admin.accounts = null; renderAdmin(); } catch { toast('내보내지 못했어요.', 'err'); }
+  },
+  'adm-clean-old': () => {
+    const cut = D.addDays(D.today(), -60);
+    const ids = new Set(S.events.filter(e => e.sourceId !== 'src_demo' && !e.recurrenceRuleId && !e.pinned && (e.endDate || e.startDate) < cut).map(e => e.id));
+    if (!ids.size || !confirm(`60일 지난 일정 ${ids.size}개를 지울까요?`)) return;
+    S.events = S.events.filter(e => !ids.has(e.id));
+    S.issues.forEach(i => { if (ids.has(i.eventId)) i.eventId = null; });
+    logActivity('event', '', `관리자가 지난 일정 ${ids.size}개를 정리했어요`);
+    persist(); renderAll(); toast('정리했어요.');
+  },
+  'adm-clean-done': () => {
+    const n = S.issues.filter(i => i.done && i.date < D.today()).length;
+    if (!n || !confirm(`지난 완료 이슈 ${n}개를 지울까요?`)) return;
+    S.issues = S.issues.filter(i => !(i.done && i.date < D.today()));
+    persist(); renderAll(); toast('정리했어요.');
+  },
+  'adm-delete-picked': () => {
+    const ids = ui.admin.picked;
+    if (!ids.size) return;
+    const pinned = S.events.filter(e => ids.has(e.id) && e.pinned).length;
+    if (!confirm(`선택한 일정 ${ids.size}개를 삭제할까요?${pinned ? `\n📌 고정 일정 ${pinned}개도 함께 지워져요.` : ''}\n반복 일정은 모든 회차가 지워져요.`)) return;
+    const rr = new Set(S.events.filter(e => ids.has(e.id)).map(e => e.recurrenceRuleId).filter(Boolean));
+    S.events = S.events.filter(e => !ids.has(e.id));
+    S.recurrenceRules = S.recurrenceRules.filter(r => !rr.has(r.id));
+    S.issues.forEach(i => { if (ids.has(i.eventId)) i.eventId = null; });
+    (S.trips || []).forEach(t => { if (ids.has(t.eventId)) t.eventId = null; });
+    logActivity('event', '', `관리자가 일정 ${ids.size}개를 삭제했어요`);
+    ui.admin.picked = new Set();
+    persist(); renderAll(); toast('삭제했어요.');
+  },
   'move-home': async () => {
     try { location.href = await makeShareLink(APP_URL); }
     catch { location.href = APP_URL; }
@@ -1628,6 +1773,8 @@ document.addEventListener('change', e => {
   if (t.id === 'viewerSel') { ui.viewer = t.value; savePref('viewer', t.value); renderAll(); toast(`${viewerName()}(으)로 보고 있어요. (로그인이 아니라 보기 전환이에요)`); return; }
   const a = t.dataset.change;
   if (a === 'toggle-issue') toggleIssue(t.dataset.id, t.checked);
+  if (a === 'adm-pick') { t.checked ? ui.admin.picked.add(t.value) : ui.admin.picked.delete(t.value); renderAdmin(); }
+  if (a === 'adm-pick-all') { ui.admin.picked = t.checked ? new Set(S.events.filter(e => e.sourceId !== 'src_demo').map(e => e.id)) : new Set(); renderAdmin(); }
   if (a === 'toggle-board') {
     const b = (S.boardItems || []).find(x => x.id === t.dataset.id);
     if (b) { b.done = t.checked; b.updatedAt = new Date().toISOString(); persist(); renderAll(); if (t.checked) toast(`✅ '${b.title}' 완료!`); }
@@ -1637,6 +1784,27 @@ document.addEventListener('change', e => {
 });
 document.addEventListener('submit', e => {
   const f = e.target;
+  if (f.dataset.submit === 'adm-family') {
+    e.preventDefault();
+    const name = f.name.value.trim() || '우리 가족';
+    S.family.name = name;
+    persist();
+    if (connected()) sync.renameFamily(name).catch(() => toast('서버의 가족 이름은 관리자만 바꿀 수 있어요.', 'err'));
+    toast('가족 이름을 저장했어요.'); renderAll();
+    return;
+  }
+  if (f.dataset.submit === 'adm-members') {
+    e.preventDefault();
+    for (const m of S.members) {
+      m.displayName = f[`dn_${m.id}`].value.trim() || m.displayName;
+      m.roleLabel = f[`rl_${m.id}`].value.trim() || m.roleLabel;
+      m.space.name = f[`sp_${m.id}`].value.trim() || m.space.name;
+      m.color = f[`co_${m.id}`].value || m.color;
+    }
+    logActivity('status', '', '관리자가 구성원 프로필을 바꿨어요');
+    persist(); renderAll(); toast('프로필을 저장했어요.');
+    return;
+  }
   if (f.dataset.submit === 'trip-comment') {
     e.preventDefault();
     const text = f.text.value.trim();

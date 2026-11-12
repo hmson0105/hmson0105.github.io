@@ -143,10 +143,10 @@ export function createSync({ getState, onRemote, onStatus }) {
   async function connect() {
     try {
       st.state = 'connecting'; emit();
-      const { data: mem, error } = await sb.from('family_members').select('family_id,member_id,families(id,name,invite_code)').eq('user_id', user.id).limit(1);
+      const { data: mem, error } = await sb.from('family_members').select('family_id,member_id,families(id,name,invite_code,created_by)').eq('user_id', user.id).limit(1);
       if (error) throw error;
       if (!mem.length) { family = null; membership = null; st.state = 'no-family'; emit(); return; }
-      membership = { member_id: mem[0].member_id };
+      membership = { member_id: mem[0].member_id, isAdmin: mem[0].families.created_by === user.id };
       family = mem[0].families;
       const saved = readJSON(FAMILY_KEY, null);
       const first = !saved || saved.id !== family.id;
@@ -224,6 +224,27 @@ export function createSync({ getState, onRemote, onStatus }) {
       const { error } = await sb.rpc('join_family', { p_code: code, p_member_id: memberId });
       if (error) throw error;
       await connect();
+    },
+    async listAccounts() {
+      if (!family) return [];
+      const { data, error } = await sb.from('family_members').select('user_id,member_id,email,joined_at').eq('family_id', family.id).order('joined_at');
+      if (error) throw error;
+      return data.map(x => ({ ...x, me: x.user_id === user.id, admin: x.user_id === family.created_by }));
+    },
+    async rotateInvite() {
+      const { data, error } = await sb.rpc('rotate_invite_code');
+      if (error) throw error;
+      family = { ...family, invite_code: data }; emit();
+      return data;
+    },
+    async removeAccount(uid) {
+      const { error } = await sb.rpc('remove_family_member', { p_user: uid });
+      if (error) throw error;
+    },
+    async renameFamily(name) {
+      const { error } = await sb.rpc('rename_family', { p_name: name });
+      if (error) throw error;
+      family = { ...family, name }; emit();
     },
     async syncNow() { if (family) { await catchUp(); await push(); } },
     async signOut() {

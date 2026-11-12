@@ -773,3 +773,21 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 @media (display-mode: standalone) {
   .top { padding-top: max(10px, env(safe-area-inset-top)); }
 }
+
+/* 관리자 모드 */
+.adm-form { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
+.adm-form .fld { flex: 1 1 200px; }
+.adm-members { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.adm-members .btn-row { grid-column: 1 / -1; }
+.adm-mem { border: 2px solid var(--line); border-top: 5px solid var(--c); border-radius: 16px; padding: 10px 12px; display: grid; gap: 8px; margin: 0; min-width: 0; }
+.adm-mem legend { display: flex; align-items: center; gap: 6px; font-family: var(--font-d); padding: 0 4px; }
+.adm-color input { height: 40px; padding: 2px; }
+.adm-acc { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+.adm-acc li { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 8px 12px; border-radius: 14px; background: var(--pink-xl); border-left: 4px solid var(--c); }
+.adm-acc small { color: var(--ink-3); }
+.adm-table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.adm-table th, .adm-table td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+.adm-table th { font-weight: 400; color: var(--ink-3); font-size: 13px; }
+.adm-ev-wrap { max-height: 420px; overflow: auto; border: 2px solid var(--line); border-radius: 12px; }
+.adm-ev input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--pink); }
+.adm-ev .link-ev { text-align: left; }
