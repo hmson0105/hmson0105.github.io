@@ -683,3 +683,15 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
   body.fit .st-actions { grid-area: act; margin: 0; }
   body.fit .st-actions .btn-g { display: none; }
 }
+
+/* 대화상자 아래 버튼을 버튼답게 */
+.dlg-f .btn-g { border: 2px solid var(--line); background: #fff; color: var(--ink); }
+.dlg-f .btn-g:hover { background: var(--pink-l); }
+.btn-g.danger, .dlg-f .btn-g.danger { border: 2px solid #F4B4BB; background: #FFF4F5; color: var(--err); font-weight: 700; }
+.btn-g.danger:hover, .dlg-f .btn-g.danger:hover { background: #FFE4E7; }
+@media (max-width: 760px) {
+  .dlg-f { gap: 8px; }
+  .dlg-f .btn-g { flex: 1 1 auto; justify-content: center; }
+  .dlg-f .sp { display: none; }
+  .dlg-f .btn-p { flex: 1 1 100%; justify-content: center; padding: 11px; }
+}

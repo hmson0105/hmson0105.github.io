@@ -871,7 +871,7 @@ function eventDialog(ev, occDate) {
     ${isNew ? '' : `<div class="linked"><h3 class="sub-h">연결된 준비 항목</h3>${linked.length ? `<ul class="is-list">${linked.map(i => issueRow(i, { showDate: true })).join('')}</ul>` : '<p class="muted small">아직 없어요.</p>'}<button type="button" class="btn-s btn-sm" data-action="new-issue" data-date="${occDate || ev.startDate}" data-event="${ev.id}" data-owner="${ev.ownerId}">+ 준비 항목 추가</button></div>`}`;
   const actions = `${isNew ? '' : `<button type="submit" value="apple" class="btn-g" formnovalidate>🍎 Apple 캘린더에 추가</button>`}
     ${!isNew && rr && occDate ? `<button type="submit" value="skip" class="btn-g" formnovalidate>이 날만 취소</button>` : ''}
-    ${!isNew ? `<button type="submit" value="cancel" class="btn-g" formnovalidate>${ev.status === 'cancelled' ? '취소 되돌리기' : '일정 취소'}</button>${ev.pinned ? '' : '<button type="submit" value="delete" class="btn-g danger" formnovalidate>삭제</button>'}` : ''}
+    ${!isNew ? `<button type="submit" value="cancel" class="btn-g" formnovalidate>${ev.status === 'cancelled' ? '취소 되돌리기' : '일정 취소'}</button><button type="submit" value="delete" class="btn-g danger" formnovalidate>🗑️ 삭제</button>` : ''}
     <span class="sp"></span><button type="submit" value="save" class="btn-p">${isNew ? '추가' : '저장'}</button>`;
 
   openDialog({
@@ -895,7 +895,8 @@ function eventDialog(ev, occDate) {
     onSubmit(f, sub) {
       if (sub === 'apple') { exportEvents([ev], `${ev.title}.ics`); return false; }
       if (sub === 'delete') {
-        if (!confirm(`'${ev.title}' 일정을 삭제할까요? 되돌릴 수 없어요.${rr ? '\n반복 일정 전체가 삭제돼요.' : ''}`)) return false;
+        const pinNote = ev.pinned ? '📌 고정 일정이에요. 고정을 풀고 삭제할까요?\n' : '';
+        if (!confirm(`${pinNote}'${ev.title}' 일정을 삭제할까요? 되돌릴 수 없어요.${rr ? '\n반복 일정 전체(매주 반복 포함)가 삭제돼요. 하루만 빼려면 \'이 날만 취소\'를 눌러 주세요.' : ''}`)) return false;
         S.events = S.events.filter(e => e.id !== ev.id);
         if (rr) S.recurrenceRules = S.recurrenceRules.filter(r => r.id !== rr.id);
         S.issues.forEach(i => { if (i.eventId === ev.id) i.eventId = null; });
