@@ -6,6 +6,7 @@ import { buildICS, parseICS, downloadText } from './ics.js?v=6';
 import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG } from './scene.js?v=8';
 import { createSync, syncConfigured } from './sync.js?v=8';
 import { parseKakao } from './kakao.js?v=4';
+import { APP_URL } from './config.js?v=8';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -223,6 +224,7 @@ function renderBanner() {
   if (bootNote) b.push(`<div class="banner banner-warn">${esc(bootNote)}</div>`);
   const hasDemo = S.events.some(e => e.sourceId === 'src_demo') || S.issues.some(i => i.sourceId === 'src_demo');
   if (hasDemo) b.push(`<div class="banner banner-demo"><span>🧸 지금 보이는 일정·이슈 중 <b>예시</b> 표시가 붙은 것은 데모 데이터예요. 다른 기기의 일정은 <b>연동 › 다른 기기로 옮기기</b> 링크로 가져올 수 있어요.</span><button type="button" class="btn-s" data-action="strip-demo">예시 지우고 시작하기</button></div>`);
+  if (APP_URL && !location.href.startsWith(APP_URL) && !/localhost|127\.0\.0\.1/.test(location.hostname)) b.push(`<div class="banner banner-warn"><span>🏡 우리집 미니월드가 <b>새 주소</b>로 이사했어요. 이 기기에 저장된 일정을 그대로 가지고 갈 수 있어요.</span><button type="button" class="btn-p btn-sm" data-action="move-home">내 데이터와 함께 새 주소로 가기</button></div>`);
   if (hasUndo()) b.push(`<div class="banner banner-warn"><span>↩️ 예시를 지웠어요. 잘못 눌렀다면 되돌릴 수 있어요.</span><span class="btn-row" style="margin:0"><button type="button" class="btn-s" data-action="undo-strip">되돌리기</button><button type="button" class="btn-g" data-action="drop-undo">괜찮아요</button></span></div>`);
   $('#banner').innerHTML = b.join('');
 }
@@ -570,6 +572,7 @@ function renderSync() {
   const hasDemo = S.events.some(e => e.sourceId === 'src_demo') || S.issues.some(i => i.sourceId === 'src_demo');
   const photoBytes = S.posts.reduce((n, p) => n + (p.photo ? p.photo.length : 0), 0);
   $('#syncBody').innerHTML = `
+  ${installCardHTML()}
   <section class="card card-sync"><header class="card-h"><h2>👪 가족 자동 동기화</h2>${syncPill()}</header>
     ${syncCardBody()}
   </section>
@@ -651,6 +654,23 @@ function tripCommentsHTML(t) {
       <input name="text" maxlength="200" required placeholder="${esc(memberName(ui.viewer))}(으)로 댓글 남기기" aria-label="여행 댓글">
       <button class="btn-p btn-sm">남기기</button>
     </form>
+  </section>`;
+}
+// ───────────────────────── 앱으로 설치(PWA) ─────────────────────────
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; if (ui.view === 'sync') renderSync(); });
+window.addEventListener('appinstalled', () => { deferredInstall = null; toast('앱으로 설치했어요 🏠'); });
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function installCardHTML() {
+  if (isStandalone()) return `<section class="card"><header class="card-h"><h2>📱 앱으로 쓰는 중</h2><span class="pill pill-on">설치됨</span></header><p class="small muted">홈 화면 아이콘으로 열었어요. 인터넷이 끊겨도 화면은 열리고, 입력한 내용은 이 기기에 저장돼요.</p></section>`;
+  const how = isIOS()
+    ? `<ol class="steps"><li><b>Safari</b>로 이 페이지를 열어요. (카톡 안 브라우저에서는 안 돼요 → 오른쪽 아래 메뉴에서 'Safari로 열기')</li><li>아래쪽 <b>공유 버튼(□↑)</b>을 눌러요.</li><li><b>홈 화면에 추가</b>를 누르고 '추가'를 눌러요.</li></ol>`
+    : deferredInstall
+      ? `<button type="button" class="btn-p" data-action="install-app">📲 앱으로 설치하기</button>`
+      : `<ol class="steps"><li>Chrome 메뉴(⋮)를 열어요.</li><li><b>앱 설치</b> 또는 <b>홈 화면에 추가</b>를 눌러요.</li></ol>`;
+  return `<section class="card card-install"><header class="card-h"><h2>📱 휴대폰 앱으로 설치하기</h2></header>
+    <div class="install-row"><img src="img/icon-192.png" alt="" class="app-ico"><div><p>홈 화면에 <b>우리집</b> 아이콘이 생기고, 주소창 없이 앱처럼 전체 화면으로 열려요. 인터넷이 끊겨도 화면은 열려요.</p>${how}</div></div>
   </section>`;
 }
 function syncPill() {
@@ -1572,6 +1592,16 @@ const ACTIONS = {
   'sync-signout': async () => { if (!confirm('이 기기에서 로그아웃할까요? 이 기기의 데이터는 남아 있어요.')) return; await sync.signOut(); renderAll(); toast('로그아웃했어요.'); },
   'copy-invite': async () => { try { await navigator.clipboard.writeText(ui.sync.family.invite_code); toast('초대 코드를 복사했어요.'); } catch { toast('코드를 길게 눌러 복사해 주세요.'); } },
   kakao: () => kakaoDialog(),
+  'move-home': async () => {
+    try { location.href = await makeShareLink(APP_URL); }
+    catch { location.href = APP_URL; }
+  },
+  'install-app': async () => {
+    if (!deferredInstall) return;
+    deferredInstall.prompt();
+    await deferredInstall.userChoice.catch(() => null);
+    deferredInstall = null; if (ui.view === 'sync') renderSync();
+  },
   'seen-activity': () => { savePref(`seen:${ui.viewer}`, new Date().toISOString()); renderView(); },
   'reset-demo': () => {
     if (!confirm('모든 데이터를 지우고 예시 데이터로 되돌릴까요? 되돌릴 수 없어요.')) return;
@@ -1671,13 +1701,13 @@ function hasUndo() { try { return !!localStorage.getItem(UNDO_KEY); } catch { re
 const SHARE_KEYS = ['events', 'issues', 'trips', 'tripComments', 'boardItems', 'places', 'recurrenceRules', 'sources', 'activity'];
 const b64url = buf => { let s = ''; const b = new Uint8Array(buf); for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
 const unb64url = str => { const s = atob(str.replace(/-/g, '+').replace(/_/g, '/')); const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; };
-async function makeShareLink() {
+async function makeShareLink(base = APP_URL || `${location.origin}${location.pathname}`) {
   const pick = arr => (arr || []).filter(x => x.sourceId !== 'src_demo' && x.visibility !== 'private');
   const payload = { kind: 'family-share', v: 1, at: new Date().toISOString() };
   for (const k of SHARE_KEYS) payload[k] = k === 'places' || k === 'recurrenceRules' || k === 'sources' ? (S[k] || []) : pick(S[k]);
   payload.statuses = S.members.map(m => ({ id: m.id, status: m.status && !m.status.demo && m.status.visibility !== 'private' ? m.status : null }));
   const gz = new Blob([JSON.stringify(payload)]).stream().pipeThrough(new CompressionStream('gzip'));
-  return `${location.origin}${location.pathname}#import=${b64url(await new Response(gz).arrayBuffer())}`;
+  return `${base}#import=${b64url(await new Response(gz).arrayBuffer())}`;
 }
 async function readShareLink() {
   const m = location.hash.match(/^#import=([A-Za-z0-9_-]+)$/);
@@ -1725,3 +1755,4 @@ renderBanner();
 readShareLink();
 sync.start();
 window.addEventListener('hashchange', readShareLink);
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});

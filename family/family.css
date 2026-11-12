@@ -757,3 +757,19 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
   .cal-add button { padding: 7px 6px; font-size: 13.5px; justify-content: center; box-shadow: none; }
   body.fit .hello-date { display: none; }
 }
+/* 앱 설치 안내 */
+.install-row { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; }
+.app-ico { width: 64px; height: 64px; border-radius: 16px; box-shadow: 0 3px 0 var(--line); }
+.install-row p { margin: 0 0 8px; }
+/* 앱(홈 화면)으로 열었을 때 아이폰 노치 영역 */
+@media (display-mode: standalone) {
+  .top { padding-top: max(10px, env(safe-area-inset-top)); }
+}
+/* 앱 설치 안내 */
+.install-row { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; }
+.app-ico { width: 64px; height: 64px; border-radius: 16px; box-shadow: 0 3px 0 var(--line); }
+.install-row p { margin: 0 0 8px; }
+/* 앱(홈 화면)으로 열었을 때 아이폰 노치 영역 */
+@media (display-mode: standalone) {
+  .top { padding-top: max(10px, env(safe-area-inset-top)); }
+}

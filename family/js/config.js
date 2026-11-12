@@ -4,3 +4,7 @@
 // 비어 있으면 동기화 없이 이 기기에만 저장한다.
 export const SUPABASE_URL = '';
 export const SUPABASE_KEY = '';
+
+// 앱의 대표 주소(Vercel). 비어 있으면 지금 연 주소를 쓴다.
+// 다른 주소(예: GitHub Pages)에서 열면 '새 주소로 옮기기' 안내가 뜬다.
+export const APP_URL = '';
