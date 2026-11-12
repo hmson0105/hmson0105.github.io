@@ -31,7 +31,7 @@ const ui = {
   view: 'world',
   floor: +(loadPref('floor') || 1),
   viewer: loadPref('viewer') || 'm_mom',
-  cal: { mode: mobileMQ.matches ? 'day' : 'month', cursor: D.today(), selected: D.today(), filter: new Set(S.members.map(m => m.id)) },
+  cal: { mode: 'month', cursor: D.today(), selected: D.today(), filter: new Set(S.members.map(m => m.id)) },
   saveError: canStore ? null : '이 브라우저에서는 저장할 수 없어요(개인정보 보호 모드 등). 새로고침하면 입력한 내용이 사라져요.',
   plan: { tripId: null, filter: 'all' },
   elevating: false,
