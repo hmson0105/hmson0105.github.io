@@ -3,7 +3,7 @@ import * as D from './dates.js?v=6';
 import * as M from './model.js?v=6';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=6';
-import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG } from './scene.js?v=7';
+import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG } from './scene.js?v=8';
 import { createSync, syncConfigured } from './sync.js?v=8';
 import { parseKakao } from './kakao.js?v=4';
 
@@ -320,7 +320,7 @@ function statusCard(m) {
   const st = avatarState(m);
   const s = st.status;
   const mood = s && M.MOODS.find(x => x.k === s.mood);
-  return `<article class="st-card" style="--c:${m.color}">
+  return `<article class="st-card" style="--c:${m.color}" title="${esc(st.basis)}">
     <button type="button" class="st-ava" data-action="go-floor" data-floor="${m.floor}" aria-label="${m.floor}층 ${esc(m.space.name)}로 이동">${face(m, 'face-l')}</button>
     <div class="st-body">
       <p class="st-name">${esc(m.displayName)} <small>${m.floor}F ${esc(m.space.name)}</small></p>
@@ -409,11 +409,12 @@ function memberPanels(m) {
 function renderWorld() {
   renderDir();
   const n = ui.floor;
+  document.body.classList.toggle('fit', n === 1);
   if (n === 1) {
     $('#floorHead').innerHTML = lobbyHead();
     const p = lobbyPanels();
     $('#panelMain').innerHTML = p.main; $('#panelSide').innerHTML = p.side;
-    $('#stageTitle').innerHTML = `<h2>1F 가족 로비</h2><button type="button" class="btn-g" data-action="decorate" data-id="lobby">🎀 꾸미기</button>`;
+    $('#stageTitle').innerHTML = `<h2>1F 가족 로비</h2><span class="hint stage-hint" title="캐릭터 동작은 캘린더 일정이나 직접 설정한 상태로만 정해져요. 상태가 없으면 멈추고, 12시간이 지나면 '확인 중'이에요.">ⓘ 움직임 기준</span><button type="button" class="btn-g" data-action="decorate" data-id="lobby">🎀 꾸미기</button>`;
   } else {
     const m = memberOnFloor(n);
     $('#floorHead').innerHTML = memberHead(m);
@@ -1475,6 +1476,7 @@ async function restore(file) {
 
 function setView(v) {
   ui.view = v;
+  if (v !== 'world') document.body.classList.remove('fit');
   $$('.view').forEach(s => { s.hidden = s.dataset.view !== v; });
   $$('[data-action=view]').forEach(b => b.setAttribute('aria-current', b.dataset.view === v ? 'page' : 'false'));
   renderView();

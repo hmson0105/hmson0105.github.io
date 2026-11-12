@@ -19,7 +19,7 @@ export const ASSETS = {
 
 /** 아바타 발 위치(무대 %, 발끝 기준)와 키(무대 높이 %) */
 export const SPOTS = {
-  lobby: { m_dad: [39, 78], m_mom: [64, 71], m_kid: [54, 89] },
+  lobby: { m_dad: [39, 78], m_mom: [64, 71], m_kid: [54, 84] },
   single: [50, 80],
 };
 export const HEIGHTS = { lobby: { adult: 31, kid: 24 }, single: { adult: 46, kid: 38 } };
