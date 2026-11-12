@@ -122,6 +122,7 @@ patents/ai-power-health-index/    dashboards/patent-atlas/
 SVG 대체 그림). JS 는 ES 모듈이라 내부 import 에도 `?v=N` 을 달아 함께 올린다.
 
 **`/family/` 작업 규칙**
+- 대표 주소는 Vercel `https://family-miniworld.vercel.app/` (Vercel 프로젝트 `hyemi5/family-miniworld`, Root Directory `family`, `main` 푸시 시 자동 배포). GitHub Pages `/family/` 도 같이 서빙되며, 열면 새 주소로 데이터를 옮기는 안내가 뜬다(`js/config.js` 의 `APP_URL`).
 - 기능 요청·버그는 GitHub Issues(템플릿: 가족 미니월드)에 적는다. 코드 변경은 브랜치에서
   하고 PR 로 올린다. 검토 후 `main` 에 병합하면 GitHub Pages 가 자동으로 다시 배포한다
   (Pages 의 "브랜치에서 배포" 설정 — 별도 Actions 워크플로 없이도 병합 = 배포).

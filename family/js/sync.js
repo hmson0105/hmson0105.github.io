@@ -4,7 +4,7 @@
 //  - 지운 항목은 deleted=true 로 올려 다른 기기에서도 지운다.
 //  - 다른 기기의 변경은 실시간(Realtime)으로 받아 바로 반영한다.
 //  - 오프라인이면 올리지 못한 변경을 남겨 두었다가 다시 연결되면 올린다.
-import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=8';
+import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=9';
 
 const COLLECTIONS = ['events', 'issues', 'trips', 'tripComments', 'boardItems', 'places', 'recurrenceRules', 'sources', 'posts', 'guestbook', 'members', 'activity'];
 const SYNCED_KEY = 'family-home:synced';

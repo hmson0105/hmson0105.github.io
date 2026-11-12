@@ -4,9 +4,9 @@ import * as M from './model.js?v=6';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=6';
 import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG } from './scene.js?v=8';
-import { createSync, syncConfigured } from './sync.js?v=8';
+import { createSync, syncConfigured } from './sync.js?v=9';
 import { parseKakao } from './kakao.js?v=4';
-import { APP_URL } from './config.js?v=8';
+import { APP_URL } from './config.js?v=9';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
