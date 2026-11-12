@@ -6,8 +6,8 @@
 export const ASSETS = {
   rooms: {
     1: 'img/room-1.jpg',   // 가족 로비 (Higgsfield · Nano Banana 2)
-    // 2: 'img/room-2.jpg', // 딸 어린이집  ← 생성 후 추가
-    // 3: 'img/room-3.jpg', // 엄마 사무실  ← 생성 후 추가
+    2: 'img/room-2.jpg',   // 딸 어린이집 (Higgsfield · Z Image)
+    3: 'img/room-3.jpg',   // 엄마 방 (Higgsfield · Z Image)
     // 4: 'img/room-4.jpg', // 아빠 대학원  ← 생성 후 추가
   },
   avatars: {

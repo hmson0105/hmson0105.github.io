@@ -3,7 +3,7 @@ import * as D from './dates.js?v=6';
 import * as M from './model.js?v=6';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=6';
-import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG } from './scene.js?v=6';
+import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG } from './scene.js?v=7';
 import { createSync, syncConfigured } from './sync.js?v=8';
 import { parseKakao } from './kakao.js?v=4';
 
