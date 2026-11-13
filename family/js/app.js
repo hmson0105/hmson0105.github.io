@@ -4,8 +4,9 @@ import * as M from './model.js?v=7';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=6';
 import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS } from './scene.js?v=12';
-import { createSync, syncConfigured } from './sync.js?v=13';
+import { createSync, syncConfigured } from './sync.js?v=14';
 import { parseKakao } from './kakao.js?v=4';
+import * as N from './notify.js?v=1';
 import { APP_URL } from './config.js?v=10';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -62,6 +63,7 @@ const sync = createSync({
     try { persist(); } finally { fromRemote = false; }
     if (!$('#dlg').open && !ui.elevating) renderAll(); else renderHeader();
   },
+  onPeer(row) { peerNotify(row); },
   onStatus(st) {
     const firstConnect = st.family && !connected();
     ui.sync = st;
@@ -611,6 +613,99 @@ function calMove(dir) {
 }
 
 // ───────────────────────── 연동·데이터 ─────────────────────────
+// ───────────────────────── 🔔 알림 · 미리알림 ─────────────────────────
+// 앱이 열려 있는 동안 다가오는 일정을 미리 알려 주고, 가족이 뭔가 올리면 알려 준다.
+const LEAD_CHOICES = [[0, '끄기'], [10, '10분 전'], [30, '30분 전'], [60, '1시간 전'], [120, '2시간 전']];
+const leadMin = () => { const v = +loadPref('notifyLead'); return LEAD_CHOICES.some(([k]) => k === v) ? v : 30; };
+const peerOn = () => loadPref('notifyPeer') !== 'off';
+
+/** 일정 한 회차의 시작 시각. 하루 종일·시간 미정이면 null */
+function instStart(inst) {
+  const e = inst.ev;
+  if (e.allDay || e.timeUnset || !e.startTime) return null;
+  const t = new Date(`${inst.date}T${e.startTime}:00`);
+  return Number.isNaN(+t) ? null : t;
+}
+
+/** 다가오는 일정을 확인해 미리알림을 띄운다 */
+async function checkReminders() {
+  const lead = leadMin();
+  if (!lead || !N.granted()) return;
+  const now = new Date();
+  const t = D.today();
+  for (const i of instances(t, D.addDays(t, 1))) {
+    if (i.ev.status === 'cancelled') continue;
+    const st = instStart(i);
+    if (!st) continue;
+    const mins = (st - now) / 60000;
+    if (mins < -1 || mins > lead) continue;
+    const who = memberName(i.ev.ownerId);
+    const where = place(i.ev.placeId)?.name;
+    const when = mins < 1 ? '곧 시작' : `${Math.round(mins)}분 뒤`;
+    await N.show(`⏰ ${when} · ${i.ev.title}`, [who, where].filter(Boolean).join(' · ') || '우리집 미니월드',
+      { key: `ev:${i.ev.id}:${i.date}:${i.ev.startTime}` });
+  }
+}
+
+/** 하루 한 번, 오늘 일정을 모아서 알려 준다 */
+async function morningBrief() {
+  if (!leadMin() || !N.granted()) return;
+  const t = D.today();
+  if (loadPref('notifyDay') === t || new Date().getHours() < 7) return;
+  savePref('notifyDay', t);
+  const list = instances(t, t).filter(i => i.ev.status !== 'cancelled');
+  const todo = S.issues.filter(i => i.date === t && !i.done && canSee(i)).length;
+  if (!list.length && !todo) return;
+  const first = list[0];
+  const parts = [];
+  if (first) parts.push(`가장 먼저 ${timeLabel(first.ev)} ${first.ev.title}`);
+  if (todo) parts.push(`챙길 일 ${todo}개`);
+  await N.show(`🌤️ 오늘 가족 일정 ${list.length}건`, parts.join(' · '), { key: `day:${t}` });
+}
+
+const PEER_LABEL = { events: '일정', issues: '준비할 일', trips: '여행 계획', tripComments: '여행 메모', boardItems: '살 것', posts: '가족 글', guestbook: '방명록', places: '장소' };
+/** 가족이 뭔가 올리거나 바꿨을 때 */
+function peerNotify(row) {
+  if (!peerOn() || !N.granted()) return;
+  const label = PEER_LABEL[row.kind];
+  if (!label) return;
+  // 화면을 보고 있으면 목록이 바로 갱신되니 알림 대신 가볍게 알려 준다.
+  const text = String(row.data?.title || row.data?.text || '').slice(0, 60);
+  if (document.visibilityState === 'visible') { toast(`👪 가족이 ${label}을(를) ${row.deleted ? '지웠어요' : '올렸어요'}`); return; }
+  N.show(`👪 ${label}${row.deleted ? '이 지워졌어요' : '이 올라왔어요'}`, text || '가족이 방금 바꿨어요',
+    { key: `peer:${row.kind}:${row.id}:${row.updated_at}` });
+}
+
+let notifyTimer = null;
+function startNotifyLoop() {
+  clearInterval(notifyTimer);
+  if (!N.granted()) return;
+  const tick = () => { morningBrief(); checkReminders(); };
+  tick();
+  notifyTimer = setInterval(tick, 30000);
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') startNotifyLoop(); });
+
+function notifyCardHTML() {
+  const p = N.permission();
+  const lead = leadMin();
+  const pill = p === 'granted' ? '<span class="pill">켜짐</span>'
+    : p === 'denied' ? '<span class="pill pill-off">브라우저에서 차단됨</span>'
+      : p === 'unsupported' ? '<span class="pill pill-off">이 브라우저는 지원 안 함</span>'
+        : '<span class="pill pill-off">꺼짐</span>';
+  return `<section class="card card-notify"><header class="card-h"><h2>🔔 알림 · 미리알림</h2>${pill}</header>
+    <p class="muted small">다가오는 일정을 미리 알려 주고, 가족이 일정·준비할 일을 올리면 알려 줘요. 기기마다 따로 켜야 해요.</p>
+    ${p === 'denied' ? '<p class="small">브라우저 주소창 왼쪽 자물쇠 → 알림을 <b>허용</b>으로 바꾼 뒤 새로고침해 주세요.</p>' : ''}
+    ${p === 'default' ? '<div class="btn-row"><button type="button" class="btn-p" data-action="notify-ask">🔔 알림 켜기</button></div>' : ''}
+    ${p === 'granted' ? `<div class="fld-row">
+      <label class="fld"><span>일정 미리알림</span><select data-change="notify-lead">${LEAD_CHOICES.map(([k, l]) => `<option value="${k}" ${k === lead ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label class="fld fld-check"><input type="checkbox" data-change="notify-peer" ${peerOn() ? 'checked' : ''}><span>가족이 올리면 알리기</span></label>
+    </div>
+    <div class="btn-row"><button type="button" class="btn-s" data-action="notify-test">지금 보내 보기</button></div>` : ''}
+    <p class="muted small">📱 휴대폰은 앱을 <b>홈 화면에 추가</b>해야 알림이 와요. 앱을 완전히 닫으면 알림이 멈춰요 — 꺼져 있어도 받으려면 서버 푸시가 필요해요.</p>
+  </section>`;
+}
+
 function renderSync() {
   const a = S.sync.apple;
   const srcs = S.sources.filter(s => s.kind === 'ics-import');
@@ -622,6 +717,7 @@ function renderSync() {
   <section class="card card-sync"><header class="card-h"><h2>👪 가족 자동 동기화</h2>${syncPill()}</header>
     ${syncCardBody()}
   </section>
+  ${notifyCardHTML()}
   <section class="card"><header class="card-h"><h2>🍎 Apple 캘린더 연결 상태</h2></header>
     <dl class="kv kv-wide">
       <div><dt>현재 연결 방식</dt><dd><b>.ics 파일로 주고받기 (수동)</b></dd></div>
@@ -1703,6 +1799,14 @@ function toast(msg, kind = '') {
 
 const ACTIONS = {
   'go-floor': b => goFloor(b.dataset.floor),
+  'notify-ask': async () => {
+    const r = await N.ask();
+    renderSync();
+    if (r === 'granted') { startNotifyLoop(); await N.test(); toast('알림을 켰어요.'); }
+    else if (r === 'denied') toast('브라우저에서 알림이 차단됐어요.', 'warn');
+    else toast('알림을 켜지 않았어요.');
+  },
+  'notify-test': async () => { const ok = await N.test(); toast(ok ? '알림을 보냈어요.' : '알림을 보내지 못했어요.', ok ? '' : 'warn'); },
   'fold-card': b => {
     const card = b.closest('.card'), key = card.dataset.fold;
     const on = !card.classList.contains('folded');
@@ -1863,6 +1967,8 @@ document.addEventListener('change', e => {
     const b = (S.boardItems || []).find(x => x.id === t.dataset.id);
     if (b) { b.done = t.checked; b.updatedAt = new Date().toISOString(); persist(); renderAll(); if (t.checked) toast(`✅ '${b.title}' 완료!`); }
   }
+  if (a === 'notify-lead') { savePref('notifyLead', t.value); startNotifyLoop(); toast(+t.value ? `일정 ${LEAD_CHOICES.find(([k]) => k === +t.value)[1]}에 알려 드릴게요.` : '일정 미리알림을 껐어요.'); }
+  if (a === 'notify-peer') { savePref('notifyPeer', t.checked ? 'on' : 'off'); toast(t.checked ? '가족이 올리면 알려 드릴게요.' : '가족 알림을 껐어요.'); }
   if (a === 'import-ics' && t.files[0]) { importICS(t.files[0]); t.value = ''; }
   if (a === 'restore' && t.files[0]) { restore(t.files[0]); t.value = ''; }
 });
@@ -2027,4 +2133,8 @@ renderBanner();
 readShareLink();
 sync.start();
 window.addEventListener('hashchange', readShareLink);
-if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js').then(startNotifyLoop).catch(() => {});
+} else {
+  startNotifyLoop();
+}

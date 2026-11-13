@@ -35,7 +35,7 @@ function snapshot(S) {
   return out;
 }
 
-export function createSync({ getState, onRemote, onStatus }) {
+export function createSync({ getState, onRemote, onStatus, onPeer }) {
   let sb = null, user = null, family = null, membership = null, channel = null;
   let synced = readJSON(SYNCED_KEY, {});     // 'kind:id' → JSON 문자열(마지막으로 서버와 맞춘 내용)
   let pushTimer = null, pushing = false, again = false;
@@ -186,6 +186,10 @@ export function createSync({ getState, onRemote, onStatus }) {
         const r = payload.new;
         if (!r || !r.kind) return;
         if (applyRows([r])) onRemote?.({ first: false });
+        // 내가 아닌 가족이 바꾼 것만 알림 대상이다.
+        if (r.updated_by && user && r.updated_by !== user.id) {
+          try { onPeer?.({ kind: r.kind, id: r.id, data: r.data, deleted: !!r.deleted, updated_at: r.updated_at }); } catch { /* 알림 실패는 동기화와 무관 */ }
+        }
         localStorage.setItem(PULL_KEY, r.updated_at);
         st.lastSyncAt = new Date().toISOString(); emit();
       })
