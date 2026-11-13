@@ -5,6 +5,7 @@
 //  - 다른 기기의 변경은 실시간(Realtime)으로 받아 바로 반영한다.
 //  - 오프라인이면 올리지 못한 변경을 남겨 두었다가 다시 연결되면 올린다.
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=10';
+import { clean, ID_OK } from './model.js?v=7';
 
 const COLLECTIONS = ['events', 'issues', 'trips', 'tripComments', 'boardItems', 'places', 'recurrenceRules', 'sources', 'posts', 'guestbook', 'members', 'activity'];
 const SYNCED_KEY = 'family-home:synced';
@@ -43,7 +44,16 @@ export function createSync({ getState, onRemote, onStatus }) {
 
   async function lib() {
     if (sb) return sb;
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/+esm');
+    // 동기화 라이브러리는 외부 CDN 이 아니라 앱 안에 넣어 둔 파일(js/vendor)을 쓴다.
+    if (!window.supabase) {
+      await new Promise((ok, fail) => {
+        const el = document.createElement('script');
+        el.src = new URL('./vendor/supabase-2.49.4.js', import.meta.url).href;
+        el.onload = ok; el.onerror = () => fail(new Error('load'));
+        document.head.appendChild(el);
+      });
+    }
+    const { createClient } = window.supabase;
     sb = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, detectSessionInUrl: true, flowType: 'pkce' } });
     sb.auth.onAuthStateChange((_e, session) => {
       const was = user?.id;
@@ -109,6 +119,13 @@ export function createSync({ getState, onRemote, onStatus }) {
     const local = force ? null : snapshot(S);
     let changed = false;
     for (const r of rows) {
+      // 서버에서 온 값도 그대로 믿지 않는다: 형식이 맞는 것만 받고, 내용은 clean() 으로 정리한다.
+      if (!r || typeof r.kind !== 'string' || typeof r.id !== 'string' || !ID_OK.test(r.id)) continue;
+      if (!r.deleted) {
+        if (!r.data || typeof r.data !== 'object' || Array.isArray(r.data)) continue;
+        clean(r.data);
+        if (COLLECTIONS.includes(r.kind) && r.data.id !== r.id) continue;
+      }
       const key = `${r.kind}:${r.id}`;
       if (!force && local) {
         const lj = local[key] ? JSON.stringify(local[key].data) : null;
@@ -143,7 +160,7 @@ export function createSync({ getState, onRemote, onStatus }) {
   async function connect() {
     try {
       st.state = 'connecting'; emit();
-      const { data: mem, error } = await sb.from('family_members').select('family_id,member_id,families(id,name,invite_code,created_by)').eq('user_id', user.id).limit(1);
+      const { data: mem, error } = await sb.from('family_members').select('family_id,member_id,families(id,name,created_by)').eq('user_id', user.id).limit(1);
       if (error) throw error;
       if (!mem.length) { family = null; membership = null; st.state = 'no-family'; emit(); return; }
       membership = { member_id: mem[0].member_id, isAdmin: mem[0].families.created_by === user.id };

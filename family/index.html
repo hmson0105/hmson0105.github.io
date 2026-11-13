@@ -2,10 +2,12 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <!-- 이 앱은 자기 파일과 가족 동기화 서버 말고는 아무 데서도 코드를 받거나 데이터를 보내지 않는다. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://awnwytdiweeciilpzhny.supabase.co wss://awnwytdiweeciilpzhny.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>우리집 미니월드</title>
   <!-- 가족 전용 공간: 검색엔진 색인·링크 미리보기를 막는다. 데이터는 이 브라우저에만 저장된다. -->
-  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex, noai, noimageai">
   <meta name="referrer" content="no-referrer">
   <meta name="theme-color" content="#FFE4EE">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,10 +17,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%A0%3C/text%3E%3C/svg%3E">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="family.css?v=15">
+  <link rel="stylesheet" href="family.css?v=16">
 </head>
 <body>
   <div class="deco" aria-hidden="true"><i>☁️</i><i>⭐</i><i>💗</i><i>☁️</i><i>✨</i></div>
@@ -136,6 +135,6 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <noscript><p class="noscript">이 페이지는 자바스크립트가 필요해요.</p></noscript>
-  <script type="module" src="js/app.js?v=24"></script>
+  <script type="module" src="js/app.js?v=25"></script>
 </body>
 </html>

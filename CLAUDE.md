@@ -131,6 +131,12 @@ SVG 대체 그림). JS 는 ES 모듈이라 내부 import 에도 `?v=N` 을 달�
   표시를 하고, 데이터는 브라우저 저장소 또는 가족 동기화 서버(Supabase, RLS)에만 둔다.
 - 브라우저 코드에는 공개용 키(Supabase publishable/anon)만 둔다. service_role 등 비밀 키 금지.
   접근 제한은 `family/supabase/schema.sql` 의 RLS(가족 구성원만)로 한다.
+- **보안 규칙(2026-11-13 강화)**: ① 외부 CDN·외부 폰트를 쓰지 않는다(라이브러리는 `family/js/vendor/`,
+  글꼴은 `family/fonts/`). ② CSP(`family/index.html` meta + `family/vercel.json`)가 인라인 스크립트·
+  `onclick=` 속성·외부 전송을 막으므로 이벤트는 JS 에서 건다. ③ 기기 밖에서 온 데이터(가져오기 링크·
+  `.ics`·동기화 서버·저장소)는 `M.clean()` 을 거치고, 사람이 쓴 글은 화면에 넣을 때 `esc()` 한다.
+  새 자유 입력 필드를 만들면 `model.js` 의 `FREE_TEXT` 에 키를 추가한다. ④ 초대 코드는 관리자만
+  만들고 1회용·24시간. DB 변경은 `family/supabase/` 에 SQL 로 남긴다.
 
 ---
 

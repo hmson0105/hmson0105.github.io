@@ -1,10 +1,10 @@
 // 우리집 미니월드 — 가족 캘린더 + 층별 미니룸
 import * as D from './dates.js?v=6';
-import * as M from './model.js?v=6';
+import * as M from './model.js?v=7';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=6';
 import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG } from './scene.js?v=8';
-import { createSync, syncConfigured } from './sync.js?v=12';
+import { createSync, syncConfigured } from './sync.js?v=13';
 import { parseKakao } from './kakao.js?v=4';
 import { APP_URL } from './config.js?v=10';
 
@@ -392,7 +392,7 @@ function memberPanels(m) {
   const main = `
   <section class="card o-7"><header class="card-h"><h2>짧은 글 · 사진</h2><button type="button" class="btn-p btn-sm" data-action="new-post" data-id="${m.id}">+ 글 쓰기</button></header>
     ${posts.length ? `<ul class="posts">${posts.map(p => `<li class="post">
-        ${p.photo ? `<img src="${p.photo}" alt="${esc(memberName(m.id))}의 사진">` : ''}
+        ${p.photo ? `<img src="${esc(p.photo)}" alt="${esc(memberName(m.id))}의 사진">` : ''}
         <p>${esc(p.text)}</p>
         <footer><span>${D.fmtStamp(p.createdAt)} · ${esc(memberName(p.createdBy))} 씀${p.visibility === 'private' ? ' · 🔒' : ''}</span>${srcTag(p)}<button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">삭제</button></footer>
       </li>`).join('')}</ul>` : empty('📷', '아직 남긴 글이나 사진이 없어요.')}
@@ -617,7 +617,7 @@ function renderSync() {
   <section class="card"><header class="card-h"><h2>📲 다른 기기로 옮기기</h2></header>
     <p>가족 데이터는 기기마다 따로 저장돼요. 이 기기의 일정·이슈·여행·살 것 목록을 <b>링크 하나</b>에 담아 다른 기기(아이폰 등)에서 열면 합쳐져요. 예시와 '본인만' 항목, 사진은 빠져요.</p>
     <button type="button" class="btn-p" data-action="make-share">🔗 옮기기 링크 만들기</button>
-    <div id="shareOut" hidden><input class="share-url" readonly aria-label="옮기기 링크" onclick="this.select()"></div>
+    <div id="shareOut" hidden><input class="share-url" readonly aria-label="옮기기 링크"></div>
     <p class="small muted">링크에는 일정 내용이 들어 있어요. 주소의 # 뒤 부분은 웹사이트 서버로 전송되지 않지만, 메신저로 보내면 그 메신저에는 남을 수 있으니 AirDrop이나 나에게 보내기처럼 가족만 보는 곳으로 보내 주세요. 아직 자동 공유는 아니라서, 한쪽에서 고친 뒤 다시 옮겨야 해요.</p>
   </section>
   <section class="card"><header class="card-h"><h2>💾 데이터 저장 범위</h2><span class="pill ${ui.saveError ? 'pill-err' : 'pill-on'}">${ui.saveError ? '저장 실패' : '저장됨'}</span></header>
@@ -704,7 +704,7 @@ function syncCardBody() {
   const me = member(s.membership?.member_id);
   return `<dl class="kv kv-wide">
       <div><dt>로그인</dt><dd>${esc(s.user?.email || '')} · <b>${esc(me?.displayName || '')}</b>(으)로 사용 중</dd></div>
-      <div><dt>가족 초대 코드</dt><dd><code class="invite">${esc(s.family?.invite_code || '')}</code> <button type="button" class="btn-s btn-sm" data-action="copy-invite">복사</button><br><span class="small muted">가족이 로그인한 뒤 이 코드를 넣으면 같은 가족으로 연결돼요. 가족에게만 알려 주세요.</span></dd></div>
+      <div><dt>가족 초대</dt><dd class="small muted">초대 코드는 관리자가 🛠 관리자 탭에서 필요할 때만 만들어요(한 번만 쓸 수 있고 24시간 뒤 사라져요).</dd></div>
       <div><dt>동기화 상태</dt><dd>${s.error ? `<span class="pill pill-err">${esc(s.error)}</span>` : s.pending ? '올리는 중…' : '모두 맞춰져 있어요'}${s.lastSyncAt ? ` · 마지막 동기화 ${D.fmtStamp(s.lastSyncAt)}` : ''}${s.realtime ? ' · 실시간 수신 중' : ''}</dd></div>
     </dl>
     <div class="btn-row"><button type="button" class="btn-s" data-action="sync-now">지금 동기화</button><button type="button" class="btn-g" data-action="sync-signout">로그아웃</button></div>
@@ -870,7 +870,7 @@ function renderAdmin() {
 
   ${connected() ? `<section class="card"><header class="card-h"><h2>🔑 가족 계정</h2><button type="button" class="btn-g btn-sm" data-action="adm-reload">새로고침</button></header>
     ${ui.admin.accountsErr ? `<p class="form-err">${esc(ui.admin.accountsErr)}</p>` : !acc ? '<p class="muted small">불러오는 중…</p>' : `<ul class="adm-acc">${acc.map(a => `<li style="--c:${member(a.member_id)?.color || '#FF8FB8'}">${face(member(a.member_id))}<div><b>${esc(memberName(a.member_id))}</b>${a.admin ? ' <span class="tag tag-today">관리자</span>' : ''}${a.me ? ' <span class="tag tag-src">나</span>' : ''}<br><small>${esc(a.email || '이메일 정보 없음')} · ${D.fmtStamp(a.joined_at)} 참여</small></div>${a.me ? '' : `<button type="button" class="btn-g danger btn-sm" data-action="adm-remove" data-id="${a.user_id}" data-name="${esc(a.email || memberName(a.member_id))}">내보내기</button>`}</li>`).join('')}</ul>`}
-    <dl class="kv kv-wide"><div><dt>초대 코드</dt><dd><code class="invite">${esc(s.family?.invite_code || '')}</code> <button type="button" class="btn-s btn-sm" data-action="copy-invite">복사</button> <button type="button" class="btn-g btn-sm" data-action="adm-rotate">새 코드 만들기</button><br><span class="small muted">새 코드를 만들면 예전 코드로는 더 이상 참여할 수 없어요. 이미 참여한 가족은 그대로예요.</span></dd></div></dl>
+    <dl class="kv kv-wide"><div><dt>초대 코드</dt><dd>${ui.admin.invite ? `<code class="invite">${esc(ui.admin.invite)}</code> <button type="button" class="btn-s btn-sm" data-action="copy-invite">복사</button> ` : '<span class="muted">지금은 닫혀 있어요.</span> '}<button type="button" class="btn-g btn-sm" data-action="adm-rotate">${ui.admin.invite ? '새 코드 만들기' : '초대 코드 만들기'}</button><br><span class="small muted">코드는 <b>한 사람이 한 번만</b> 쓸 수 있고 <b>24시간</b> 뒤 사라져요. 가족이 참여하면 바로 닫혀요. 이미 참여한 가족은 그대로예요.</span></dd></div></dl>
   </section>` : ''}
 
   <section class="card"><header class="card-h"><h2>📊 데이터 한눈에</h2></header>
@@ -1530,7 +1530,7 @@ function exportEvents(events, filename) {
 async function importICS(file) {
   let text;
   try { text = await file.text(); } catch { return toast('파일을 읽지 못했어요.', 'err'); }
-  const res = parseICS(text);
+  const res = M.clean(parseICS(text));
   if (!res.events.length) return toast('이 파일에서 일정을 찾지 못했어요.', 'err');
   const dates = res.events.map(e => e.startDate).sort();
   const known = new Set(S.events.filter(e => e.externalUid).map(e => e.externalUid));
@@ -1690,7 +1690,8 @@ const ACTIONS = {
       const url = await makeShareLink();
       const box = $('#shareOut');
       box.hidden = false;
-      box.querySelector('input').value = url;
+      const inp = box.querySelector('input');
+      inp.value = url; inp.onclick = () => inp.select();
       try { await navigator.clipboard.writeText(url); toast('링크를 복사했어요. 다른 기기에서 열어 주세요.'); }
       catch { toast('아래 링크를 길게 눌러 복사해 주세요.'); }
     } catch { toast('이 브라우저에서는 링크를 만들 수 없어요.', 'err'); }
@@ -1698,12 +1699,12 @@ const ACTIONS = {
   'del-tcomment': b => { if (confirm('이 댓글을 지울까요?')) { S.tripComments = S.tripComments.filter(c => c.id !== b.dataset.id); persist(); renderAll(); } },
   'sync-now': async () => { await sync.syncNow(); toast('동기화했어요.'); },
   'sync-signout': async () => { if (!confirm('이 기기에서 로그아웃할까요? 이 기기의 데이터는 남아 있어요.')) return; await sync.signOut(); renderAll(); toast('로그아웃했어요.'); },
-  'copy-invite': async () => { try { await navigator.clipboard.writeText(ui.sync.family.invite_code); toast('초대 코드를 복사했어요.'); } catch { toast('코드를 길게 눌러 복사해 주세요.'); } },
+  'copy-invite': async () => { try { await navigator.clipboard.writeText(ui.admin.invite || ''); toast('초대 코드를 복사했어요.'); } catch { toast('코드를 길게 눌러 복사해 주세요.'); } },
   kakao: () => kakaoDialog(),
   'adm-reload': () => { ui.admin.accounts = null; ui.admin.accountsErr = null; renderAdmin(); },
   'adm-rotate': async () => {
-    if (!confirm('초대 코드를 새로 만들까요? 예전 코드로는 더 이상 참여할 수 없어요.')) return;
-    try { await sync.rotateInvite(); toast('새 초대 코드를 만들었어요.'); renderAdmin(); } catch { toast('관리자만 바꿀 수 있어요.', 'err'); }
+    if (!confirm('초대 코드를 만들까요? 한 번만 쓸 수 있고 24시간 뒤 사라져요. 예전 코드는 못 쓰게 돼요.')) return;
+    try { ui.admin.invite = await sync.rotateInvite(); toast('초대 코드를 만들었어요. 가족에게만 알려 주세요.'); renderAdmin(); } catch { toast('관리자만 바꿀 수 있어요.', 'err'); }
   },
   'adm-remove': async b => {
     if (!confirm(`${b.dataset.name} 계정을 가족에서 내보낼까요? 그 사람은 더 이상 가족 데이터를 볼 수 없어요.`)) return;
@@ -1844,7 +1845,7 @@ document.addEventListener('submit', e => {
     if (!mid) return toast('나는 누구인지 골라 주세요.');
     const p = how === 'create' ? sync.createFamily('우리 가족', mid) : (f.code.value.trim() ? sync.joinFamily(f.code.value.trim(), mid) : Promise.reject(new Error('code')));
     p.then(() => toast(how === 'create' ? '가족을 만들었어요! 초대 코드를 가족에게 알려 주세요.' : '가족과 연결됐어요 👪'))
-      .catch(err => toast(err?.message === 'code' ? '초대 코드를 넣어 주세요.' : /invalid invite/.test(err?.message || '') ? '초대 코드가 맞지 않아요.' : '연결하지 못했어요.', 'err'));
+      .catch(err => toast(err?.message === 'code' ? '초대 코드를 넣어 주세요.' : /invalid invite/.test(err?.message || '') ? '초대 코드가 맞지 않거나 이미 쓴 코드예요. 관리자에게 새 코드를 받아 주세요.' : /family is full/.test(err?.message || '') ? '가족 정원이 다 찼어요.' : '연결하지 못했어요.', 'err'));
     return;
   }
   if (f.dataset.submit === 'board-add') {
@@ -1902,13 +1903,16 @@ async function readShareLink() {
   try {
     const st = new Blob([unb64url(m[1])]).stream().pipeThrough(new DecompressionStream('gzip'));
     data = JSON.parse(await new Response(st).text());
-    if (data.kind !== 'family-share') throw new Error('kind');
+    if (!data || typeof data !== 'object' || Array.isArray(data) || data.kind !== 'family-share') throw new Error('kind');
+    M.clean(data);
+    for (const k of SHARE_KEYS) data[k] = M.validItems(data[k]);
+    data.statuses = M.validItems(data.statuses);
   } catch { toast('링크에 담긴 데이터를 읽지 못했어요.', 'err'); return; }
   const n = (data.events || []).length, t = (data.trips || []).length, b = (data.boardItems || []).length;
   openDialog({
     title: '다른 기기에서 보낸 가족 데이터', cls: 'dlg-import',
     body: `<p>일정 <b>${n}</b>개 · 이슈 ${(data.issues || []).length}개 · 여행 ${t}개 · 살 것/준비할 것 ${b}개가 들어 있어요.</p>
-      <ul class="imp-prev">${(data.events || []).slice(0, 8).map(e => `<li><em>${D.fmtDate(e.startDate)} ${e.startTime || ''}</em> ${esc(e.title)}${e.recurrenceRuleId ? ' 🔁' : ''}</li>`).join('')}</ul>
+      <ul class="imp-prev">${(data.events || []).slice(0, 8).map(e => `<li><em>${esc(D.fmtDate(e.startDate))} ${esc(e.startTime || '')}</em> ${esc(e.title)}${e.recurrenceRuleId ? ' 🔁' : ''}</li>`).join('')}</ul>
       <p class="small muted"><b>합치기</b>는 이 기기 데이터를 지우지 않고 없는 항목만 더하고, 같은 항목은 더 최근에 고친 쪽으로 맞춰요.</p>`,
     actions: '<span class="sp"></span><button type="submit" value="save" class="btn-p">합치기</button>',
     onSubmit() {

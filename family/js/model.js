@@ -15,6 +15,45 @@ import { addDays, weekday, diffDays, startOfWeek, DAYCODES } from './dates.js?v=
 
 export const SCHEMA_VERSION = 1;
 
+// ───────── 들어오는 데이터 검증 ─────────
+// 가져오기 링크·캘린더 파일·동기화 서버·기기 저장소에서 읽은 데이터는 화면에 쓰기 전에 clean() 을 거친다.
+//  - 사람이 쓴 글(FREE_TEXT)은 그대로 두고, 화면에 넣을 때 esc() 로 처리한다.
+//  - 그 밖의 값(id·날짜·시간·종류 …)에서는 HTML·속성을 깨뜨릴 수 있는 문자를 지운다.
+//  - 사진은 기기에서 만든 data:image 만, 색은 #hex 만 받는다.
+const FREE_TEXT = new Set(['title', 'memo', 'text', 'name', 'displayName', 'roleLabel', 'label', 'bgm', 'destination', 'changes',
+  'place', 'location', 'qty', 'raw', 'line', 'lastImportFile', 'externalUid', 'uid', 'email', 'summary', 'description']);
+const BAD_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+const UNSAFE = /[<>"'`&\\\u0000-\u001f\u007f]/;
+const UNSAFE_G = new RegExp(UNSAFE.source, 'g');
+const PHOTO_OK = /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/;
+const COLOR_OK = /^#[0-9a-fA-F]{3,8}$/;
+export const ID_OK = /^[A-Za-z0-9_:.@-]{1,80}$/;
+
+/** 값을 제자리에서 정리해 돌려준다(객체·배열은 같은 참조 유지). */
+export function clean(v, key = '', depth = 0) {
+  if (v === null || v === undefined || typeof v === 'boolean') return v ?? null;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  if (typeof v === 'string') {
+    if (key === 'photo') return v.length <= 3e6 && PHOTO_OK.test(v) ? v : null;
+    if (key === 'color') return COLOR_OK.test(v) ? v : '#FF8FB8';
+    if (FREE_TEXT.has(key)) return v.length > 20000 ? v.slice(0, 20000) : v;
+    const t = UNSAFE.test(v) ? v.replace(UNSAFE_G, '') : v;
+    return t.length > 200 ? t.slice(0, 200) : t;
+  }
+  if (typeof v !== 'object' || depth > 12) return null;
+  if (Array.isArray(v)) {
+    for (let i = 0; i < v.length; i++) v[i] = clean(v[i], key, depth + 1);
+    return v;
+  }
+  for (const k of Object.keys(v)) {
+    if (BAD_KEYS.has(k) || UNSAFE.test(k)) { delete v[k]; continue; }
+    v[k] = clean(v[k], k, depth + 1);
+  }
+  return v;
+}
+/** 목록에서 id 가 올바른 객체만 남긴다. */
+export const validItems = list => (Array.isArray(list) ? list.filter(x => x && typeof x === 'object' && !Array.isArray(x) && typeof x.id === 'string' && ID_OK.test(x.id)) : []);
+
 export const newId = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 
 export const MOODS = [
@@ -109,9 +148,9 @@ function baseMembers() {
       bgm: '',
     },
     {
-      id: 'm_kid', familyId: 'fam_1', role: 'kid', roleLabel: '딸', displayName: '유안이',
+      id: 'm_kid', familyId: 'fam_1', role: 'kid', roleLabel: '딸', displayName: '콩이',
       color: '#FF6FA3', floor: 2,
-      space: { kind: 'daycare', name: '유안이의 어린이집' },
+      space: { kind: 'daycare', name: '콩이의 어린이집' },
       avatar: 'kid',
       status: null,
       room: { backdrop: 'skyClouds', stickers: ['rainbow', 'bear', 'star'] },
@@ -188,8 +227,8 @@ export function demoState(T) {
 
   // 반복 일정은 이번 주 월요일부터 시작하게 둔다.
   const eSem = ev({ title: '랩 세미나 발표', startDate: T, startTime: '10:00', endTime: '12:00', ownerId: 'm_dad', placeId: pSem, memo: '발표 20분 + 질의응답' });
-  ev({ title: '유안이 하원 픽업', startDate: T, startTime: '18:30', endTime: '19:00', ownerId: 'm_mom', attendeeIds: ['m_mom', 'm_kid'], placeId: pDay });
-  const eDen = ev({ title: '치과 진료', startDate: D(1), startTime: '15:00', endTime: '16:00', ownerId: 'm_mom', attendeeIds: ['m_mom', 'm_kid'], placeId: pDen, memo: '유안이 정기 검진' });
+  ev({ title: '콩이 하원 픽업', startDate: T, startTime: '18:30', endTime: '19:00', ownerId: 'm_mom', attendeeIds: ['m_mom', 'm_kid'], placeId: pDay });
+  const eDen = ev({ title: '치과 진료', startDate: D(1), startTime: '15:00', endTime: '16:00', ownerId: 'm_mom', attendeeIds: ['m_mom', 'm_kid'], placeId: pDen, memo: '콩이 정기 검진' });
   ev({ title: '할머니 댁 방문', startDate: D(2), timeUnset: true, ownerId: 'm_dad', attendeeIds: ['m_dad', 'm_mom', 'm_kid'], placeId: pGma, status: 'tentative', memo: '시간은 토요일에 정하기' });
   ev({ title: '논문 초안 제출 마감', startDate: D(3), allDay: true, ownerId: 'm_dad' });
   ev({ title: '가족 외식', startDate: D(5), startTime: '19:00', endTime: '20:30', ownerId: 'm_mom', attendeeIds: ['m_dad', 'm_mom', 'm_kid'], placeId: pRes });
@@ -209,7 +248,7 @@ export function demoState(T) {
   const setSt = (id, st) => { S.members.find(m => m.id === id).status = { ...st, setAt: now, setBy: id, visibility: 'family', demo: true }; };
   setSt('m_dad', { text: '논문 마감 주간! 커피 수혈 중', mood: 'focused', activity: 'busy' });
   setSt('m_mom', { text: '오늘은 칼퇴가 목표예요', mood: 'happy', activity: 'rest' });
-  // 유안이는 상태를 일부러 비워 두어 '상태 미설정' 표시를 보여 준다.
+  // 콩이는 상태를 일부러 비워 두어 '상태 미설정' 표시를 보여 준다.
 
   // 예시 여행과 살 것·준비할 것
   const tStart = D(20), tEnd = D(22);
@@ -222,7 +261,7 @@ export function demoState(T) {
       { id: newId('tp'), date: tStart, time: '09:30', title: '김포공항 출발', memo: '' },
       { id: newId('tp'), date: tStart, time: '12:00', title: '렌터카 받고 점심', memo: '고기국수' },
       { id: newId('tp'), date: tStart, time: '15:00', title: '숙소 체크인', memo: '' },
-      { id: newId('tp'), date: addDays(tStart, 1), time: '10:00', title: '아쿠아리움', memo: '유안이 최애' },
+      { id: newId('tp'), date: addDays(tStart, 1), time: '10:00', title: '아쿠아리움', memo: '콩이 최애' },
       { id: newId('tp'), date: addDays(tStart, 1), time: '', title: '바닷가 산책', memo: '' },
       { id: newId('tp'), date: tEnd, time: '17:00', title: '제주공항 출발', memo: '' },
     ],
@@ -243,7 +282,7 @@ export function demoState(T) {
     { id: newId('po'), memberId: 'm_kid', text: '오늘 그린 그림: 우리 집 무지개 🌈', photo: null, createdAt: now, createdBy: 'm_mom', visibility: 'family', sourceId: 'src_demo' },
   );
   S.guestbook.push(
-    { id: newId('gb'), roomOwnerId: 'm_kid', authorId: 'm_dad', text: '유안이 오늘도 씩씩하게 화이팅!', createdAt: now, visibility: 'family', sourceId: 'src_demo' },
+    { id: newId('gb'), roomOwnerId: 'm_kid', authorId: 'm_dad', text: '콩이 오늘도 씩씩하게 화이팅!', createdAt: now, visibility: 'family', sourceId: 'src_demo' },
     { id: newId('gb'), roomOwnerId: 'm_dad', authorId: 'm_mom', text: '발표 잘하고 와요 👏', createdAt: now, visibility: 'family', sourceId: 'src_demo' },
   );
   return S;
@@ -272,6 +311,7 @@ export function stripDemo(S) {
 
 /** 이전 버전 데이터나 빠진 필드를 채운다. */
 export function migrate(S) {
+  clean(S);
   const base = baseState();
   for (const k of Object.keys(base)) if (S[k] === undefined) S[k] = base[k];
   S.sync.apple = { ...base.sync.apple, ...(S.sync.apple || {}) };
@@ -284,15 +324,6 @@ export function migrate(S) {
     S.events = S.events.filter(e => !ids.has(e.id));
     S.recurrenceRules = S.recurrenceRules.filter(r => !daycare.some(e => e.recurrenceRuleId === r.id));
     S.issues.forEach(i => { if (ids.has(i.eventId)) i.eventId = null; });
-  }
-  // 아이 호칭 변경(콩이 → 유안이)을 이미 저장된 데이터에도 반영한다.
-  const kid = S.members.find(m => m.id === 'm_kid');
-  if (kid && kid.displayName === '콩이') {
-    kid.displayName = '유안이';
-    if (kid.space?.name === '콩이의 어린이집') kid.space.name = '유안이의 어린이집';
-    const fix = s => (typeof s === 'string' ? s.replace(/콩이/g, '유안이') : s);
-    for (const e of S.events) if (e.sourceId === 'src_demo') { e.title = fix(e.title); e.memo = fix(e.memo); }
-    for (const x of [...S.posts, ...S.guestbook]) if (x.sourceId === 'src_demo') x.text = fix(x.text);
   }
   S.schemaVersion = SCHEMA_VERSION;
   return S;
