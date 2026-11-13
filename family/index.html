@@ -17,7 +17,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=3">
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png?v=2">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%A0%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="family.css?v=45">
+  <link rel="stylesheet" href="family.css?v=46">
 </head>
 <body>
   <div class="deco" aria-hidden="true"><i>☁️</i><i>⭐</i><i>💗</i><i>☁️</i><i>✨</i></div>
@@ -126,6 +126,14 @@
     </section>
   </main>
 
+  <!-- 어느 화면에서든 한 번 눌러 할 일을 적는 버튼. 아이폰은 홈 화면 앱과 사파리의
+       저장소가 나뉘어 있어 단축어로 연 창은 로그인이 풀린 자리가 된다. 그래서
+       '한 번 눌러 추가'는 앱 안에 두는 쪽이 확실하다. -->
+  <div class="fab-wrap" id="fabWrap">
+    <button type="button" class="fab fab-s" data-action="new-event" aria-label="일정 바로 추가" title="일정 바로 추가">📅</button>
+    <button type="button" class="fab fab-m" data-action="new-issue" aria-label="할 일 바로 추가" title="할 일 바로 추가">🎒<b>＋</b></button>
+  </div>
+
   <nav class="bottom-nav" aria-label="화면">
     <button type="button" data-action="view" data-view="world"><span aria-hidden="true">🏠</span>홈</button>
     <button type="button" data-action="view" data-view="cal"><span aria-hidden="true">📅</span>캘린더</button>
@@ -137,6 +145,6 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <noscript><p class="noscript">이 페이지는 자바스크립트가 필요해요.</p></noscript>
-  <script type="module" src="js/app.js?v=60"></script>
+  <script type="module" src="js/app.js?v=61"></script>
 </body>
 </html>

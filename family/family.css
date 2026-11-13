@@ -1054,3 +1054,19 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 .post-btns { display: inline-flex; gap: 4px; margin-left: auto; }
 .gb-list .post-btns { margin-left: 0; align-self: start; }
 .photo-prev { display: block; width: 100%; height: auto; max-height: 220px; object-fit: contain; border-radius: 12px; background: #fff; border: 2px solid var(--line); margin-bottom: 8px; }
+
+/* ───────── 떠 있는 '바로 추가' 버튼 ───────── */
+.fab-wrap { position: fixed; right: 14px; bottom: 16px; z-index: 40; display: grid; gap: 8px; justify-items: center; }
+.fab-wrap[hidden] { display: none; }
+.fab { border: 2px solid var(--line); border-radius: 50%; background: #fff; box-shadow: 0 6px 18px rgba(0, 0, 0, .16);
+  display: grid; place-items: center; line-height: 1; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
+.fab:active { transform: scale(.93); box-shadow: 0 3px 10px rgba(0, 0, 0, .18); }
+.fab-m { width: 58px; height: 58px; font-size: 25px; background: var(--pink-l); border-color: var(--pink-d); position: relative; }
+.fab-m b { position: absolute; right: 4px; bottom: 3px; font-size: 16px; color: var(--pink-d); }
+.fab-s { width: 42px; height: 42px; font-size: 18px; background: var(--lav); border-color: var(--lav-d); opacity: .92; }
+@media (max-width: 760px) {
+  /* 모바일은 위쪽 탭을 쓰므로 아래 막대가 없다 — 홈 인디케이터만 피한다 */
+  .fab-wrap { right: 12px; bottom: calc(16px + env(safe-area-inset-bottom)); }
+}
+@media (min-width: 1101px) { .fab-wrap { right: 20px; bottom: 20px; } }
+@media print { .fab-wrap { display: none; } }

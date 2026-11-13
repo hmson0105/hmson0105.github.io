@@ -314,6 +314,8 @@ function renderBanner() {
     b.push(`<div class="banner banner-warn"><span>🔔 이 기기는 아직 <b>알림이 꺼져</b> 있어요. 켜면 다가오는 일정과 가족이 올린 소식을 알려 드려요.</span><span class="btn-row" style="margin:0"><button type="button" class="btn-p btn-sm" data-action="notify-ask">알림 켜기</button><button type="button" class="btn-g" data-action="notify-later">나중에</button></span></div>`);
   if (hasUndo()) b.push(`<div class="banner banner-warn"><span>↩️ 예시를 지웠어요. 잘못 눌렀다면 되돌릴 수 있어요.</span><span class="btn-row" style="margin:0"><button type="button" class="btn-s" data-action="undo-strip">되돌리기</button><button type="button" class="btn-g" data-action="drop-undo">괜찮아요</button></span></div>`);
   $('#banner').innerHTML = b.join('');
+  // 로그인이 풀린 기기에서는 눌러도 못 적으니 아예 감춘다
+  const fab = $('#fabWrap'); if (fab) fab.hidden = !!locked;
 }
 
 // ───────────────────────── 미니월드(층) ─────────────────────────
