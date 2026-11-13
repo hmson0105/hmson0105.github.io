@@ -1030,3 +1030,7 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
   .stage-top #floorHead { text-align: left; }
   .stage-top .hello-btns { justify-content: flex-start; }
 }
+
+/* 글 아래 글쓴이는 작은 동그란 아이콘으로 */
+.post footer .face { width: 20px; height: 20px; border-width: 1.5px; }
+.post footer .face-all { font-size: 11px; }
