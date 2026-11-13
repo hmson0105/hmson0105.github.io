@@ -2518,9 +2518,10 @@ async function makeShareLink(base = APP_URL || `${location.origin}${location.pat
  * 바로 추가.
  *
  * 홈 화면 바로가기나 아이폰 단축어가 이 주소로 앱을 열면 추가 창이 바로 뜬다.
- *   ?add=issue           할 일·메모 추가 창
- *   ?add=event           일정 추가 창
- *   ?add=issue&t=우유     제목까지 미리 채워서
+ *   ?add=issue            할 일·메모 추가 창
+ *   ?add=event            일정 추가 창
+ *   ?add=issue&t=우유      제목까지 미리 채워서
+ *   ?add=issue&t=우유&go=1 창 없이 바로 오늘 할 일로 저장 (위젯용)
  *
  * 주소는 곧바로 지운다. 새로고침할 때 또 뜨거나, 적은 글귀가 방문 기록에
  * 남지 않게 하기 위해서다. 글귀는 창의 입력칸에만 들어가고 화면에 HTML 로
@@ -2533,11 +2534,32 @@ function readQuickAdd() {
   const t = (q.get('t') || '').slice(0, 60).trim();
   history.replaceState(null, '', location.pathname + location.hash);
   if (locked) { toast('로그인하면 바로 추가할 수 있어요.'); return; }
+  // 위젯에서 이미 글을 받아 왔으면 창을 또 띄우지 않고 바로 적는다.
+  // 일정은 시각·장소를 정해야 하므로 바로 저장하지 않고 창을 띄운다.
+  if (what === 'issue' && q.get('go') === '1' && t) { quickSaveIssue(t); return; }
   // 첫 그리기가 끝난 뒤에 띄워야 창이 가려지지 않는다
   setTimeout(() => {
     if (what === 'event') newEvent(D.today(), ui.viewer, t);
     else if (what === 'issue') issueDialog(null, { date: D.today(), ownerId: ui.viewer, title: t });
   }, 60);
+}
+
+/**
+ * 창 없이 오늘 할 일 하나를 적는다.
+ * 아직 가족 서버에 붙기 전이라도 괜찮다 — 연결이 끝나면 밀린 것까지 함께 올라간다.
+ */
+function quickSaveIssue(title) {
+  const now = new Date().toISOString();
+  const is = {
+    id: M.newId('is'), title, date: D.today(), type: 'prep', ownerId: ui.viewer, priority: 'normal',
+    eventId: null, done: false, visibility: 'family', sourceId: 'src_manual',
+    createdBy: ui.viewer, createdAt: now, updatedAt: now,
+  };
+  S.issues.push(is);
+  logActivity('issue', is.id, `이슈 '${is.title}' (${D.fmtDate(is.date)})를 추가했어요`);
+  persist();
+  renderAll();
+  toast(`🎒 오늘 챙길 일에 더했어요 · ${title}`);
 }
 
 async function readShareLink() {
