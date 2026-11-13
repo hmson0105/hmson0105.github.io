@@ -228,6 +228,8 @@ function renderBanner() {
   const hasDemo = S.events.some(e => e.sourceId === 'src_demo') || S.issues.some(i => i.sourceId === 'src_demo');
   if (hasDemo) b.push(`<div class="banner banner-demo"><span>🧸 지금 보이는 일정·이슈 중 <b>예시</b> 표시가 붙은 것은 데모 데이터예요. 다른 기기의 일정은 <b>연동 › 다른 기기로 옮기기</b> 링크로 가져올 수 있어요.</span><button type="button" class="btn-s" data-action="strip-demo">예시 지우고 시작하기</button></div>`);
   if (APP_URL && !location.href.startsWith(APP_URL) && !/localhost|127\.0\.0\.1/.test(location.hostname)) b.push(`<div class="banner banner-warn"><span>🏡 우리집 미니월드가 <b>새 주소</b>로 이사했어요. 이 기기에 저장된 일정을 그대로 가지고 갈 수 있어요.</span><button type="button" class="btn-p btn-sm" data-action="move-home">내 데이터와 함께 새 주소로 가기</button></div>`);
+  if (connected() && N.permission() === 'default' && loadPref('notifyAsk') !== 'off')
+    b.push(`<div class="banner banner-warn"><span>🔔 이 기기는 아직 <b>알림이 꺼져</b> 있어요. 켜면 다가오는 일정과 가족이 올린 소식을 알려 드려요.</span><span class="btn-row" style="margin:0"><button type="button" class="btn-p btn-sm" data-action="notify-ask">알림 켜기</button><button type="button" class="btn-g" data-action="notify-later">나중에</button></span></div>`);
   if (hasUndo()) b.push(`<div class="banner banner-warn"><span>↩️ 예시를 지웠어요. 잘못 눌렀다면 되돌릴 수 있어요.</span><span class="btn-row" style="margin:0"><button type="button" class="btn-s" data-action="undo-strip">되돌리기</button><button type="button" class="btn-g" data-action="drop-undo">괜찮아요</button></span></div>`);
   $('#banner').innerHTML = b.join('');
 }
@@ -850,7 +852,21 @@ function notifyCardHTML() {
       <label class="fld fld-check"><input type="checkbox" data-change="notify-peer" ${peerOn() ? 'checked' : ''}><span>가족이 올리면 알리기</span></label>
     </div>
     <div class="btn-row"><button type="button" class="btn-s" data-action="notify-test">지금 보내 보기</button></div>` : ''}
-    <p class="muted small">📱 휴대폰은 앱을 <b>홈 화면에 추가</b>해야 알림이 와요. 앱을 완전히 닫으면 알림이 멈춰요 — 꺼져 있어도 받으려면 서버 푸시가 필요해요.</p>
+    <details class="notify-when"><summary>알림이 언제 오나요?</summary>
+      <ul class="small">
+        <li><b>다가오는 일정</b> — 정한 시간(기본 30분) 전에. 하루 한 번 아침에 오늘 일정 요약도요.</li>
+        <li><b>가족이 올린 것</b> — <b>다른 가족</b>이 일정·준비할 일을 올렸을 때. 내가 올린 건 나한테 오지 않아요.</li>
+        <li>받는 기기에서 <b>각자 알림을 켜야</b> 해요. 이 기기에서 켜도 다른 기기는 따로 켜야 해요.</li>
+        <li>지금은 <b>앱이 열려 있거나 방금까지 열려 있던 동안</b>에만 와요. 앱을 완전히 닫으면 멈춰요.</li>
+        <li>📱 휴대폰은 앱을 <b>홈 화면에 추가</b>해야 알림이 와요(아이폰은 필수).</li>
+      </ul>
+      <p class="small muted">앱을 닫아도 받으려면 서버 푸시가 필요해요. 받을 준비는 끝났고 보내는 쪽만 남았어요(<code>supabase/push/</code>).</p>
+    </details>
+    <dl class="kv kv-wide small">
+      <div><dt>이 기기 알림</dt><dd>${p === 'granted' ? '✅ 켜짐' : p === 'denied' ? '🚫 브라우저에서 차단' : p === 'unsupported' ? '— 지원 안 함' : '⛔ 꺼짐'}</dd></div>
+      <div><dt>가족 동기화</dt><dd>${connected() ? '✅ 연결됨' : '⛔ 로그인 필요 — 가족이 올린 것은 연결해야 알 수 있어요'}</dd></div>
+      <div><dt>홈 화면 설치</dt><dd>${window.matchMedia('(display-mode: standalone)').matches ? '✅ 설치됨' : '⛔ 아직 — 휴대폰이면 설치해 주세요'}</dd></div>
+    </dl>
   </section>`;
 }
 
@@ -1962,10 +1978,11 @@ const ACTIONS = {
   'notify-ask': async () => {
     const r = await N.ask();
     renderSync();
-    if (r === 'granted') { startNotifyLoop(); await N.test(); toast('알림을 켰어요.'); }
+    if (r === 'granted') { savePref('notifyAsk', 'off'); renderBanner(); startNotifyLoop(); await N.test(); toast('알림을 켰어요.'); }
     else if (r === 'denied') toast('브라우저에서 알림이 차단됐어요.', 'warn');
     else toast('알림을 켜지 않았어요.');
   },
+  'notify-later': () => { savePref('notifyAsk', 'off'); renderBanner(); },
   'notify-test': async () => { const ok = await N.test(); toast(ok ? '알림을 보냈어요.' : '알림을 보내지 못했어요.', ok ? '' : 'warn'); },
   'fold-card': b => {
     const card = b.closest('.card'), key = card.dataset.fold;

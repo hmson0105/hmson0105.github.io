@@ -600,7 +600,10 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 .card-sync { border-color: var(--pink); }
 .sync-form { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
 .sync-form input[type=email], .sync-row input { flex: 1 1 220px; min-width: 0; border: 2px solid var(--line); border-radius: 12px; padding: 9px 12px; font-size: 16px; }
-.sync-col { flex-direction: column; }
+/* 세로로 쌓을 땐 줄바꿈을 끈다 — 켜 두면 입력칸이 세로로 늘어나고 옆으로 넘친다 */
+.sync-col { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+.sync-form.sync-col input[type=email], .sync-form.sync-col input,
+.sync-form.sync-col select, .sync-form.sync-col textarea { flex: 0 0 auto; width: 100%; }
 .sync-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .sync-sent { background: var(--sky); border-radius: 12px; padding: 10px 14px; }
 .invite { font-family: ui-monospace, Menlo, monospace; font-size: 18px; letter-spacing: .08em; background: var(--yellow); border-radius: 8px; padding: 2px 8px; }
@@ -981,3 +984,10 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
   .post img { max-height: 300px; }
   .photo-big { max-height: 62vh; }
 }
+
+/* 알림 안내 펼치기 */
+.notify-when { margin: 10px 0; border: 2px solid var(--line); border-radius: 12px; background: var(--pink-xl); }
+.notify-when summary { cursor: pointer; padding: 8px 12px; font-size: 14px; }
+.notify-when ul { margin: 0 0 6px; padding: 0 14px 0 30px; display: grid; gap: 5px; }
+.notify-when p { margin: 0 14px 10px; }
+.notify-when code { background: #fff; border-radius: 6px; padding: 1px 5px; font-size: 12px; }
