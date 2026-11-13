@@ -172,3 +172,86 @@ export function avatarFigure(member) {
   return src ? `<img src="${src}" alt="" draggable="false">` : dadSVG();
 }
 export const hasImage = member => !!ASSETS.avatars[member.avatar];
+
+// ───────────────────── 🏠 집 평면도(등각 단면) ─────────────────────
+// 네 방을 한 도면 위에 벽을 맞대고 배치한 등각 그림. 아바타·이름표는
+// PLAN_SPOTS 의 % 좌표에 HTML 로 얹는다. 나중에 AI 그림이 생기면
+// ASSETS.housePlan 에 경로만 적으면 이 그림을 대신한다.
+const PW = 1200, PH = 820, POX = 600, POY = 150;
+const pIso = (x, y, z = 0) => [POX + (x - y) * 50, POY + (x + y) * 25 - z];
+const pPts = (...pts) => pts.map(p => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+const pSlab = (x, y, w, d, fill) => `<polygon points="${pPts(pIso(x, y), pIso(x + w, y), pIso(x + w, y + d), pIso(x, y + d))}" fill="${fill}"/>`;
+function pBox(x, y, w, d, h, col, z = 0) {
+  const top = pPts(pIso(x, y, z + h), pIso(x + w, y, z + h), pIso(x + w, y + d, z + h), pIso(x, y + d, z + h));
+  const left = pPts(pIso(x, y + d, z), pIso(x + w, y + d, z), pIso(x + w, y + d, z + h), pIso(x, y + d, z + h));
+  const right = pPts(pIso(x + w, y, z), pIso(x + w, y + d, z), pIso(x + w, y + d, z + h), pIso(x + w, y, z + h));
+  return `<polygon points="${left}" fill="${shade(col, -0.12)}"/><polygon points="${right}" fill="${shade(col, -0.24)}"/><polygon points="${top}" fill="${shade(col, 0.12)}"/>`;
+}
+const pBall = (x, y, z, r, fill) => { const [a, b] = pIso(x, y, z); return `<circle cx="${a}" cy="${b}" r="${r}" fill="${fill}"/>`; };
+
+const PLAN_ROOMS = [
+  { n: 4, x: 0, y: 0, fl: '#E9F7EF', rug: '#C7E9D6' },      // 위쪽 — 아빠
+  { n: 3, x: 6.5, y: 0, fl: '#F4EFFF', rug: '#DED1FF' },    // 오른쪽 — 엄마
+  { n: 2, x: 0, y: 6.5, fl: '#FFF3E8', rug: '#FFDCC4' },    // 왼쪽 — 딸
+  { n: 1, x: 6.5, y: 6.5, fl: '#FFF1F6', rug: '#FFD4E3' },  // 아래 — 가족 로비
+];
+const RS = 5.5;
+/** 방 바닥 한가운데의 그림 안 위치(%) — 아바타가 서는 자리 */
+export const PLAN_SPOTS = Object.fromEntries(PLAN_ROOMS.map(r => {
+  const [px, py] = pIso(r.x + RS / 2, r.y + RS / 2);
+  return [r.n, [+(px / PW * 100).toFixed(2), +(py / PH * 100).toFixed(2)]];
+}));
+export const PLAN_RATIO = `${PW} / ${PH}`;
+
+function planProps(r, add) {
+  const { x, y, n } = r, d = x + y;
+  if (n === 4) { // 아빠 · 대학원 연구실
+    add(d + .2, pBox(x + .4, y + .4, 2.8, 1.0, 44, '#E7C9A8'));
+    add(d + .5, pBox(x + 1.2, y + .6, 1.2, .12, 42, '#7D86A3', 44));
+    add(d + .6, pBox(x + 4.1, y + .4, .7, 2.6, 118, '#F0D6B8'));
+    add(d + 2.4, pBox(x + 1.3, y + 1.9, 1.0, 1.0, 38, '#9BB8E8'));
+    add(d + 7.0, pBox(x + 4.4, y + 4.4, .6, .6, 26, '#FFC2A8') + pBall(x + 4.7, y + 4.7, 52, 22, '#8FD18F'));
+  } else if (n === 3) { // 엄마 · 사무실
+    add(d + .2, pBox(x + .4, y + .4, 1.1, 2.9, 44, '#FFF1DE'));
+    add(d + .5, pBox(x + .6, y + 1.1, .1, 1.1, 40, '#C9B8F0', 44));
+    add(d + 2.2, pBox(x + 2.0, y + 1.4, 1.0, 1.0, 38, '#C9A8E8'));
+    add(d + 4.0, pBox(x + 3.6, y + .5, .7, 2.2, 104, '#F4D9C2'));
+    add(d + 7.2, pBox(x + 4.3, y + 4.3, .6, .6, 26, '#FFC2A8') + pBall(x + 4.6, y + 4.6, 52, 22, '#7CC47C'));
+  } else if (n === 2) { // 딸 · 어린이집
+    add(d + .4, pBox(x + .4, y + .5, 2.4, .7, 60, '#FFE1EC'));
+    add(d + 2.0, pBox(x + 1.0, y + 2.0, .8, .8, 30, '#FFD84D') + pBox(x + 1.9, y + 2.1, .7, .7, 26, '#8FD3FF'));
+    add(d + 2.4, pBox(x + 1.3, y + 2.1, .7, .7, 24, '#FF9EC4', 30));
+    add(d + 4.4, pBall(x + 3.9, y + 2.4, 26, 26, '#D9A47A') + pBall(x + 3.9, y + 2.4, 62, 20, '#E3B48C'));
+    add(d + 7.0, pBox(x + 4.3, y + 4.4, .6, .6, 26, '#FFC2A8') + pBall(x + 4.6, y + 4.7, 52, 22, '#9FDB9F'));
+  } else { // 가족 로비 · 거실
+    add(d + .4, pBox(x + .4, y + .4, 2.9, 1.0, 54, '#FFD9E6'));
+    add(d + .6, pBox(x + .5, y + .5, 2.7, .3, 34, '#FFE8F0', 54));
+    add(d + 2.4, pBox(x + 1.4, y + 2.1, 1.5, .9, 28, '#F0D6B8'));
+    add(d + 4.6, pBox(x + 4.2, y + .6, .35, 2.2, 96, '#CFCFE0') + pBox(x + 4.25, y + 1.0, .25, 1.4, 56, '#5B5B70', 36));
+    add(d + 7.2, pBox(x + 4.3, y + 4.4, .6, .6, 26, '#FFC2A8') + pBall(x + 4.6, y + 4.7, 56, 24, '#8FD18F'));
+  }
+}
+
+export function housePlanSVG() {
+  const it = [];
+  const add = (depth, s) => it.push([depth, s]);
+  const WC = '#FBF0E6';
+  add(-9, pBox(-0.45, -0.45, 0.45, 12.95, 82, WC));
+  add(-9, pBox(-0.45, -0.45, 12.95, 0.45, 82, WC));
+  for (const [a, b] of [[-0.45, 2.3], [3.8, 8.2], [9.7, 12.5]]) {
+    add(5.5 + a, pBox(5.5, a, 0.5, b - a, 64, WC));
+    add(5.5 + a, pBox(a, 5.5, b - a, 0.5, 64, WC));
+  }
+  for (const r of PLAN_ROOMS) planProps(r, add);
+  it.sort((a, b) => a[0] - b[0]);
+  const floors = PLAN_ROOMS.map(r => {
+    const [cx, cy] = pIso(r.x + RS / 2, r.y + RS / 2);
+    return pSlab(r.x, r.y, RS, RS, r.fl) + `<ellipse cx="${cx}" cy="${cy}" rx="88" ry="44" fill="${r.rug}"/>`;
+  }).join('');
+  return `<svg class="plan-svg" viewBox="0 0 ${PW} ${PH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="우리집 네 방을 한눈에 보는 평면도">
+  <ellipse cx="600" cy="690" rx="560" ry="96" fill="#E9CBD2" opacity=".4"/>
+  ${pBox(-0.45, -0.45, 12.95, 12.95, 30, '#E3CDBA', -30)}
+  ${floors}
+  ${it.map(i => i[1]).join('')}
+</svg>`;
+}

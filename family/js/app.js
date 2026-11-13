@@ -3,7 +3,7 @@ import * as D from './dates.js?v=6';
 import * as M from './model.js?v=7';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=6';
-import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG } from './scene.js?v=8';
+import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS } from './scene.js?v=9';
 import { createSync, syncConfigured } from './sync.js?v=13';
 import { parseKakao } from './kakao.js?v=4';
 import { APP_URL } from './config.js?v=10';
@@ -40,7 +40,7 @@ const ui = {
   celebrate: null,
   lastMinute: '',
 };
-if (![1, 2, 3, 4].includes(ui.floor)) ui.floor = 1;
+if (![0, 1, 2, 3, 4].includes(ui.floor)) ui.floor = 1; // 0 = 집 전체(1~4층 한 화면)
 if (!S.members.some(m => m.id === ui.viewer)) ui.viewer = S.members[0].id;
 
 function persist() {
@@ -239,7 +239,12 @@ function floorInfo(n) {
 function renderDir() {
   const t = D.today();
   const today = instances(t, t).filter(i => i.ev.status !== 'cancelled');
-  $('#floorList').innerHTML = [4, 3, 2, 1].map(n => {
+  const allBtn = `<li><button type="button" class="floor-btn fl-all${ui.floor === 0 ? ' on' : ''}" data-action="go-floor" data-floor="0" ${ui.floor === 0 ? 'aria-current="page"' : ''} style="--c:#9B87D4">
+      <b class="fl-n">🏠</b>
+      <span class="fl-t"><span class="fl-name">집 전체</span><small>1~4층 한눈에 · 오늘 ${today.length}건</small></span>
+      <span class="fl-face"><span class="face face-all">👪</span></span>
+    </button></li>`;
+  $('#floorList').innerHTML = allBtn + [4, 3, 2, 1].map(n => {
     const f = floorInfo(n);
     const cnt = n === 1 ? today.length : today.filter(i => involves(i.ev, new Set([f.m.id]))).length;
     return `<li><button type="button" class="floor-btn${n === ui.floor ? ' on' : ''}" data-action="go-floor" data-floor="${n}" ${n === ui.floor ? 'aria-current="page"' : ''} style="--c:${f.m?.color || '#FF8FB8'}">
@@ -248,8 +253,40 @@ function renderDir() {
       <span class="fl-face">${f.m ? face(f.m) : '<span class="face face-all">🏠</span>'}</span>
     </button></li>`;
   }).join('');
-  $('#car').style.setProperty('--i', String(4 - ui.floor));
-  $('#car').textContent = `${ui.floor}F`;
+  if (ui.floor >= 1) { $('#car').style.setProperty('--i', String(4 - ui.floor)); $('#car').textContent = `${ui.floor}F`; }
+  else $('#car').textContent = '🏠';
+}
+
+/** 네 방을 한 도면에 담은 등각 평면도. 각자 자기 방에 서 있고, 방을 누르면 그 층으로 들어간다. */
+function renderHouse() {
+  const t = D.today();
+  const today = instances(t, t).filter(i => i.ev.status !== 'cancelled');
+  const over = [4, 3, 2, 1].map(n => {
+    const f = floorInfo(n);
+    const lobby = n === 1;
+    const [sx, sy] = PLAN_SPOTS[n];
+    const col = f.m?.color || '#FF8FB8';
+    const cnt = lobby ? today.length : today.filter(i => involves(i.ev, new Set([f.m.id]))).length;
+    let who = '';
+    if (!lobby) {
+      const m = f.m, st = avatarState(m);
+      const mood = st.status && !st.stale && M.MOODS.find(k => k.k === st.status.mood);
+      const say = `${mood ? mood.e + ' ' : ''}${st.status?.text && !st.stale ? st.status.text : st.label}`;
+      who = `<button type="button" class="pv-av act-${st.act}" style="left:${sx}%;top:${sy}%;--h:${m.role === 'kid' ? 18 : 21}%;--c:${m.color}"
+        data-action="edit-status" data-id="${m.id}" aria-label="${esc(`${m.displayName}, ${st.label}. 상태 바꾸기`)}">
+        <span class="av-fig">${avatarFigure(m)}</span>${fxHTML(st.act, false)}
+        <span class="pv-say"><b>${esc(m.displayName)}</b><small>${esc(say)}</small></span>
+      </button>`;
+    }
+    return `${who}<button type="button" class="pv-tag" style="left:${sx}%;top:${sy + 7}%;--c:${col}"
+      data-action="go-floor" data-floor="${n}" aria-label="${esc(`${n}층 ${f.name}로 들어가기. 오늘 ${cnt}건`)}"><b>${n}F</b> ${esc(f.name)}${cnt ? `<i>${cnt}</i>` : ''}</button>`;
+  }).join('');
+  $('#stageFrame').className = `stage-frame bd-${S.family.lobbyRoom.backdrop}`;
+  $('#sceneWrap').innerHTML = `<div class="planv">
+    <div class="planv-art">${ASSETS.housePlan ? `<img class="plan-svg" src="${ASSETS.housePlan}" alt="우리집 평면도">` : housePlanSVG()}${over}</div>
+    <p class="planv-cap">우리집 평면도 · 방 이름을 누르면 그 층으로 들어가요</p>
+  </div>`;
+  $('#elevInd').textContent = '🏠';
 }
 
 function fxHTML(act, cele) {
@@ -281,6 +318,8 @@ function avatarHTML(m, mode) {
 }
 function renderStage() {
   const n = ui.floor;
+  $('#stage').classList.toggle('house-on', n === 0);
+  if (n === 0) return renderHouse();
   const room = n === 1 ? S.family.lobbyRoom : memberOnFloor(n).room;
   const img = ASSETS.rooms[n];
   const art = img
@@ -413,7 +452,12 @@ function renderWorld() {
   renderDir();
   const n = ui.floor;
   document.body.classList.toggle('fit', n === 1);
-  if (n === 1) {
+  if (n === 0) {
+    $('#floorHead').innerHTML = lobbyHead();
+    const p = lobbyPanels();
+    $('#panelMain').innerHTML = p.main; $('#panelSide').innerHTML = p.side;
+    $('#stageTitle').innerHTML = '<h2>🏠 집 전체</h2><span class="hint">층을 누르면 그 방으로 들어가요</span>';
+  } else if (n === 1) {
     $('#floorHead').innerHTML = lobbyHead();
     const p = lobbyPanels();
     $('#panelMain').innerHTML = p.main; $('#panelSide').innerHTML = p.side;
@@ -430,14 +474,15 @@ function renderWorld() {
 
 async function goFloor(n) {
   n = +n;
-  if (![1, 2, 3, 4].includes(n) || ui.elevating) return;
+  if (![0, 1, 2, 3, 4].includes(n) || ui.elevating) return;
   const wasWorld = ui.view === 'world';
   if (!wasWorld) setView('world');
   if (n === ui.floor) { if (wasWorld) renderWorld(); scrollTopIfMobile(); return; }
   const from = ui.floor;
   savePref('floor', String(n));
   scrollTopIfMobile();
-  if (reduceMotion.matches || !wasWorld) { ui.floor = n; renderWorld(); return; }
+  // 집 전체 보기는 엘리베이터로 오르내리는 층이 아니라 건물 바깥에서 보는 화면이라 연출 없이 바꾼다.
+  if (reduceMotion.matches || !wasWorld || n === 0 || from === 0) { ui.floor = n; renderWorld(); return; }
   ui.elevating = true;
   const stage = $('#stage'), ind = $('#elevInd');
   $('#car').style.setProperty('--i', String(4 - n));
@@ -961,6 +1006,7 @@ function eventDialog(ev, occDate) {
       <label class="fld"><span>반복</span><select name="freq">${opt(M.FREQS, rr?.freq || '')}</select></label>
       <label class="fld rr-only"><span>반복 끝나는 날</span><input type="date" name="until" value="${rr?.until || ''}"></label>
     </div>
+    <p class="muted small rr-hint">💡 위의 <b>끝나는 날</b>은 그 회차가 끝나는 날이에요. 하루짜리면 시작 날짜와 같게 두세요. 반복을 언제까지 할지는 <b>반복 끝나는 날</b>에 넣어요.</p>
     <fieldset class="fld chips rr-week"><legend>반복 요일</legend>${D.DAYCODES.map((c, i) => `<label><input type="checkbox" name="byday" value="${c}" ${byDay.includes(c) ? 'checked' : ''}><span>${D.WD[i]}</span></label>`).join('')}</fieldset>
     <label class="fld"><span>공개 범위</span><select name="visibility">${opt(M.VISIBILITY, ev.visibility)}</select></label>
     <label class="fld fld-check pin-check"><input type="checkbox" name="pinned" ${ev.pinned ? 'checked' : ''}><span>📌 고정 일정 <small class="muted">(예시 지우기·모두 지우기로 지워지지 않아요)</small></span></label>
@@ -982,6 +1028,7 @@ function eventDialog(ev, occDate) {
         const k = f.kind.value, fr = f.freq.value;
         f.querySelector('.times').hidden = k !== 'timed';
         f.querySelector('.rr-only').hidden = !fr;
+        f.querySelector('.rr-hint').hidden = !fr;
         f.querySelector('.rr-week').hidden = fr !== 'WEEKLY';
       };
       f.addEventListener('change', e => {
@@ -1066,6 +1113,9 @@ function eventDialog(ev, occDate) {
       const freq = fd.get('freq');
       const until = fd.get('until') || null;
       if (freq && until && until < startDate) return '반복 끝나는 날이 시작 날짜보다 빨라요.';
+      // 한 회차가 다음 회차까지 이어지면 달력이 매일 채워진다. 「끝나는 날」과 「반복 끝나는 날」을 헷갈린 경우.
+      if (freq && D.diffDays(startDate, endDate) >= ({ DAILY: 1, WEEKLY: 7, MONTHLY: 28, YEARLY: 365 }[freq] || 1))
+        return '한 회차가 다음 회차까지 이어져서 달력이 매일 채워져요. 「끝나는 날」은 그 회차가 끝나는 날이에요. 반복을 언제까지 할지는 「반복 끝나는 날」에 넣어 주세요.';
       const now = new Date().toISOString();
       const target = isNew ? { id: M.newId('ev'), sourceId: 'src_manual', externalUid: null, exDates: [], createdBy: ui.viewer, createdAt: now } : ev;
       const placeName = String(fd.get('place') || '').trim();
@@ -1616,7 +1666,32 @@ function renderView() {
   else if (ui.view === 'admin') renderAdmin();
   else renderSync();
 }
-function renderAll() { renderHeader(); renderBanner(); renderView(); }
+// ── 카드 접기 ── 카드 제목 옆 ▾ 로 내용을 접는다. 접은 카드는 이 기기에 기억된다.
+let foldSet = new Set();
+try { foldSet = new Set(JSON.parse(loadPref('folded') || '[]')); } catch { foldSet = new Set(); }
+const foldKey = h2 => h2.textContent.replace(/[0-9]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 40);
+function setupFolds() {
+  $$('.card').forEach(card => {
+    if (card.classList.contains('stage-card')) return; // 미니월드 그림은 접지 않는다
+    const head = card.querySelector(':scope > .card-h');
+    const h2 = head?.querySelector('h2');
+    if (!h2 || head.querySelector('.fold-btn')) return;
+    const key = foldKey(h2);
+    if (!key) return;
+    card.dataset.fold = key;
+    const on = foldSet.has(key);
+    card.classList.toggle('folded', on);
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'fold-btn';
+    b.dataset.action = 'fold-card';
+    b.setAttribute('aria-expanded', String(!on));
+    b.setAttribute('aria-label', `${h2.textContent.trim()} 접기/펼치기`);
+    b.innerHTML = '<span aria-hidden="true">▾</span>';
+    head.appendChild(b);
+  });
+}
+function renderAll() { renderHeader(); renderBanner(); renderView(); setupFolds(); }
 
 let toastT;
 function toast(msg, kind = '') {
@@ -1628,6 +1703,14 @@ function toast(msg, kind = '') {
 
 const ACTIONS = {
   'go-floor': b => goFloor(b.dataset.floor),
+  'fold-card': b => {
+    const card = b.closest('.card'), key = card.dataset.fold;
+    const on = !card.classList.contains('folded');
+    card.classList.toggle('folded', on);
+    b.setAttribute('aria-expanded', String(!on));
+    if (on) foldSet.add(key); else foldSet.delete(key);
+    savePref('folded', JSON.stringify([...foldSet]));
+  },
   view: b => { setView(b.dataset.view); scrollTopIfMobile(); },
   'open-event': b => { if ($('#dlg').open) $('#dlg').close(); openEvent(b.dataset.id, b.dataset.date); },
   'new-event': b => { if ($('#dlg').open) $('#dlg').close(); newEvent(b.dataset.date, b.dataset.owner); },

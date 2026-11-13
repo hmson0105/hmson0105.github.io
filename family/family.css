@@ -796,3 +796,43 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 .adm-ev-wrap { max-height: 420px; overflow: auto; border: 2px solid var(--line); border-radius: 12px; }
 .adm-ev input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--pink); }
 .adm-ev .link-ev { text-align: left; }
+
+/* ───────── 🏠 집 전체: 네 방을 한 도면에 담은 등각 평면도 ───────── */
+.stage.house-on { aspect-ratio: auto; background: none; overflow: visible; }
+.stage.house-on .scene-wrap { position: static; }
+.stage.house-on .doors { display: none; }
+
+.planv { display: grid; justify-items: center; gap: 6px; }
+.planv-art { position: relative; width: 100%; max-width: 760px; aspect-ratio: 1200 / 820; }
+.plan-svg { display: block; width: 100%; height: 100%; }
+.planv-cap { font-size: 12.5px; color: var(--ink-3); margin: 0; }
+
+.pv-tag { position: absolute; z-index: 3; transform: translate(-50%, 0); display: flex; align-items: baseline; gap: 4px;
+  padding: 2px 9px; background: rgba(255, 255, 255, .95); border: 2px solid var(--c); border-radius: 999px;
+  box-shadow: 0 2px 0 var(--c); white-space: nowrap; font-size: clamp(10px, 1.3vw, 13px); }
+.pv-tag:hover, .pv-tag:focus-visible { background: #fff; transform: translate(-50%, -2px); }
+.pv-tag b { font-family: var(--font-d); font-weight: 400; font-size: clamp(11px, 1.5vw, 15px); color: var(--c); }
+.pv-tag i { font-style: normal; font-size: 10px; color: #fff; background: var(--c); border-radius: 999px; padding: 1px 6px; }
+
+.pv-av { position: absolute; height: var(--h); transform: translate(-50%, -100%); padding: 0; border: 0; background: none; z-index: 4; }
+.pv-av .av-fig { display: block; height: 100%; transform-origin: 50% 100%; filter: drop-shadow(0 6px 5px rgba(120, 60, 80, .26)); }
+.pv-av .av-fig img, .pv-av .av-fig svg { height: 100%; width: auto; }
+.pv-av .av-fig svg.av-svg { height: 88%; margin-top: 12%; }
+.pv-av:hover .av-fig, .pv-av:focus-visible .av-fig { filter: drop-shadow(0 0 0 #fff) drop-shadow(0 0 7px var(--c)); }
+.pv-av .fx { font-size: clamp(11px, 1.6vw, 19px); }
+.pv-say { position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, -5px);
+  display: flex; align-items: baseline; gap: 5px; white-space: nowrap;
+  padding: 2px 9px 3px; background: #fff; border: 2px solid var(--c); border-radius: 12px;
+  box-shadow: 0 2px 0 var(--c); line-height: 1.2; }
+.pv-say b { font-family: var(--font-d); font-weight: 400; font-size: clamp(10.5px, 1.3vw, 14px); }
+.pv-say small { font-size: clamp(9.5px, 1.1vw, 12.5px); color: var(--ink-2); max-width: 11em; overflow: hidden; text-overflow: ellipsis; }
+.fl-all .fl-n { font-size: 20px; }
+
+/* ───────── 카드 접기 ───────── */
+.fold-btn { flex: none; margin-left: auto; width: 30px; height: 30px; display: grid; place-items: center;
+  border: 2px solid var(--line); border-radius: 50%; background: #fff; color: var(--ink-2); font-size: 13px; }
+.fold-btn:hover, .fold-btn:focus-visible { border-color: var(--pink); color: var(--ink); }
+.fold-btn span { display: block; transition: transform .18s ease; }
+.card.folded .fold-btn span { transform: rotate(-90deg); }
+.card.folded > .card-h { margin-bottom: 0; }
+.card.folded > :not(.card-h) { display: none; }
