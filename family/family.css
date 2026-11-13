@@ -1034,3 +1034,11 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 /* 글 아래 글쓴이는 작은 동그란 아이콘으로 */
 .post footer .face { width: 20px; height: 20px; border-width: 1.5px; }
 .post footer .face-all { font-size: 11px; }
+
+/* ───────── 달력 칸의 음력 숫자 ───────── */
+.mcell { position: relative; }
+.mlun { position: absolute; right: 5px; top: 4px; font-size: 10.5px; color: var(--ink-3); opacity: .75; line-height: 1; letter-spacing: -.3px; }
+.mcell.out .mlun { opacity: .4; }
+.mcell.sel .mlun, .mcell.today .mlun { opacity: .9; }
+.rr-lunar { margin: 2px 0 0; color: var(--lav-d); }
+@media (max-width: 760px) { .mlun { right: 3px; top: 3px; font-size: 9.5px; } }

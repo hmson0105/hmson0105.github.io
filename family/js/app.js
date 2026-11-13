@@ -1,10 +1,11 @@
 // 우리집 미니월드 — 가족 캘린더 + 층별 미니룸
 import * as D from './dates.js?v=6';
-import * as M from './model.js?v=8';
+import * as M from './model.js?v=9';
+import * as L from './lunar.js?v=1';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=6';
 import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS, WALL_SPOTS } from './scene.js?v=16';
-import { createSync, syncConfigured } from './sync.js?v=16';
+import { createSync, syncConfigured } from './sync.js?v=17';
 import { parseKakao } from './kakao.js?v=4';
 import * as N from './notify.js?v=2';
 import { APP_URL, PUSH_PUBLIC_KEY } from './config.js?v=12';
@@ -690,7 +691,7 @@ function monthHTML() {
     const open = issuesOn(d).filter(i => !i.done).length;
     const wd = D.weekday(d);
     cells += `<div class="mcell${d.slice(0, 7) !== month ? ' out' : ''}${d === t ? ' today' : ''}${d === c.selected ? ' sel' : ''}${wd === 0 ? ' sun' : wd === 6 ? ' sat' : ''}" role="gridcell" tabindex="0" data-action="cal-select" data-date="${d}" aria-label="${D.fmtDate(d)} 일정 ${evs.length}개${open ? `, 챙길 일 ${open}개` : ''}">
-      <span class="mnum">${+d.slice(8)}</span>${open ? `<span class="mpin" title="챙길 일 ${open}개">📌${open}</span>` : ''}
+      <span class="mnum">${+d.slice(8)}</span><span class="mlun" aria-hidden="true">${L.cellLabel(d)}</span>${open ? `<span class="mpin" title="챙길 일 ${open}개">📌${open}</span>` : ''}
       <span class="mchips">${evs.slice(0, 3).map(i => `<span class="mchip${i.ev.status === 'cancelled' ? ' is-cancel' : ''}${rank(i.ev) < 2 ? ' allday' : ''}" style="--c:${member(i.ev.ownerId)?.color || '#FF8FB8'}">${rank(i.ev) === 2 ? `<em>${i.ev.startTime}</em>` : ''}${esc(i.ev.title)}</span>`).join('')}${evs.length > 3 ? `<span class="mmore">+${evs.length - 3}</span>` : ''}</span>
       <span class="mdots" aria-hidden="true">${evs.slice(0, 4).map(i => `<i style="--c:${member(i.ev.ownerId)?.color || '#FF8FB8'}"></i>`).join('')}</span>
     </div>`;
@@ -1286,6 +1287,7 @@ function eventDialog(ev, occDate) {
       <label class="fld"><span>반복</span><select name="freq">${opt(M.FREQS, rr?.freq || '')}</select></label>
       <label class="fld rr-only"><span>반복 끝나는 날</span><input type="date" name="until" value="${rr?.until || ''}"></label>
     </div>
+    <p class="small rr-lunar" hidden></p>
     <p class="muted small rr-hint">💡 위의 <b>끝나는 날</b>은 그 회차가 끝나는 날이에요. 하루짜리면 시작 날짜와 같게 두세요. 반복을 언제까지 할지는 <b>반복 끝나는 날</b>에 넣어요.</p>
     <fieldset class="fld chips rr-week"><legend>반복 요일</legend>${D.DAYCODES.map((c, i) => `<label><input type="checkbox" name="byday" value="${c}" ${byDay.includes(c) ? 'checked' : ''}><span>${D.WD[i]}</span></label>`).join('')}</fieldset>
     <label class="fld"><span>공개 범위</span><select name="visibility">${opt(M.VISIBILITY, ev.visibility)}</select></label>
@@ -1310,6 +1312,11 @@ function eventDialog(ev, occDate) {
         f.querySelector('.rr-only').hidden = !fr;
         f.querySelector('.rr-hint').hidden = !fr;
         f.querySelector('.rr-week').hidden = fr !== 'WEEKLY';
+        const lun = f.querySelector('.rr-lunar');
+        if (lun) {
+          lun.hidden = fr !== 'LUNAR_YEARLY';
+          if (fr === 'LUNAR_YEARLY') lun.textContent = `🌙 ${L.human(f.startDate.value) || '음력을 읽지 못했어요'} 기준으로 해마다 돌아와요.`;
+        }
       };
       f.addEventListener('change', e => {
         if (e.target.name === 'startDate' && f.endDate.value < f.startDate.value) f.endDate.value = f.startDate.value;

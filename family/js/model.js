@@ -10,6 +10,7 @@
 //  모든 항목에 visibility: 'family'(가족 전체) | 'private'(본인만) — 나중에 권한 기능과 연결
 //
 // 일정(Event) = 언제·어디서 무엇을 하는지. 이슈(Issue) = 그날 기억·준비할 것.
+import * as L from './lunar.js?v=1';
 
 import { addDays, weekday, diffDays, startOfWeek, DAYCODES } from './dates.js?v=6';
 
@@ -100,6 +101,7 @@ export const FREQS = [
   { k: 'WEEKLY', l: '매주' },
   { k: 'MONTHLY', l: '매월' },
   { k: 'YEARLY', l: '매년' },
+  { k: 'LUNAR_YEARLY', l: '음력 매년 (생신·기일)' },
 ];
 
 // 방 꾸미기: 방 그림(Higgsfield 생성 이미지 또는 SVG 대체 그림) 주변 배경과 스티커.
@@ -356,6 +358,24 @@ export function expand(ev, rule, from, to) {
   }
   const base = ev.startDate;
   const ex = new Set(ev.exDates || []);
+  // 음력 매년 — 해마다 양력 날짜가 바뀐다. 기준일의 음력 월·일을 해마다 다시 양력으로 옮긴다.
+  if (rule.freq === 'LUNAR_YEARLY') {
+    const lb = L.toLunar(base);
+    if (!lb) {   // 음력을 못 쓰는 브라우저: 기준일 하나만 보여 준다
+      const e0 = addDays(base, span);
+      if (e0 >= from && base <= to) out.push({ ev, date: base, endDate: e0 });
+      return out;
+    }
+    const limitY = rule.until && rule.until < to ? +rule.until.slice(0, 4) : +to.slice(0, 4);
+    for (let y = +from.slice(0, 4) - 1; y <= limitY; y++) {
+      const d = L.solarFromLunar(y, lb.month, lb.day);
+      if (!d || d < base || ex.has(d)) continue;
+      if (rule.until && d > rule.until) continue;
+      const e = addDays(d, span);
+      if (e >= from && d <= to) out.push({ ev, date: d, endDate: e });
+    }
+    return out;
+  }
   const interval = Math.max(1, +rule.interval || 1);
   const byDay = rule.byDay && rule.byDay.length ? rule.byDay.map(c => DAYCODES.indexOf(c)).filter(i => i >= 0) : [weekday(base)];
   const limit = rule.until && rule.until < to ? rule.until : to;
