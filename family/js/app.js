@@ -829,10 +829,16 @@ function peerNotify(row) {
 
 /** 알림을 켠 기기를 서버에 등록해 둔다 — 앱을 닫아도 푸시가 오게. */
 async function registerPush() {
-  if (!PUSH_PUBLIC_KEY || !N.granted() || !connected()) return false;
-  const sub = await N.getPushSubscription(PUSH_PUBLIC_KEY);
-  if (!sub) return false;
-  return sync.savePush(sub, ui.viewer);
+  const set = v => { ui.push = v; if (ui.view === 'sync' && !$('#dlg').open) renderSync(); };
+  if (!PUSH_PUBLIC_KEY) { set('앱에 푸시 키가 없어요'); return false; }
+  if (!N.granted()) { set('이 기기 알림이 꺼져 있어요'); return false; }
+  if (!connected()) { set('가족 동기화에 로그인해야 해요'); return false; }
+  let sub = null;
+  try { sub = await N.getPushSubscription(PUSH_PUBLIC_KEY); } catch { /* 아래에서 처리 */ }
+  if (!sub) { set('이 브라우저가 푸시를 막았어요 (아이폰은 홈 화면에 추가 필요)'); return false; }
+  const ok = await sync.savePush(sub, ui.viewer);
+  set(ok ? '등록됨' : '서버에 저장하지 못했어요');
+  return ok;
 }
 
 let notifyTimer = null;
@@ -876,6 +882,8 @@ function notifyCardHTML() {
       <div><dt>이 기기 알림</dt><dd>${p === 'granted' ? '✅ 켜짐' : p === 'denied' ? '🚫 브라우저에서 차단' : p === 'unsupported' ? '— 지원 안 함' : '⛔ 꺼짐'}</dd></div>
       <div><dt>가족 동기화</dt><dd>${connected() ? '✅ 연결됨' : '⛔ 로그인 필요 — 가족이 올린 것은 연결해야 알 수 있어요'}</dd></div>
       <div><dt>홈 화면 설치</dt><dd>${window.matchMedia('(display-mode: standalone)').matches ? '✅ 설치됨' : '⛔ 아직 — 휴대폰이면 설치해 주세요'}</dd></div>
+      <div><dt>앱을 닫아도 오는 푸시</dt><dd>${ui.push === '등록됨' ? '✅ 이 기기 등록됨' : `⛔ ${esc(ui.push || '아직 등록 안 됨')}`}
+        <button type="button" class="btn-g btn-sm" data-action="push-register">다시 등록</button></dd></div>
     </dl>
   </section>`;
 }
@@ -1992,6 +2000,7 @@ const ACTIONS = {
     else if (r === 'denied') toast('브라우저에서 알림이 차단됐어요.', 'warn');
     else toast('알림을 켜지 않았어요.');
   },
+  'push-register': async () => { const ok = await registerPush(); renderSync(); toast(ok ? '이 기기를 푸시에 등록했어요.' : `등록하지 못했어요 — ${ui.push}`, ok ? '' : 'warn'); },
   'notify-later': () => { savePref('notifyAsk', 'off'); renderBanner(); },
   'notify-test': async () => { const ok = await N.test(); toast(ok ? '알림을 보냈어요.' : '알림을 보내지 못했어요.', ok ? '' : 'warn'); },
   'fold-card': b => {
