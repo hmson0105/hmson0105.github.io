@@ -14,6 +14,20 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const wait = ms => new Promise(r => setTimeout(r, ms));
+// 글 속의 http(s) 주소를 눌러서 열 수 있게 바꾼다.
+// esc() 로 먼저 전부 막은 뒤에 쓰므로, 여기서 만드는 <a> 말고는 태그가 살아날 수 없다.
+// http·https 만 링크로 만든다(javascript: 같은 건 그냥 글자로 남는다).
+const LINK_RE = /\bhttps?:\/\/[^\s<>"'`]+/g;
+function linkify(str) {
+  return esc(str).replace(LINK_RE, u => {
+    const tail = (u.match(/(?:&gt;|&quot;|&#39;|[.,!?)\]}]+)$/) || [''])[0];
+    const href = u.slice(0, u.length - tail.length);
+    if (!/^https?:\/\//i.test(href)) return u;
+    let show = href.replace(/^https?:\/\//i, '').replace(/\/$/, '');
+    if (show.length > 38) show = show.slice(0, 36) + '…';
+    return `<a class="ln" href="${href}" target="_blank" rel="noopener noreferrer">${show}</a>${tail}`;
+  });
+}
 const STALE_MS = 12 * 3600e3; // 상태가 12시간 넘게 갱신되지 않으면 '확인 중'
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const mobileMQ = matchMedia('(max-width: 760px)');
@@ -437,8 +451,8 @@ function allPostsCard() {
       <button type="button" class="btn-p btn-sm" data-action="new-post" data-id="${ui.viewer}">+ 글 쓰기</button></header>
     ${posts.length ? `<ul class="posts">${posts.map(p => `<li class="post">
         ${postPhotoHTML(p)}
-        <p>${esc(p.text)}</p>
-        <footer><span>${face(member(p.memberId))} <button type="button" class="link-ev" data-action="go-floor" data-floor="${member(p.memberId)?.floor || 1}">${esc(memberName(p.memberId))}의 방</button> · ${D.fmtStamp(p.createdAt)} · ${esc(memberName(p.createdBy))} 씀${p.visibility === 'private' ? ' · 🔒' : ''}</span>${srcTag(p)}<button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">삭제</button></footer>
+        <p>${linkify(p.text)}</p>
+        <footer><span>${face(member(p.memberId))} <button type="button" class="link-ev" data-action="go-floor" data-floor="${member(p.memberId)?.floor || 1}">${esc(memberName(p.memberId))}의 방</button> · ${D.fmtStamp(p.createdAt)} · ${esc(memberName(p.createdBy))} 씀${p.editedAt ? ' · 수정됨' : ''}${p.visibility === 'private' ? ' · 🔒' : ''}</span>${srcTag(p)}<span class="post-btns"><button type="button" class="btn-x" data-action="edit-post" data-id="${p.id}">고치기</button><button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">삭제</button></span></footer>
       </li>`).join('')}</ul>` : empty('📷', `아직 남긴 글이나 사진이 없어요.`, `<button type="button" class="btn-s" data-action="new-post" data-id="${ui.viewer}">${esc(me?.displayName || '나')}의 방에 글 쓰기</button>`)}
   </section>`;
 }
@@ -584,8 +598,8 @@ function memberPanels(m) {
   <section class="card o-7"><header class="card-h"><h2>짧은 글 · 사진</h2><button type="button" class="btn-p btn-sm" data-action="new-post" data-id="${m.id}">+ 글 쓰기</button></header>
     ${posts.length ? `<ul class="posts">${posts.map(p => `<li class="post">
         ${postPhotoHTML(p)}
-        <p>${esc(p.text)}</p>
-        <footer><span>${D.fmtStamp(p.createdAt)} · ${esc(memberName(p.createdBy))} 씀${p.visibility === 'private' ? ' · 🔒' : ''}</span>${srcTag(p)}<button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">삭제</button></footer>
+        <p>${linkify(p.text)}</p>
+        <footer><span>${D.fmtStamp(p.createdAt)} · ${esc(memberName(p.createdBy))} 씀${p.editedAt ? ' · 수정됨' : ''}${p.visibility === 'private' ? ' · 🔒' : ''}</span>${srcTag(p)}<span class="post-btns"><button type="button" class="btn-x" data-action="edit-post" data-id="${p.id}">고치기</button><button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">삭제</button></span></footer>
       </li>`).join('')}</ul>` : empty('📷', '아직 남긴 글이나 사진이 없어요.')}
   </section>
   <section class="card guest o-8"><header class="card-h"><h2>방명록</h2><span class="hint">${gb.length}개</span></header>
@@ -974,7 +988,7 @@ function renderSync() {
 function tripCommentsHTML(t) {
   const list = (S.tripComments || []).filter(c => c.tripId === t.id && canSee(c)).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   return `<section class="t-comments"><h3 class="sub-h">💬 여행 이야기 <small class="muted">${list.length}개</small></h3>
-    ${list.length ? `<ul class="gb-list">${list.map(c => `<li style="--c:${member(c.authorId)?.color || '#FF8FB8'}">${face(member(c.authorId))}<div><p><b>${esc(memberName(c.authorId))}</b> ${esc(c.text)}</p><small>${D.fmtStamp(c.createdAt)}${c.visibility === 'private' ? ' · 🔒' : ''}${srcTag(c)}</small></div>${c.authorId === ui.viewer ? `<button type="button" class="btn-x" data-action="del-tcomment" data-id="${c.id}" aria-label="댓글 삭제">✕</button>` : ''}</li>`).join('')}</ul>` : '<p class="muted small">가고 싶은 곳, 먹고 싶은 것, 걱정되는 것을 편하게 남겨 보세요.</p>'}
+    ${list.length ? `<ul class="gb-list">${list.map(c => `<li style="--c:${member(c.authorId)?.color || '#FF8FB8'}">${face(member(c.authorId))}<div><p><b>${esc(memberName(c.authorId))}</b> ${linkify(c.text)}</p><small>${D.fmtStamp(c.createdAt)}${c.editedAt ? ' · 수정됨' : ''}${c.visibility === 'private' ? ' · 🔒' : ''}${srcTag(c)}</small></div>${c.authorId === ui.viewer ? `<span class="post-btns"><button type="button" class="btn-x" data-action="edit-tcomment" data-id="${c.id}">고치기</button><button type="button" class="btn-x" data-action="del-tcomment" data-id="${c.id}" aria-label="댓글 삭제">✕</button></span>` : ''}</li>`).join('')}</ul>` : '<p class="muted small">가고 싶은 곳, 먹고 싶은 것, 걱정되는 것을 편하게 남겨 보세요. 🔗 주소를 붙여 넣으면 링크가 돼요.</p>'}
     <form class="gb-form" data-submit="trip-comment" data-id="${t.id}">
       <span class="gb-me">${face(member(ui.viewer))}</span>
       <input name="text" maxlength="200" required placeholder="${esc(memberName(ui.viewer))}(으)로 댓글 남기기" aria-label="여행 댓글">
@@ -1540,33 +1554,76 @@ async function resizeImage(file, max = 560) {
   c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
   return c.toDataURL('image/jpeg', 0.78);
 }
-function postDialog(m) {
-  let photo = null;
+function postDialog(m, post = null) {
+  let photo = post?.photo || null;
+  let dropPhoto = false;
   const body = `
-    <label class="fld"><span>짧은 글</span><textarea name="text" rows="3" maxlength="140" required placeholder="오늘 있었던 일을 한두 줄로"></textarea></label>
-    <label class="fld"><span>사진 <small>(선택 · 작게 줄여 이 기기에만 저장)</small></span><input type="file" name="photo" accept="image/*"></label>
-    <img class="photo-prev" alt="" hidden>
-    <label class="fld"><span>공개 범위</span><select name="visibility">${opt(M.VISIBILITY, 'family')}</select></label>`;
+    <label class="fld"><span>짧은 글</span><textarea name="text" rows="3" maxlength="140" required placeholder="오늘 있었던 일을 한두 줄로">${esc(post?.text || '')}</textarea></label>
+    <label class="fld"><span>사진 <small>(선택 · 작게 줄여 저장)</small></span><input type="file" name="photo" accept="image/*"></label>
+    <img class="photo-prev" alt="" ${post?.photo ? `src="${esc(post.photo)}"` : 'hidden'}>
+    ${post?.photo ? '<label class="fld fld-check"><input type="checkbox" name="nophoto"><span>사진 빼기</span></label>' : ''}
+    <p class="muted small">🔗 http 로 시작하는 주소를 적으면 눌러서 열 수 있는 링크가 돼요.</p>
+    <label class="fld"><span>공개 범위</span><select name="visibility">${opt(M.VISIBILITY, post?.visibility || 'family')}</select></label>`;
   openDialog({
-    title: `${esc(m.displayName)}의 미니룸에 글 쓰기`, body, cls: 'dlg-post',
-    actions: '<span class="sp"></span><button type="submit" value="save" class="btn-p">올리기</button>',
+    title: post ? '글 고치기' : `${esc(m.displayName)}의 미니룸에 글 쓰기`, body, cls: 'dlg-post',
+    actions: `<span class="sp"></span><button type="submit" value="save" class="btn-p">${post ? '저장' : '올리기'}</button>`,
     onMount(f) {
       f.photo.addEventListener('change', async () => {
         const file = f.photo.files[0];
         const prev = f.querySelector('.photo-prev');
-        if (!file) { photo = null; prev.hidden = true; return; }
-        try { photo = await resizeImage(file); prev.src = photo; prev.hidden = false; }
-        catch { photo = null; toast('사진을 읽지 못했어요.', 'err'); }
+        if (!file) return;
+        try { photo = await resizeImage(file); prev.src = photo; prev.hidden = false; dropPhoto = false; if (f.nophoto) f.nophoto.checked = false; }
+        catch { toast('사진을 읽지 못했어요.', 'err'); }
+      });
+      f.nophoto?.addEventListener('change', () => {
+        dropPhoto = f.nophoto.checked;
+        const prev = f.querySelector('.photo-prev');
+        prev.hidden = dropPhoto;
       });
       f.text.focus();
+      f.text.setSelectionRange(f.text.value.length, f.text.value.length);
     },
     onSubmit(f) {
       const text = f.text.value.trim();
       if (!text) return '글을 적어 주세요.';
-      const p = { id: M.newId('po'), memberId: m.id, text, photo, createdAt: new Date().toISOString(), createdBy: ui.viewer, visibility: f.visibility.value, sourceId: 'src_manual' };
+      if (post) {
+        const before = { text: post.text, photo: post.photo, visibility: post.visibility };
+        post.text = text;
+        post.photo = dropPhoto ? null : photo;
+        post.visibility = f.visibility.value;
+        post.editedAt = new Date().toISOString();
+        if (!persist()) { Object.assign(post, before); renderAll(); return '저장하지 못했어요. 사진이 너무 크면 빼고 올려 주세요.'; }
+        renderAll(); toast('글을 고쳤어요.');
+        return true;
+      }
+      const p = { id: M.newId('po'), memberId: m.id, text, photo: dropPhoto ? null : photo, createdAt: new Date().toISOString(), createdBy: ui.viewer, visibility: f.visibility.value, sourceId: 'src_manual' };
       S.posts.push(p);
       if (!persist()) { S.posts.pop(); renderAll(); return '저장하지 못했어요. 사진이 너무 크면 빼고 올려 주세요.'; }
       renderAll(); toast('글을 올렸어요.');
+      return true;
+    },
+  });
+}
+
+function editTripComment(id) {
+  const c = (S.tripComments || []).find(x => x.id === id);
+  if (!c) return;
+  openDialog({
+    title: '여행 이야기 고치기',
+    body: `<label class="fld"><span>이야기</span><textarea name="text" rows="3" maxlength="200" required>${esc(c.text)}</textarea></label>
+      <p class="muted small">🔗 http 로 시작하는 주소를 적으면 눌러서 열 수 있는 링크가 돼요.</p>
+      <label class="fld"><span>공개 범위</span><select name="visibility">${opt(M.VISIBILITY, c.visibility || 'family')}</select></label>`,
+    actions: '<span class="sp"></span><button type="submit" value="save" class="btn-p">저장</button>',
+    onMount(f) { f.text.focus(); f.text.setSelectionRange(f.text.value.length, f.text.value.length); },
+    onSubmit(f) {
+      const text = f.text.value.trim();
+      if (!text) return '내용을 적어 주세요.';
+      const before = { text: c.text, visibility: c.visibility };
+      c.text = text;
+      c.visibility = f.visibility.value;
+      c.editedAt = new Date().toISOString();
+      if (!persist()) { Object.assign(c, before); renderAll(); return '저장하지 못했어요.'; }
+      renderAll(); toast('고쳤어요.');
       return true;
     },
   });
@@ -2028,6 +2085,8 @@ const ACTIONS = {
   'view-photo': b => { if ($('#dlg').open) $('#dlg').close(); viewPhoto(b.dataset.id); },
   'del-activity': b => { S.activity = (S.activity || []).filter(x => x.id !== b.dataset.id); persist(); renderAll(); toast('소식을 지웠어요.'); },
   'clear-activity': () => { if (!confirm('가족 소식을 모두 지울까요?\n일정이나 준비할 일은 지워지지 않아요.')) return; S.activity = []; persist(); renderAll(); toast('가족 소식을 모두 지웠어요.'); },
+  'edit-post': b => { const p = S.posts.find(x => x.id === b.dataset.id); if (p) postDialog(member(p.memberId) || member(ui.viewer), p); },
+  'edit-tcomment': b => editTripComment(b.dataset.id),
   'del-post': b => { if (confirm('이 글을 삭제할까요?')) { S.posts = S.posts.filter(p => p.id !== b.dataset.id); persist(); renderAll(); } },
   'del-gb': b => { if (confirm('이 방명록을 삭제할까요?')) { S.guestbook = S.guestbook.filter(g => g.id !== b.dataset.id); persist(); renderAll(); } },
   decorate: b => decorateDialog(b.dataset.id),
