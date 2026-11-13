@@ -8,7 +8,7 @@ export const ASSETS = {
     1: 'img/room-1.jpg',   // 가족 로비 (Higgsfield · Nano Banana 2)
     2: 'img/room-2.jpg',   // 딸 어린이집 (Higgsfield · Z Image)
     3: 'img/room-3.jpg',   // 엄마 방 (Higgsfield · Z Image)
-    // 4: 'img/room-4.jpg', // 아빠 대학원  ← 생성 후 추가
+    4: 'img/room-4.jpg',   // 아빠 대학원 연구실 (Higgsfield · Nano Banana 2)
   },
   avatars: {
     mom: 'img/avatar-mom.png', // Higgsfield · Nano Banana 2, 배경 제거
@@ -18,7 +18,7 @@ export const ASSETS = {
   // 🏠 집 전체 평면도 그림 ← 생성 후 아래 줄의 주석만 풀면 바뀐다.
   // 없으면 housePlanSVG() 가 그린 등각 평면도가 쓰인다. 가로:세로 = 1200:820.
   // 사람·이름표 위치(PLAN_SPOTS)는 그대로 얹히므로 코드 수정은 이 한 줄뿐이다.
-  // housePlan: 'img/house-plan.jpg',
+  housePlan: 'img/house-plan.jpg', // Higgsfield · Nano Banana 2
 };
 
 /** 아바타 발 위치(무대 %, 발끝 기준)와 키(무대 높이 %) */

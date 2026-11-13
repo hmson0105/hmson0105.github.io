@@ -1,7 +1,7 @@
 // 우리집 미니월드 서비스 워커: 앱 화면을 기기에 저장해 두고 오프라인에서도 열리게 한다.
 // 가족 데이터는 여기서 다루지 않는다(브라우저 저장소·동기화 서버가 맡음).
-const CACHE = 'family-shell-v5';
-const PRECACHE = ['./', './index.html', './manifest.webmanifest', './img/room-1.jpg', './img/room-2.jpg', './img/room-3.jpg',
+const CACHE = 'family-shell-v6';
+const PRECACHE = ['./', './index.html', './manifest.webmanifest', './img/room-1.jpg', './img/room-2.jpg', './img/room-3.jpg', './img/room-4.jpg', './img/house-plan.jpg',
   './img/avatar-dad.png', './img/avatar-mom.png', './img/avatar-kid.png', './img/icon-192.png', './img/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
