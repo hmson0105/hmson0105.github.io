@@ -1910,7 +1910,7 @@ function syncTripEvent(t) {
   const now = new Date().toISOString();
   let ev = t.eventId && S.events.find(e => e.id === t.eventId);
   if (!ev) {
-    ev = { id: M.newId('ev'), sourceId: 'src_manual', externalUid: null, exDates: [], recurrenceRuleId: null, createdBy: ui.viewer, createdAt: now, status: 'confirmed' };
+    ev = { id: M.newId('ev'), sourceId: t.sourceId === 'src_demo' ? 'src_demo' : 'src_manual', externalUid: null, exDates: [], recurrenceRuleId: null, createdBy: ui.viewer, createdAt: now, status: 'confirmed' };
     S.events.push(ev); t.eventId = ev.id;
   }
   let placeId = null;
@@ -1921,6 +1921,10 @@ function syncTripEvent(t) {
   }
   const members = t.memberIds?.length ? t.memberIds : [ui.viewer];
   Object.assign(ev, {
+    // 여행에서 따라 만든 일정은 그 여행의 출처를 그대로 물려받는다. 예시 여행이
+    // 만든 일정이 '직접 입력'으로 남으면, 예시뿐인 새 기기가 진짜 데이터가 있는
+    // 걸로 오해돼 잠기고, '예시 지우기'도 이 일정만 남긴다.
+    sourceId: t.sourceId === 'src_demo' ? 'src_demo' : ev.sourceId || 'src_manual',
     title: `🧳 ${t.title}`, startDate: t.startDate, endDate: t.endDate, startTime: null, endTime: null, allDay: true, timeUnset: false,
     placeId, ownerId: members[0], attendeeIds: members, memo: '여행 계획표에서 자세히 보기', visibility: t.visibility, tripId: t.id, updatedAt: now,
   });
