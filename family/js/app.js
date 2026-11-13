@@ -59,8 +59,37 @@ const ui = {
 if (![0, 1, 2, 3, 4].includes(ui.floor)) ui.floor = 1; // 0 = 집 전체(1~4층 한 화면)
 if (!S.members.some(m => m.id === ui.viewer)) ui.viewer = S.members[0].id;
 
+/*
+ * 게스트 잠금.
+ *
+ * 가족 데이터는 이 기기에도 복사돼 있다. 로그인이 풀린 뒤에도 그게 그대로 보이면
+ * 이 기기를 잠깐 빌려 쓰는 사람에게 우리 일정이 다 보인다. 그래서 로그인 흔적이
+ * 없으면 받아 둔 내용은 건드리지 않고 그대로 둔 채, 화면에는 예시만 띄운다.
+ * 다시 로그인하면 (onStatus) 그대로 돌려준다.
+ *
+ * 저장된 로그인 세션은 Supabase 가 localStorage 에 두므로 그 자리를 그냥 보면 된다.
+ * 네트워크가 끊겨 있어도 세션은 남아 있으니, 비행기 모드에서 잠기는 일은 없다.
+ */
+let locked = null;
+const hasStoredSession = () => {
+  try { return Object.keys(localStorage).some(k => /^sb-.+-auth-token$/.test(k)); } catch { return false; }
+};
+if (!hasStoredSession() && localStorage.getItem('family-home:family')) {
+  locked = S;
+  S = M.demoState(D.today());
+  if (!S.members.some(m => m.id === ui.viewer)) ui.viewer = S.members[0].id;
+}
+/** 다시 로그인했을 때 받아 둔 내용을 돌려준다 */
+function unlock() {
+  if (!locked) return false;
+  S = locked; locked = null;
+  if (!S.members.some(m => m.id === ui.viewer)) ui.viewer = S.members[0].id;
+  return true;
+}
+
 function persist() {
   S.meta.updatedAt = new Date().toISOString();
+  if (locked) { renderBanner(); return false; }   // 잠긴 동안에는 예시가 진짜 데이터를 덮지 않게 한다
   if (!canStore) { renderBanner(); return false; }
   const r = save(S);
   ui.saveError = r.ok ? null : r.error;
@@ -81,6 +110,7 @@ const sync = createSync({
   onPeer(row) { peerNotify(row); },
   onStatus(st) {
     const firstConnect = st.family && !connected();
+    if (st.family) unlock();
     ui.sync = st;
     if (st.membership && ui.viewer !== st.membership.member_id) { ui.viewer = st.membership.member_id; savePref('viewer', ui.viewer); }
     if (firstConnect) {
@@ -234,6 +264,10 @@ function renderHeader() {
     connecting: '가족 동기화 · 연결 중…', error: `가족 동기화 · ${st.error || '문제가 있어요'}`,
     'no-family': '가족 동기화 · 가족 연결 필요', 'signed-out': '가족 동기화 · 로그인 필요', off: '이 기기에만 저장',
   }[st.state || 'off'];
+  // 관리자 화면은 가족 계정 관리용이라, 로그인하지 않은 사람에게는 탭 자체를 감춘다
+  const onlyMember = !connected();
+  $$('[data-action=view][data-view=admin]').forEach(b => { b.hidden = onlyMember; });
+  if (onlyMember && ui.view === 'admin') setView('sync');
   const dot = st.state === 'connected' ? 'dot-on' : st.state === 'error' ? 'dot-err' : '';
   $('#syncPill').innerHTML = `<span class="dot ${dot}"></span>${esc(label)}${st.state === 'connected' && st.lastSyncAt ? ` · ${D.relTime(st.lastSyncAt)}` : ''}`;
 }
@@ -241,8 +275,9 @@ function renderBanner() {
   const b = [];
   if (ui.saveError) b.push(`<div class="banner banner-err" role="alert"><b>저장 실패</b> ${esc(ui.saveError)}</div>`);
   if (bootNote) b.push(`<div class="banner banner-warn">${esc(bootNote)}</div>`);
+  if (locked) b.push(`<div class="banner banner-warn"><span>🔒 <b>로그인이 풀려 있어요.</b> 가족 일정·사진은 이 화면에 띄우지 않고 그대로 보관 중이에요. 다시 로그인하면 돌아와요.</span><button type="button" class="btn-p btn-sm" data-action="view" data-view="sync">로그인하기</button></div>`);
   const hasDemo = S.events.some(e => e.sourceId === 'src_demo') || S.issues.some(i => i.sourceId === 'src_demo');
-  if (hasDemo) b.push(`<div class="banner banner-demo"><span>🧸 지금 보이는 일정·이슈 중 <b>예시</b> 표시가 붙은 것은 데모 데이터예요. 다른 기기의 일정은 <b>연동 › 다른 기기로 옮기기</b> 링크로 가져올 수 있어요.</span><button type="button" class="btn-s" data-action="strip-demo">예시 지우고 시작하기</button></div>`);
+  if (hasDemo && !locked) b.push(`<div class="banner banner-demo"><span>🧸 지금 보이는 일정·이슈 중 <b>예시</b> 표시가 붙은 것은 데모 데이터예요. 다른 기기의 일정은 <b>연동 › 다른 기기로 옮기기</b> 링크로 가져올 수 있어요.</span><button type="button" class="btn-s" data-action="strip-demo">예시 지우고 시작하기</button></div>`);
   if (APP_URL && !location.href.startsWith(APP_URL) && !/localhost|127\.0\.0\.1/.test(location.hostname)) b.push(`<div class="banner banner-warn"><span>🏡 우리집 미니월드가 <b>새 주소</b>로 이사했어요. 이 기기에 저장된 일정을 그대로 가지고 갈 수 있어요.</span><button type="button" class="btn-p btn-sm" data-action="move-home">내 데이터와 함께 새 주소로 가기</button></div>`);
   if (connected() && N.permission() === 'default' && loadPref('notifyAsk') !== 'off')
     b.push(`<div class="banner banner-warn"><span>🔔 이 기기는 아직 <b>알림이 꺼져</b> 있어요. 켜면 다가오는 일정과 가족이 올린 소식을 알려 드려요.</span><span class="btn-row" style="margin:0"><button type="button" class="btn-p btn-sm" data-action="notify-ask">알림 켜기</button><button type="button" class="btn-g" data-action="notify-later">나중에</button></span></div>`);
@@ -782,6 +817,8 @@ function calMove(dir) {
 // ───────────────────────── 🔔 알림 · 미리알림 ─────────────────────────
 // 앱이 열려 있는 동안 다가오는 일정을 미리 알려 주고, 가족이 뭔가 올리면 알려 준다.
 const LEAD_CHOICES = [[0, '끄기'], [10, '10분 전'], [30, '30분 전'], [60, '1시간 전'], [120, '2시간 전']];
+const SECOND_LEAD = 5;         // 일정 2차: 시작 5분 전 ('이제 나가야 해요')
+const ISSUE_EVE_HOUR = 20;     // 메모·준비 1차: 전날 저녁 8시 (2차는 당일 아침 브리핑)
 const leadMin = () => { const v = +loadPref('notifyLead'); return LEAD_CHOICES.some(([k]) => k === v) ? v : 30; };
 const peerOn = () => loadPref('notifyPeer') !== 'off';
 
@@ -794,9 +831,19 @@ function instStart(inst) {
 }
 
 /** 다가오는 일정을 확인해 미리알림을 띄운다 */
-async function checkReminders() {
+/**
+ * 일정 미리알림 — 한 일정에 두 번.
+ * 1차는 설정한 시간 전(준비 시작), 2차는 시작 5분 전(이제 나가야 할 때).
+ * 1차가 5분보다 짧게 잡혀 있으면 두 번이 겹치므로, 그때는 2차를 시작 시각으로 민다.
+ */
+function eventLeads() {
   const lead = leadMin();
-  if (!lead || !N.granted()) return;
+  if (!lead) return [];
+  return lead > SECOND_LEAD ? [lead, SECOND_LEAD] : [lead, 0];
+}
+async function checkReminders() {
+  const leads = eventLeads();
+  if (!leads.length || !N.granted()) return;
   const now = new Date();
   const t = D.today();
   for (const i of instances(t, D.addDays(t, 1))) {
@@ -804,29 +851,86 @@ async function checkReminders() {
     const st = instStart(i);
     if (!st) continue;
     const mins = (st - now) / 60000;
-    if (mins < -1 || mins > lead) continue;
-    const who = memberName(i.ev.ownerId);
+    if (mins < -1 || mins > leads[0]) continue;
     const where = place(i.ev.placeId)?.name;
-    const when = mins < 1 ? '곧 시작' : `${Math.round(mins)}분 뒤`;
-    await N.show(`⏰ ${when} · ${i.ev.title}`, [who, where].filter(Boolean).join(' · ') || '우리집 미니월드',
-      { key: `ev:${i.ev.id}:${i.date}:${i.ev.startTime}` });
+    const who = (i.ev.attendeeIds || []).length ? i.ev.attendeeIds.map(memberName).join('·') : memberName(i.ev.ownerId);
+    for (let k = 0; k < leads.length; k++) {
+      // 앱을 늦게 열어 두 차례가 한꺼번에 밀려 있어도, 지금에 맞는 한 번만 보낸다
+      const floor = k + 1 < leads.length ? leads[k + 1] : -1;
+      if (mins > leads[k] || mins <= floor) continue;
+      const when = mins < 1 ? '곧 시작' : `${Math.round(mins)}분 뒤`;
+      await N.show(`⏰ ${when} · ${i.ev.startTime} ${i.ev.title}`,
+        [where ? `📍 ${where}` : '', who].filter(Boolean).join(' · ') || '우리집 미니월드',
+        { key: `ev:${i.ev.id}:${i.date}:${i.ev.startTime}:${leads[k]}` });
+    }
+  }
+}
+
+/**
+ * 메모·준비 미리알림 — 날짜만 있고 시각이 없으니 시각 대신 '때'를 정한다.
+ * 1차는 전날 저녁 8시(아직 챙길 수 있는 시간), 2차는 당일 아침 브리핑.
+ * 2차는 morningBrief 와 같은 key 를 써서 겹쳐 뜨지 않게 한다.
+ */
+async function checkIssueReminders() {
+  if (!leadMin() || !N.granted()) return;
+  const now = D.seoul();
+  if (now.hour < ISSUE_EVE_HOUR) return;
+  const tm = D.addDays(now.date, 1);
+  for (const is of S.issues) {
+    if (is.date !== tm || is.done || !canSee(is)) continue;
+    const e = M.ISSUE_TYPES.find(x => x.k === is.type)?.e || '🎒';
+    await N.show(`${e} 내일 · ${is.title}`,
+      [is.priority === 'high' ? '❗중요' : '', memberName(is.ownerId), '미리 챙겨 두세요'].filter(Boolean).join(' · '),
+      { key: `eve:${tm}:is:${is.id}` });
   }
 }
 
 /** 하루 한 번, 오늘 일정을 모아서 알려 준다 */
+/** 알림 한 줄에 담을 일정 — 잠금 화면에서 잘려도 알아볼 수 있게 앞쪽에 핵심을 둔다 */
+function evNotice(inst) {
+  const ev = inst.ev;
+  const when = ev.allDay ? '하루 종일' : ev.timeUnset || !ev.startTime ? '시간 미정'
+    : ev.endTime ? `${ev.startTime}–${ev.endTime}` : ev.startTime;
+  const who = (ev.attendeeIds || []).length ? ev.attendeeIds.map(memberName).join('·') : memberName(ev.ownerId);
+  const where = place(ev.placeId)?.name;
+  return {
+    title: `${when} · ${ev.title}`,
+    body: [where ? `📍 ${where}` : '', who].filter(Boolean).join(' · '),
+    key: `day:${inst.date}:ev:${ev.id}`,
+  };
+}
+function issueNotice(is, t) {
+  const PRIO = { high: '❗', normal: '', low: '' };
+  return {
+    title: `🎒 ${PRIO[is.priority] || ''}${is.title}`,
+    body: ['오늘 챙길 일', memberName(is.ownerId)].filter(Boolean).join(' · '),
+    key: `day:${t}:is:${is.id}`,
+  };
+}
+
+/**
+ * 아침 8시에 그날 일정·챙길 일을 한 건씩 따로 알린다.
+ * 한 통에 몰아넣으면 잠금 화면에서 뒤가 잘려 무엇이 있는지 알 수 없다.
+ * 앱을 늦게 열어도 그날 것은 한 번은 받도록, 8시가 지났고 아직 안 보냈으면 그때 보낸다.
+ */
+const MORNING_HOUR = 8;
 async function morningBrief() {
-  if (!leadMin() || !N.granted()) return;
+  if (!N.granted()) return;
   const t = D.today();
-  if (loadPref('notifyDay') === t || new Date().getHours() < 7) return;
+  if (loadPref('notifyDay') === t) return;
+  if (D.seoul().hour < MORNING_HOUR) return;
   savePref('notifyDay', t);
-  const list = instances(t, t).filter(i => i.ev.status !== 'cancelled');
-  const todo = S.issues.filter(i => i.date === t && !i.done && canSee(i)).length;
-  if (!list.length && !todo) return;
-  const first = list[0];
-  const parts = [];
-  if (first) parts.push(`가장 먼저 ${timeLabel(first.ev)} ${first.ev.title}`);
-  if (todo) parts.push(`챙길 일 ${todo}개`);
-  await N.show(`🌤️ 오늘 가족 일정 ${list.length}건`, parts.join(' · '), { key: `day:${t}` });
+
+  const evs = instances(t, t).filter(i => i.ev.status !== 'cancelled').sort(cmpInst);
+  const iss = S.issues.filter(i => i.date === t && !i.done && canSee(i));
+  if (!evs.length && !iss.length) return;
+
+  // 맨 앞에 오늘 전체를 한 줄로 — 나머지는 한 건씩
+  await N.show(`🌤️ 오늘 일정 ${evs.length}건${iss.length ? ` · 챙길 일 ${iss.length}개` : ''}`,
+    evs.length ? `가장 먼저 ${evNotice(evs[0]).title}` : '오늘은 챙길 일만 있어요',
+    { key: `day:${t}` });
+  for (const i of evs) { const n = evNotice(i); await N.show(n.title, n.body, { key: n.key }); }
+  for (const i of iss) { const n = issueNotice(i, t); await N.show(n.title, n.body, { key: n.key }); }
 }
 
 const PEER_LABEL = { events: '일정', issues: '준비할 일', trips: '여행 계획', tripComments: '여행 메모', boardItems: '살 것', posts: '가족 글', guestbook: '방명록', places: '장소' };
@@ -860,7 +964,7 @@ let notifyTimer = null;
 function startNotifyLoop() {
   clearInterval(notifyTimer);
   if (!N.granted()) return;
-  const tick = () => { morningBrief(); checkReminders(); };
+  const tick = () => { morningBrief(); checkReminders(); checkIssueReminders(); };
   registerPush();
   tick();
   notifyTimer = setInterval(tick, 30000);
@@ -879,13 +983,15 @@ function notifyCardHTML() {
     ${p === 'denied' ? '<p class="small">브라우저 주소창 왼쪽 자물쇠 → 알림을 <b>허용</b>으로 바꾼 뒤 새로고침해 주세요.</p>' : ''}
     ${p === 'default' ? '<div class="btn-row"><button type="button" class="btn-p" data-action="notify-ask">🔔 알림 켜기</button></div>' : ''}
     ${p === 'granted' ? `<div class="fld-row">
-      <label class="fld"><span>일정 미리알림</span><select data-change="notify-lead">${LEAD_CHOICES.map(([k, l]) => `<option value="${k}" ${k === lead ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label class="fld"><span>미리알림 1차</span><select data-change="notify-lead">${LEAD_CHOICES.map(([k, l]) => `<option value="${k}" ${k === lead ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
       <label class="fld fld-check"><input type="checkbox" data-change="notify-peer" ${peerOn() ? 'checked' : ''}><span>가족이 올리면 알리기</span></label>
     </div>
     <div class="btn-row"><button type="button" class="btn-s" data-action="notify-test">지금 보내 보기</button></div>` : ''}
     <details class="notify-when"><summary>알림이 언제 오나요?</summary>
       <ul class="small">
-        <li><b>다가오는 일정</b> — 정한 시간(기본 30분) 전에. 하루 한 번 아침에 오늘 일정 요약도요.</li>
+        <li><b>일정</b> — 두 번 와요. <b>1차</b>는 정한 시간(기본 30분) 전, <b>2차</b>는 시작 5분 전.</li>
+        <li><b>메모 · 준비할 것</b> — 시각이 없으니 두 번 와요. <b>1차</b>는 <b>전날 저녁 8시</b>, <b>2차</b>는 <b>당일 아침 8시</b>.</li>
+        <li><b>아침 8시</b> — 그날 일정과 챙길 일을 <b>한 건씩</b> 따로 알려 줘요.</li>
         <li><b>가족이 올린 것</b> — <b>다른 가족</b>이 일정·준비할 일을 올렸을 때. 내가 올린 건 나한테 오지 않아요.</li>
         <li>받는 기기에서 <b>각자 알림을 켜야</b> 해요. 이 기기에서 켜도 다른 기기는 따로 켜야 해요.</li>
         <li>지금은 <b>앱이 열려 있거나 방금까지 열려 있던 동안</b>에만 와요. 앱을 완전히 닫으면 멈춰요.</li>
@@ -2150,7 +2256,26 @@ const ACTIONS = {
   },
   'del-tcomment': b => { if (confirm('이 댓글을 지울까요?')) { S.tripComments = S.tripComments.filter(c => c.id !== b.dataset.id); persist(); renderAll(); } },
   'sync-now': async () => { await sync.syncNow(); toast('동기화했어요.'); },
-  'sync-signout': async () => { if (!confirm('이 기기에서 로그아웃할까요? 이 기기의 데이터는 남아 있어요.')) return; await sync.signOut(); renderAll(); toast('로그아웃했어요.'); },
+  'sync-signout': async () => {
+    const had = connected();
+    if (!confirm(had
+      ? '이 기기에서 로그아웃할까요?\n\n이 기기에 내려받아 둔 가족 일정·사진·메모를 지우고 예시 화면으로 돌아가요.\n서버에는 그대로 있어서 다시 로그인하면 돌아와요.'
+      : '로그아웃할까요?')) return;
+    // 푸시 구독부터 끊는다 — 서버의 구독 기록을 지우려면 아직 로그인 상태여야 한다
+    try { const ep = await N.dropPushSubscription(); if (ep) await sync.dropPush(ep); } catch { /* 못 지워도 로그아웃은 진행 */ }
+    await sync.signOut();
+    if (had) {
+      clearInterval(notifyTimer);
+      S = M.demoState(D.today());
+      if (!S.members.some(m => m.id === ui.viewer)) { ui.viewer = S.members[0].id; savePref('viewer', ui.viewer); }
+      ui.push = null; ui.admin = { accounts: null, accountsErr: null, picked: new Set() };
+      // fromRemote 로 저장해야 이 예시 데이터가 서버로 거꾸로 올라가지 않는다
+      fromRemote = true; try { persist(); } finally { fromRemote = false; }
+    }
+    setView('world');
+    renderAll();
+    toast(had ? '로그아웃했어요. 이 기기에 있던 가족 데이터를 지웠어요.' : '로그아웃했어요.');
+  },
   'copy-invite': async () => { try { await navigator.clipboard.writeText(ui.admin.invite || ''); toast('초대 코드를 복사했어요.'); } catch { toast('코드를 길게 눌러 복사해 주세요.'); } },
   kakao: () => kakaoDialog(),
   'adm-reload': () => { ui.admin.accounts = null; ui.admin.accountsErr = null; renderAdmin(); },
@@ -2232,7 +2357,7 @@ document.addEventListener('change', e => {
     const b = (S.boardItems || []).find(x => x.id === t.dataset.id);
     if (b) { b.done = t.checked; b.updatedAt = new Date().toISOString(); persist(); renderAll(); if (t.checked) toast(`✅ '${b.title}' 완료!`); }
   }
-  if (a === 'notify-lead') { savePref('notifyLead', t.value); startNotifyLoop(); toast(+t.value ? `일정 ${LEAD_CHOICES.find(([k]) => k === +t.value)[1]}에 알려 드릴게요.` : '일정 미리알림을 껐어요.'); }
+  if (a === 'notify-lead') { savePref('notifyLead', t.value); startNotifyLoop(); toast(+t.value ? `일정은 ${LEAD_CHOICES.find(([k]) => k === +t.value)[1]}과 5분 전, 두 번 알려 드릴게요.` : '미리알림을 껐어요.'); }
   if (a === 'notify-peer') { savePref('notifyPeer', t.checked ? 'on' : 'off'); toast(t.checked ? '가족이 올리면 알려 드릴게요.' : '가족 알림을 껐어요.'); }
   if (a === 'import-ics' && t.files[0]) { importICS(t.files[0]); t.value = ''; }
   if (a === 'restore' && t.files[0]) { restore(t.files[0]); t.value = ''; }
