@@ -404,6 +404,27 @@ function statusCard(m) {
   </article>`;
 }
 
+/** 글 안의 사진 — 잘리지 않게 통째로 보여 주고, 누르면 크게 */
+function postPhotoHTML(post) {
+  if (!post.photo) return '';
+  const who = memberName(post.memberId);
+  return `<button type="button" class="post-photo" data-action="view-photo" data-id="${post.id}"
+    aria-label="${esc(who)}의 사진 크게 보기"><img src="${esc(post.photo)}" alt="${esc(who)}의 사진" draggable="false"></button>`;
+}
+function viewPhoto(id) {
+  const post = S.posts.find(x => x.id === id);
+  if (!post?.photo || !canSee(post)) return;
+  openDialog({
+    title: `${esc(memberName(post.memberId))}의 사진`,
+    cls: 'dlg-photo',
+    body: `<img class="photo-big" src="${esc(post.photo)}" alt="${esc(memberName(post.memberId))}의 사진">
+      ${post.text ? `<p class="photo-cap">${esc(post.text)}</p>` : ''}
+      <p class="photo-meta">${D.fmtStamp(post.createdAt)} · ${esc(memberName(post.createdBy))} 씀</p>`,
+    actions: '<span class="sp"></span><button type="button" class="btn-p" data-close>닫기</button>',
+    onMount(f) { f.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => $('#dlg').close())); },
+  });
+}
+
 /** 집 전체 화면에서 보는, 온 가족의 최근 짧은 글·사진 */
 function allPostsCard() {
   const posts = S.posts.filter(p => canSee(p)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6);
@@ -411,7 +432,7 @@ function allPostsCard() {
   return `<section class="card o-7"><header class="card-h"><h2>짧은 글 · 사진</h2>
       <button type="button" class="btn-p btn-sm" data-action="new-post" data-id="${ui.viewer}">+ 글 쓰기</button></header>
     ${posts.length ? `<ul class="posts">${posts.map(p => `<li class="post">
-        ${p.photo ? `<img src="${esc(p.photo)}" alt="${esc(memberName(p.memberId))}의 사진">` : ''}
+        ${postPhotoHTML(p)}
         <p>${esc(p.text)}</p>
         <footer><span>${face(member(p.memberId))} <button type="button" class="link-ev" data-action="go-floor" data-floor="${member(p.memberId)?.floor || 1}">${esc(memberName(p.memberId))}의 방</button> · ${D.fmtStamp(p.createdAt)} · ${esc(memberName(p.createdBy))} 씀${p.visibility === 'private' ? ' · 🔒' : ''}</span>${srcTag(p)}<button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">삭제</button></footer>
       </li>`).join('')}</ul>` : empty('📷', `아직 남긴 글이나 사진이 없어요.`, `<button type="button" class="btn-s" data-action="new-post" data-id="${ui.viewer}">${esc(me?.displayName || '나')}의 방에 글 쓰기</button>`)}
@@ -558,7 +579,7 @@ function memberPanels(m) {
   const main = `
   <section class="card o-7"><header class="card-h"><h2>짧은 글 · 사진</h2><button type="button" class="btn-p btn-sm" data-action="new-post" data-id="${m.id}">+ 글 쓰기</button></header>
     ${posts.length ? `<ul class="posts">${posts.map(p => `<li class="post">
-        ${p.photo ? `<img src="${esc(p.photo)}" alt="${esc(memberName(m.id))}의 사진">` : ''}
+        ${postPhotoHTML(p)}
         <p>${esc(p.text)}</p>
         <footer><span>${D.fmtStamp(p.createdAt)} · ${esc(memberName(p.createdBy))} 씀${p.visibility === 'private' ? ' · 🔒' : ''}</span>${srcTag(p)}<button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">삭제</button></footer>
       </li>`).join('')}</ul>` : empty('📷', '아직 남긴 글이나 사진이 없어요.')}
@@ -1961,6 +1982,7 @@ const ACTIONS = {
   'new-issue': b => { if ($('#dlg').open) $('#dlg').close(); issueDialog(null, { date: b.dataset.date, eventId: b.dataset.event, ownerId: b.dataset.owner }); },
   'edit-status': b => statusDialog(member(b.dataset.id)),
   'new-post': b => postDialog(member(b.dataset.id)),
+  'view-photo': b => { if ($('#dlg').open) $('#dlg').close(); viewPhoto(b.dataset.id); },
   'del-activity': b => { S.activity = (S.activity || []).filter(x => x.id !== b.dataset.id); persist(); renderAll(); toast('소식을 지웠어요.'); },
   'clear-activity': () => { if (!confirm('가족 소식을 모두 지울까요?\n일정이나 준비할 일은 지워지지 않아요.')) return; S.activity = []; persist(); renderAll(); toast('가족 소식을 모두 지웠어요.'); },
   'del-post': b => { if (confirm('이 글을 삭제할까요?')) { S.posts = S.posts.filter(p => p.id !== b.dataset.id); persist(); renderAll(); } },
