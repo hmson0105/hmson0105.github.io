@@ -63,3 +63,48 @@ export async function test() {
   const ok = await show('🔔 알림이 켜졌어요', '다가오는 일정과 가족이 올린 소식을 여기로 알려 드릴게요.', { tag: 'test' });
   return ok;
 }
+
+// ───────────────── 웹 푸시(앱을 닫아도 오는 알림) ─────────────────
+// VAPID 공개 키가 설정돼 있을 때만 쓴다. 비밀 키는 서버(Edge Function)에만 있다.
+
+const b64ToBytes = (b64) => {
+  const pad = '='.repeat((4 - (b64.length % 4)) % 4);
+  const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from(raw, c => c.charCodeAt(0));
+};
+const keyOf = (sub, name) => {
+  const k = sub.getKey(name);
+  return k ? btoa(String.fromCharCode(...new Uint8Array(k))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') : '';
+};
+
+/** 이 기기의 푸시 구독을 만들거나 가져온다. 없으면 null. */
+export async function getPushSubscription(publicKey) {
+  if (!publicKey || !granted() || !('PushManager' in window)) return null;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      // 키가 바뀌었으면 새로 만든다
+      const cur = sub.options?.applicationServerKey;
+      const same = cur && btoa(String.fromCharCode(...new Uint8Array(cur)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') === publicKey;
+      if (!same) { try { await sub.unsubscribe(); } catch { /* 지워도 그만 */ } sub = null; }
+    }
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(publicKey) });
+    return { endpoint: sub.endpoint, p256dh: keyOf(sub, 'p256dh'), auth: keyOf(sub, 'auth') };
+  } catch {
+    return null;   // 브라우저가 푸시를 막았거나 지원하지 않는다
+  }
+}
+
+/** 이 기기의 구독을 해지한다(알림 끄기). */
+export async function dropPushSubscription() {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) return null;
+    const endpoint = sub.endpoint;
+    await sub.unsubscribe();
+    return endpoint;
+  } catch { return null; }
+}

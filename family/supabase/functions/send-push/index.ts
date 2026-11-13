@@ -174,6 +174,50 @@ const LABEL: Record<string, string> = {
   boardItems: '살 것', posts: '가족 글', guestbook: '방명록',
 };
 
+/** 최근 몇 분 안에 가족이 올린 것을 사람별로 묶어 한 통씩 */
+async function sendRecent(minutes = 6) {
+  const since = new Date(Date.now() - minutes * 60_000).toISOString();
+  const { data: rows } = await admin.from('family_items')
+    .select('family_id,kind,id,data,deleted,updated_at,updated_by')
+    .gt('updated_at', since)
+    .in('kind', Object.keys(LABEL))
+    .order('updated_at', { ascending: false })
+    .limit(80);
+  if (!rows?.length) return { items: 0, sent: 0 };
+
+  const groups = new Map<string, { family_id: string; by: string; rows: any[] }>();
+  for (const r of rows) {
+    if (!r.updated_by) continue;
+    const k = `${r.family_id}|${r.updated_by}`;
+    if (!groups.has(k)) groups.set(k, { family_id: r.family_id, by: r.updated_by, rows: [] });
+    groups.get(k)!.rows.push(r);
+  }
+
+  let sent = 0;
+  for (const g of groups.values()) {
+    const visible = g.rows.filter(r => (r.data as any)?.visibility !== 'private' && !r.deleted);
+    if (!visible.length) continue;
+    const newest = visible[0];
+    if (!await claim(`it:${g.family_id}:${g.by}:${newest.updated_at}`, g.family_id)) continue;
+
+    const { data: subs } = await admin.from('push_subscriptions')
+      .select('endpoint,p256dh,auth,member_id,user_id,fail_count').eq('family_id', g.family_id);
+    const targets = (subs ?? []).filter(s => s.user_id !== g.by) as Sub[];
+    if (!targets.length) continue;
+
+    const label = LABEL[newest.kind];
+    const text = String((newest.data as any)?.title || (newest.data as any)?.text || '').slice(0, 50);
+    const more = visible.length - 1;
+    sent += await pushTo(targets, {
+      title: `\u{1F46A} ${label}이 올라왔어요${more ? ` 외 ${more}건` : ''}`,
+      body: text || '가족이 방금 올렸어요',
+      tag: `peer:${g.family_id}:${g.by}`,
+      url: './',
+    });
+  }
+  return { items: rows.length, sent };
+}
+
 async function sendItem(b: Record<string, any>) {
   const { family_id, kind, id, updated_by, updated_at, deleted } = b;
   const label = LABEL[kind];
@@ -214,7 +258,11 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { /* 빈 몸통이면 due 로 본다 */ }
 
   try {
-    const out = body.mode === 'item' ? await sendItem(body) : await sendDue();
+    let out: Record<string, unknown>;
+    if (body.mode === 'item') out = await sendItem(body);
+    else if (body.mode === 'due') out = await sendDue();
+    else if (body.mode === 'recent') out = await sendRecent();
+    else out = { due: await sendDue(), recent: await sendRecent() };   // 기본: 둘 다
     return Response.json({ ok: true, ...out });
   } catch (e) {
     console.error('send-push', e);

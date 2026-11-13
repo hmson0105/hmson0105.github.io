@@ -4,10 +4,10 @@ import * as M from './model.js?v=8';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=6';
 import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS, WALL_SPOTS } from './scene.js?v=16';
-import { createSync, syncConfigured } from './sync.js?v=15';
+import { createSync, syncConfigured } from './sync.js?v=16';
 import { parseKakao } from './kakao.js?v=4';
-import * as N from './notify.js?v=1';
-import { APP_URL } from './config.js?v=10';
+import * as N from './notify.js?v=2';
+import { APP_URL, PUSH_PUBLIC_KEY } from './config.js?v=11';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -72,6 +72,7 @@ const sync = createSync({
       const hasDemo = S.events.some(e => e.sourceId === 'src_demo') || S.issues.some(i => i.sourceId === 'src_demo');
       if (hasDemo) { M.stripDemo(S); fromRemote = true; try { persist(); } finally { fromRemote = false; } }
       renderAll();
+      registerPush();
     } else { renderHeader(); if (ui.view === 'sync' && !$('#dlg').open) renderSync(); if (ui.view === 'admin' && !$('#dlg').open) renderAdmin(); }
   },
 });
@@ -826,11 +827,20 @@ function peerNotify(row) {
     { key: `peer:${row.kind}:${row.id}:${row.updated_at}` });
 }
 
+/** 알림을 켠 기기를 서버에 등록해 둔다 — 앱을 닫아도 푸시가 오게. */
+async function registerPush() {
+  if (!PUSH_PUBLIC_KEY || !N.granted() || !connected()) return false;
+  const sub = await N.getPushSubscription(PUSH_PUBLIC_KEY);
+  if (!sub) return false;
+  return sync.savePush(sub, ui.viewer);
+}
+
 let notifyTimer = null;
 function startNotifyLoop() {
   clearInterval(notifyTimer);
   if (!N.granted()) return;
   const tick = () => { morningBrief(); checkReminders(); };
+  registerPush();
   tick();
   notifyTimer = setInterval(tick, 30000);
 }
@@ -1978,7 +1988,7 @@ const ACTIONS = {
   'notify-ask': async () => {
     const r = await N.ask();
     renderSync();
-    if (r === 'granted') { savePref('notifyAsk', 'off'); renderBanner(); startNotifyLoop(); await N.test(); toast('알림을 켰어요.'); }
+    if (r === 'granted') { savePref('notifyAsk', 'off'); renderBanner(); startNotifyLoop(); await registerPush(); await N.test(); toast('알림을 켰어요.'); }
     else if (r === 'denied') toast('브라우저에서 알림이 차단됐어요.', 'warn');
     else toast('알림을 켜지 않았어요.');
   },

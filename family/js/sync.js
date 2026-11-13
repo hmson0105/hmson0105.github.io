@@ -219,6 +219,21 @@ export function createSync({ getState, onRemote, onStatus, onPeer }) {
       } catch { st.state = 'error'; st.error = '동기화 도구를 불러오지 못했어요(인터넷 연결 확인).'; emit(); }
     },
     changed() { if (family) schedule(); },
+    /** 이 기기의 푸시 구독을 서버에 올린다(내 것만 읽고 쓸 수 있게 RLS 로 막혀 있다). */
+    async savePush(sub, memberId) {
+      if (!sb || !user || !family || !sub?.endpoint) return false;
+      const { error } = await sb.from('push_subscriptions').upsert({
+        endpoint: sub.endpoint, user_id: user.id, family_id: family.id,
+        member_id: memberId, p256dh: sub.p256dh, auth: sub.auth,
+        user_agent: (navigator.userAgent || '').slice(0, 200), fail_count: 0,
+      }, { onConflict: 'endpoint' });
+      return !error;
+    },
+    async dropPush(endpoint) {
+      if (!sb || !user || !endpoint) return false;
+      const { error } = await sb.from('push_subscriptions').delete().eq('endpoint', endpoint);
+      return !error;
+    },
     async signIn(email, password) {
       await lib();
       const { error } = await sb.auth.signInWithPassword({ email, password });
