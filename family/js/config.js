@@ -6,10 +6,10 @@ export const SUPABASE_URL = 'https://awnwytdiweeciilpzhny.supabase.co';
 export const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3bnd5dGRpd2VlY2lpbHB6aG55Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0OTM4MjEsImV4cCI6MjExMDA2OTgyMX0.cjlB3ow6w-lWwFR4f6WrbgI0Zsenho-5kXX-l5kyOpw'; // anon(공개용) 키
 
 // 웹 푸시(앱을 닫아도 오는 알림)용 VAPID 공개 키.
-// 공개 키라 브라우저에 두는 게 맞다. 짝이 되는 비밀 키는 절대 여기 두지 말고
-// Supabase Edge Function 비밀값에만 둔다. 설정 방법은 supabase/push/README.md.
+// 짝이 되는 비밀 키는 Supabase Vault 안에만 있다. 서버 함수가 직접 만들어 넣은 것이라
+// 사람도 이 저장소도 그 값을 본 적이 없다. 공개 키는 브라우저에 두는 게 맞다.
 // 비어 있으면 앱이 열려 있는 동안만 알림이 뜬다.
-export const PUSH_PUBLIC_KEY = 'BLxJO8uFVp4zPvG8eGucqwZ82llaYSp7x3KmJZQB4tiUiOxyWkZ4Ua71FL4WxEJZMFX4BKqFfBysvcIs00EYE3w';
+export const PUSH_PUBLIC_KEY = 'BH4mGt4tXZ28Fi6ERbA6mVAsv4bifGpXGPx5ykwRKXr-LgngogK8-AYdS3tsJbcV1rhbwG2QhK-p0NeD8ZUXnMY';
 
 // 앱의 대표 주소(Vercel). 비어 있으면 지금 연 주소를 쓴다.
 // 다른 주소(예: GitHub Pages)에서 열면 '새 주소로 옮기기' 안내가 뜬다.

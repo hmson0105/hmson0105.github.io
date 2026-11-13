@@ -7,7 +7,7 @@ import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePla
 import { createSync, syncConfigured } from './sync.js?v=16';
 import { parseKakao } from './kakao.js?v=4';
 import * as N from './notify.js?v=2';
-import { APP_URL, PUSH_PUBLIC_KEY } from './config.js?v=11';
+import { APP_URL, PUSH_PUBLIC_KEY } from './config.js?v=12';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
