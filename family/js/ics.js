@@ -1,6 +1,7 @@
 // iCalendar(.ics) 가져오기·내보내기. Apple 캘린더와 주고받는 현재 방식이다.
 // 양방향 자동 동기화가 아니라 "파일을 주고받는" 수동 연결이다.
 
+import * as Lun from './lunar.js?v=1';
 import { TZ, addDays, seoul, wallToUTC, addMinutes, DAYCODES } from './dates.js?v=6';
 
 const PRODID = '-//family-home//miniworld//KO';
@@ -75,7 +76,22 @@ export function buildICS(events, ctx) {
       if (rs.length) L.push(`X-FAMILY-ATTENDEES:${rs.join(',')}`);
     }
     const rule = ctx.rule(ev.recurrenceRuleId);
-    if (rule) {
+    if (rule && rule.freq === 'LUNAR_YEARLY') {
+      // 음력 매년은 iCalendar 에 그대로 옮길 규칙이 없다. 날짜를 직접 나열해 내보낸다.
+      const lb = Lun.toLunar(ev.startDate);
+      const ex = new Set(ev.exDates || []);
+      const out = [];
+      if (lb) {
+        const y0 = +ev.startDate.slice(0, 4);
+        for (let y = y0; y <= y0 + 30; y++) {
+          const d = Lun.solarFromLunar(y, lb.month, lb.day);
+          if (!d || d <= ev.startDate || ex.has(d)) continue;
+          if (rule.until && d > rule.until) break;
+          out.push(allDayLike ? dDate(d) : dTime(d, ev.startTime));
+        }
+      }
+      if (out.length) L.push(allDayLike ? `RDATE;VALUE=DATE:${out.join(',')}` : `RDATE;TZID=${TZ}:${out.join(',')}`);
+    } else if (rule) {
       const parts = [`FREQ=${rule.freq}`];
       if (rule.interval > 1) parts.push(`INTERVAL=${rule.interval}`);
       if (rule.freq === 'WEEKLY' && rule.byDay?.length) parts.push(`BYDAY=${rule.byDay.join(',')}`);
