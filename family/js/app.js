@@ -74,7 +74,9 @@ let locked = null;
 const hasStoredSession = () => {
   try { return Object.keys(localStorage).some(k => /^sb-.+-auth-token$/.test(k)); } catch { return false; }
 };
-if (!hasStoredSession() && localStorage.getItem('family-home:family')) {
+/** 예시가 아닌, 우리가 실제로 넣은 내용이 이 기기에 있는가 */
+const hasRealData = (x = S) => x.events.some(e => e.sourceId !== 'src_demo') || x.issues.some(i => i.sourceId !== 'src_demo');
+if (!hasStoredSession() && syncConfigured() && hasRealData()) {
   locked = S;
   S = M.demoState(D.today());
   if (!S.members.some(m => m.id === ui.viewer)) ui.viewer = S.members[0].id;
@@ -93,7 +95,7 @@ function unlock() {
  */
 function lockNow() {
   if (locked) return false;
-  if (!localStorage.getItem('family-home:family')) return false;
+  if (!syncConfigured() || !hasRealData()) return false;
   locked = S;
   S = M.demoState(D.today());
   if (!S.members.some(m => m.id === ui.viewer)) ui.viewer = S.members[0].id;
@@ -304,7 +306,7 @@ function renderBanner() {
   const b = [];
   if (ui.saveError) b.push(`<div class="banner banner-err" role="alert"><b>저장 실패</b> ${esc(ui.saveError)}</div>`);
   if (bootNote) b.push(`<div class="banner banner-warn">${esc(bootNote)}</div>`);
-  if (locked) b.push(`<div class="banner banner-warn"><span>🔒 <b>로그인이 풀려 있어요.</b> 가족 일정·사진은 이 화면에 띄우지 않고 그대로 보관 중이에요. 다시 로그인하면 돌아와요.</span><button type="button" class="btn-p btn-sm" data-action="view" data-view="sync">로그인하기</button></div>`);
+  if (locked) b.push(`<div class="banner banner-warn"><span>🔒 <b>로그인이 풀려 있어요.</b> 가족 일정·사진은 이 화면에 띄우지 않고 그대로 보관 중이에요. 다시 로그인하면 돌아와요.</span><span class="btn-row" style="margin:0"><button type="button" class="btn-p btn-sm" data-action="view" data-view="sync">로그인하기</button><button type="button" class="btn-g" data-action="local-wipe">이 기기에서 아주 지우기</button></span></div>`);
   const hasDemo = S.events.some(e => e.sourceId === 'src_demo') || S.issues.some(i => i.sourceId === 'src_demo');
   if (hasDemo && !locked) b.push(`<div class="banner banner-demo"><span>🧸 지금 보이는 일정·이슈 중 <b>예시</b> 표시가 붙은 것은 데모 데이터예요. 다른 기기의 일정은 <b>연동 › 다른 기기로 옮기기</b> 링크로 가져올 수 있어요.</span><button type="button" class="btn-s" data-action="strip-demo">예시 지우고 시작하기</button></div>`);
   if (APP_URL && !location.href.startsWith(APP_URL) && !/localhost|127\.0\.0\.1/.test(location.hostname)) b.push(`<div class="banner banner-warn"><span>🏡 우리집 미니월드가 <b>새 주소</b>로 이사했어요. 이 기기에 저장된 일정을 그대로 가지고 갈 수 있어요.</span><button type="button" class="btn-p btn-sm" data-action="move-home">내 데이터와 함께 새 주소로 가기</button></div>`);
@@ -2300,6 +2302,13 @@ const ACTIONS = {
     toast(signOutErr
       ? '이 기기의 가족 데이터는 지웠어요. 다만 서버 로그아웃은 실패했어요 — 인터넷이 되면 다시 눌러 주세요.'
       : '로그아웃했어요. 이 기기에 있던 가족 데이터를 지웠어요.', signOutErr ? 'err' : '');
+  },
+  // 남에게 넘길 기기 등, 보관해 둔 것까지 완전히 지우고 싶을 때
+  'local-wipe': () => {
+    if (!confirm('이 기기에 보관 중인 가족 일정·사진·메모를 아주 지울까요?\n\n서버에는 그대로 있어서 다시 로그인하면 받아 올 수 있어요.\n이 기기에서만 지웁니다.')) return;
+    wipeLocal();
+    setView('world'); renderAll();
+    toast('이 기기에서 지웠어요.');
   },
   'copy-invite': async () => { try { await navigator.clipboard.writeText(ui.admin.invite || ''); toast('초대 코드를 복사했어요.'); } catch { toast('코드를 길게 눌러 복사해 주세요.'); } },
   kakao: () => kakaoDialog(),
