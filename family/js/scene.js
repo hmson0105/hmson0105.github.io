@@ -19,9 +19,9 @@ export const ASSETS = {
   // 파일 이름 규칙: img/pose-<사람>-<상태>.png (배경 제거 PNG, 기본 아바타와 같은 키·화풍)
   // 상태: busy(책상에 앉아 작업) · rest(누워/기대어 쉼) · out(걷기) · done(두 팔 들고 만세)
   poses: {
-    // dad: { busy: 'img/pose-dad-busy.png', rest: 'img/pose-dad-rest.png', out: 'img/pose-dad-out.png', done: 'img/pose-dad-done.png' },
-    // mom: { busy: 'img/pose-mom-busy.png', rest: 'img/pose-mom-rest.png', out: 'img/pose-mom-out.png', done: 'img/pose-mom-done.png' },
-    // kid: { busy: 'img/pose-kid-busy.png', rest: 'img/pose-kid-rest.png', out: 'img/pose-kid-out.png', done: 'img/pose-kid-done.png' },
+    dad: { busy: 'img/pose-dad-busy.png', rest: 'img/pose-dad-rest.png', out: 'img/pose-dad-out.png', done: 'img/pose-dad-done.png' },
+    mom: { busy: 'img/pose-mom-busy.png', rest: 'img/pose-mom-rest.png', out: 'img/pose-mom-out.png', done: 'img/pose-mom-done.png' },
+    kid: { busy: 'img/pose-kid-busy.png', rest: 'img/pose-kid-rest.png', out: 'img/pose-kid-out.png', done: 'img/pose-kid-done.png' },
   },
   // 🏠 집 전체 평면도 그림 ← 생성 후 아래 줄의 주석만 풀면 바뀐다.
   // 없으면 housePlanSVG() 가 그린 등각 평면도가 쓰인다. 가로:세로 = 1200:820.
