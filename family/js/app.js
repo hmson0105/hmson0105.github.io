@@ -3,7 +3,7 @@ import * as D from './dates.js?v=6';
 import * as M from './model.js?v=8';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=6';
-import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS, WALL_SPOTS } from './scene.js?v=15';
+import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS, WALL_SPOTS } from './scene.js?v=16';
 import { createSync, syncConfigured } from './sync.js?v=15';
 import { parseKakao } from './kakao.js?v=4';
 import * as N from './notify.js?v=1';
@@ -1893,7 +1893,7 @@ let foldSet = new Set();
 try { foldSet = new Set(JSON.parse(loadPref('folded') || '[]')); } catch { foldSet = new Set(); }
 const foldKey = h2 => h2.textContent.replace(/[0-9]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 40);
 // 휴대폰에서 처음 열 때만, 주로 보는 것 말고는 접어 둔다. 그 뒤로는 사용자가 정한 대로.
-const FOLD_DEFAULTS = ['가족 상태', '다가오는 일정', '🔔 가족 소식', '🧳 여행 · 🛒 살 것'];
+const FOLD_DEFAULTS = ['가족 상태', '다가오는 일정', '🔔 가족 소식', '🧳 여행 · 🛒 살 것', '방명록'];
 function applyMobileFoldDefaults() {
   if (loadPref('foldInit') === '1') return;
   if (!window.matchMedia('(max-width: 760px)').matches) return;

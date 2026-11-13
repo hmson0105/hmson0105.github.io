@@ -455,7 +455,7 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 
 /* ── 좁은 화면: 미니월드를 한 줄로(층 안내는 가로 칩) ── */
 @media (max-width: 1000px) {
-  .world { display: flex; flex-direction: column; gap: 14px; }
+  .world { display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
   .col-center, .col-side, .panels { display: contents; }
   .card + .card, .panels > .card + .card, .col-side > .card + .card { margin-top: 0; }
   .o-1 { order: 1; } .o-2 { order: 2; } .o-3 { order: 3; } .o-4 { order: 4; } .o-5 { order: 5; }
@@ -486,7 +486,7 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
   .card { padding: 14px; border-radius: 20px; }
 
   /* 미니월드: 일정·상태가 먼저 오도록 순서를 다시 짠다 */
-  .world { display: flex; flex-direction: column; gap: 14px; }
+  .world { display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
   .col-center, .col-side, .panels { display: contents; }
   .card + .card, .panels > .card + .card, .col-side > .card + .card { margin-top: 0; }
   .o-1 { order: 1; } .o-2 { order: 2; } .o-3 { order: 3; } .o-4 { order: 4; } .o-5 { order: 5; }
@@ -801,7 +801,7 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 .stage.house-on .doors { display: none; }
 
 .planv { display: grid; justify-items: center; gap: 6px; }
-.planv-art { position: relative; width: 100%; max-width: 760px; aspect-ratio: 1200 / 820; }
+.planv-art { position: relative; width: 100%; max-width: 900px; aspect-ratio: 1102 / 770; }
 .plan-svg { display: block; width: 100%; height: 100%; }
 .planv-cap { font-size: 12.5px; color: var(--ink-3); margin: 0; }
 
@@ -941,3 +941,29 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 .act-btns { display: flex; align-items: center; gap: 4px; }
 .act-list .btn-x { opacity: .5; }
 .act-list li:hover .btn-x, .act-list .btn-x:focus-visible { opacity: 1; }
+
+/* ───────── 휴대폰: 일정 블록을 낮고 넓게 ───────── */
+@media (max-width: 760px) {
+  .ev-list, .is-list { gap: 7px; }
+  .ev-row { padding: 7px 10px 7px 14px; gap: 3px; border-radius: 13px; }
+  .ev-row::before { left: 5px; top: 7px; bottom: 7px; width: 4px; }
+  .ev-time { font-size: 14px; }
+  .ev-title { font-size: 15.5px; line-height: 1.3; }
+  .ev-sub { font-size: 12.5px; gap: 5px; }
+  .ev-people { gap: 4px; }
+  .ev-people .pchip { padding: 1px 7px 1px 2px; font-size: 12px; }
+  .ev-people .pchip .face { width: 20px; height: 20px; }
+  .ev-compact .ev-row { padding: 6px 9px 6px 14px; }
+  .is-list li { padding: 7px 9px; gap: 7px; }
+  .empty { padding: 14px 10px; }
+  .empty .big { font-size: 28px; }
+}
+
+/* 휴대폰: 담당자 칩을 오른쪽으로 보내 한 줄 아낀다 */
+@media (max-width: 760px) {
+  .ev-row { grid-template-columns: minmax(0, 1fr) auto; align-items: start; column-gap: 8px; }
+  .ev-main { grid-column: 1; grid-row: 1; }
+  .ev-people { grid-column: 2; grid-row: 1; align-self: center; justify-content: flex-end;
+    flex-wrap: wrap; max-width: 38vw; row-gap: 3px; }
+  .ev-sub .src-tag { display: none; }   /* 출처 꼬리표는 상세에서 보면 된다 */
+}
