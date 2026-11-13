@@ -200,11 +200,13 @@ const PLAN_ROOMS = [
   { n: 1, x: 6.5, y: 6.5, fl: '#FFF1F6', rug: '#FFD4E3' },  // 아래 — 가족 로비
 ];
 const RS = 5.5;
-/** 방 바닥 한가운데의 그림 안 위치(%) — 아바타가 서는 자리 */
-export const PLAN_SPOTS = Object.fromEntries(PLAN_ROOMS.map(r => {
-  const [px, py] = pIso(r.x + RS / 2, r.y + RS / 2);
-  return [r.n, [+(px / PW * 100).toFixed(2), +(py / PH * 100).toFixed(2)]];
-}));
+/**
+ * 아바타가 서는 자리 — 그림 안에서의 % 좌표(발끝 기준).
+ * img/house-plan.jpg 의 각 방 러그 한가운데에 맞춰 눈금으로 재어 잡았다.
+ * SVG 대체 그림(housePlanSVG)도 방이 넓어 같은 좌표로 어색하지 않다.
+ * 그림을 새로 만들면 이 네 값을 다시 재야 한다.
+ */
+export const PLAN_SPOTS = { 4: [51, 36.5], 3: [77, 57.5], 2: [26.5, 57.5], 1: [51, 73.5] };
 export const PLAN_RATIO = `${PW} / ${PH}`;
 
 function planProps(r, add) {

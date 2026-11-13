@@ -836,3 +836,22 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 .card.folded .fold-btn span { transform: rotate(-90deg); }
 .card.folded > .card-h { margin-bottom: 0; }
 .card.folded > :not(.card-h) { display: none; }
+
+/* ───────── 상태별 캐릭터 동작 (하는 일이 보이게) ───────── */
+@media (prefers-reduced-motion: no-preference) {
+  /* 작업 중 — 앞으로 살짝 기울여 쓰는 몸짓, 연필이 사각사각 */
+  .act-busy .av-fig { animation: writing 1.6s ease-in-out infinite; }
+  .fx-busy i { animation: scribble .62s ease-in-out infinite alternate; }
+  /* 외출 — 좌우로 걷는 흔들림, 신발이 한 발씩 */
+  .act-out .av-fig { animation: walking 1.05s ease-in-out infinite; }
+  .fx-out i { animation: stepping .52s ease-in-out infinite alternate; }
+  /* 일정 중 — 가볍게 들썩, 달력이 함께 */
+  .act-event .av-fig { animation: bob 1.15s ease-in-out infinite; }
+  /* 상태 미설정·확인 중 — 물음표만 천천히 숨 쉬게 */
+  .fx-q i { animation: pulseq 2.8s ease-in-out infinite; }
+}
+@keyframes writing { 0%, 100% { transform: rotate(-1deg) translateY(0); } 50% { transform: rotate(-2.8deg) translateY(-1.6%); } }
+@keyframes scribble { from { transform: rotate(-20deg) translate(0, 0); } to { transform: rotate(10deg) translate(2px, 2px); } }
+@keyframes walking { 0%, 100% { transform: translateX(-3%) rotate(-2.2deg); } 50% { transform: translateX(3%) rotate(2.2deg); } }
+@keyframes stepping { from { transform: translate(0, 0) rotate(-14deg); } to { transform: translate(6px, -5px) rotate(14deg); } }
+@keyframes pulseq { 50% { transform: scale(1.14); opacity: .72; } }
