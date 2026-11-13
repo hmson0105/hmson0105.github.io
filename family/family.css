@@ -495,8 +495,10 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
   .dir { position: static; padding: 0; background: none; border: 0; box-shadow: none; }
   .dir-title, .shaft, .dir-note { display: none; }
   .building { display: block; }
-  .floors { display: flex; overflow-x: auto; gap: 8px; padding: 2px 2px 6px; scroll-snap-type: x mandatory; }
-  .floors li { flex: 0 0 auto; scroll-snap-align: start; }
+  /* 층 안내는 가로로 밀지 않는다 — 한 줄에 다 들어가게, 모자라면 다음 줄로 */
+  .dir { min-width: 0; }
+  .floors { display: flex; flex-wrap: wrap; overflow: visible; gap: 7px; padding: 2px 0 4px; }
+  .floors li { flex: 0 1 auto; min-width: 0; }
   .floor-btn { grid-template-columns: auto auto; padding: 8px 12px; gap: 6px; }
   .fl-face { display: none; }
   .fl-t small { display: none; }
@@ -803,12 +805,14 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 .plan-svg { display: block; width: 100%; height: 100%; }
 .planv-cap { font-size: 12.5px; color: var(--ink-3); margin: 0; }
 
-.pv-tag { position: absolute; z-index: 3; transform: translate(-50%, 0); display: flex; align-items: baseline; gap: 4px;
-  padding: 2px 9px; background: rgba(255, 255, 255, .95); border: 2px solid var(--c); border-radius: 999px;
-  box-shadow: 0 2px 0 var(--c); white-space: nowrap; font-size: clamp(10px, 1.3vw, 13px); }
-.pv-tag:hover, .pv-tag:focus-visible { background: #fff; transform: translate(-50%, -2px); }
-.pv-tag b { font-family: var(--font-d); font-weight: 400; font-size: clamp(11px, 1.5vw, 15px); color: var(--c); }
-.pv-tag i { font-style: normal; font-size: 10px; color: #fff; background: var(--c); border-radius: 999px; padding: 1px 6px; }
+/* 방 이름 — 상자 없이 글자만, 각 방 상단 벽면에 */
+.pv-wall { position: absolute; z-index: 3; transform: translate(-50%, -50%);
+  padding: 3px 6px; border: 0; background: none; white-space: nowrap;
+  font-family: var(--font-d); font-weight: 400; font-size: clamp(10.5px, 1.35vw, 15px);
+  color: var(--ink); letter-spacing: -.2px; line-height: 1.1;
+  text-shadow: 0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff, 0 0 5px #fff, 0 0 9px #fff; }
+.pv-wall b { font-weight: 400; color: var(--c); margin-right: 3px; }
+.pv-wall:hover, .pv-wall:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
 
 .pv-av { position: absolute; height: var(--h); transform: translate(-50%, -100%); padding: 0; border: 0; background: none; z-index: 4; }
 .pv-av .av-fig { display: block; height: 100%; transform-origin: 50% 100%; filter: drop-shadow(0 6px 5px rgba(120, 60, 80, .26)); }
@@ -909,3 +913,31 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
   font-size: clamp(11px, 1.5vw, 17px); filter: drop-shadow(0 1px 0 #fff) drop-shadow(0 0 2px #fff); pointer-events: none; }
 @media (prefers-reduced-motion: no-preference) { .pv-heart { animation: heartbeat 1.9s ease-in-out infinite; } }
 @keyframes heartbeat { 0%, 100% { transform: translate(-50%, -3px) scale(1); } 18% { transform: translate(-50%, -3px) scale(1.22); } 36% { transform: translate(-50%, -3px) scale(1); } 54% { transform: translate(-50%, -3px) scale(1.15); } }
+
+/* ───────── 방 도면을 더 크게 ───────── */
+@media (min-width: 1100px) {
+  .world { grid-template-columns: 206px minmax(0, 1fr) 352px; gap: 16px; }
+}
+@media (min-width: 1500px) {
+  .world { grid-template-columns: 224px minmax(0, 1fr) 380px; gap: 20px; }
+}
+.planv-art { max-width: 900px; }
+
+/* ───────── 좁은 화면: 가로 스크롤이 생기지 않게 ───────── */
+@media (max-width: 760px) {
+  body { overflow-x: clip; }
+  .world, .view, main { min-width: 0; max-width: 100%; }
+}
+@media (max-width: 520px) {
+  /* 층 번호만 보여 다섯 칸이 한 줄에 들어간다. 방 이름은 들어가면 제목에 나온다 */
+  .floors { gap: 6px; justify-content: space-between; }
+  .floors li { flex: 1 1 0; }
+  .floor-btn { grid-template-columns: 1fr; justify-items: center; padding: 7px 4px; gap: 0; }
+  .floor-btn .fl-t { display: none; }
+  .floor-btn .fl-n { font-size: 17px; }
+}
+
+/* 가족 소식 줄 오른쪽 버튼들 */
+.act-btns { display: flex; align-items: center; gap: 4px; }
+.act-list .btn-x { opacity: .5; }
+.act-list li:hover .btn-x, .act-list .btn-x:focus-visible { opacity: 1; }

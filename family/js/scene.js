@@ -224,6 +224,8 @@ const RS = 5.5;
  * 그림을 새로 만들면 이 네 값을 다시 재야 한다.
  */
 export const PLAN_SPOTS = { 4: [51, 36.5], 3: [77, 57.5], 2: [26.5, 57.5], 1: [51, 73.5] };
+/** 방 이름을 올리는 자리 — 각 방 상단 방벽의 빈 곳(그림 안 %) */
+export const WALL_SPOTS = { 4: [52, 14], 3: [76, 35], 2: [24, 36], 1: [49, 46.5] };
 export const PLAN_RATIO = `${PW} / ${PH}`;
 
 function planProps(r, add) {

@@ -3,7 +3,7 @@ import * as D from './dates.js?v=6';
 import * as M from './model.js?v=8';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=6';
-import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS } from './scene.js?v=13';
+import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS, WALL_SPOTS } from './scene.js?v=15';
 import { createSync, syncConfigured } from './sync.js?v=15';
 import { parseKakao } from './kakao.js?v=4';
 import * as N from './notify.js?v=1';
@@ -244,7 +244,7 @@ function renderDir() {
   const allBtn = `<li><button type="button" class="floor-btn fl-all${ui.floor === 0 ? ' on' : ''}" data-action="go-floor" data-floor="0" ${ui.floor === 0 ? 'aria-current="page"' : ''} style="--c:#9B87D4">
       <b class="fl-n">🏠</b>
       <span class="fl-t"><span class="fl-name">집 전체</span><small>1~4층 한눈에 · 오늘 ${today.length}건</small></span>
-      <span class="fl-face"><span class="face face-all">👪</span></span>
+      <span class="fl-face"><span class="face face-all">🏠</span></span>
     </button></li>`;
   $('#floorList').innerHTML = allBtn + [4, 3, 2, 1].map(n => {
     const f = floorInfo(n);
@@ -307,9 +307,9 @@ function renderHouse() {
     } else if (!gather && !lobby) {
       who = planAvatarHTML(f.m, { x: sx, y: sy, h: f.m.role === 'kid' ? 18 : 21 });
     }
-    const tagY = sy + (gather && lobby ? 11 : 7);
-    return `${who}<button type="button" class="pv-tag" style="left:${sx}%;top:${tagY}%;--c:${col}"
-      data-action="go-floor" data-floor="${n}" aria-label="${esc(`${n}층 ${f.name}로 들어가기. 오늘 ${cnt}건`)}"><b>${n}F</b> ${esc(f.name)}${cnt ? `<i>${cnt}</i>` : ''}</button>`;
+    const [wx, wy] = WALL_SPOTS[n];
+    return `${who}<button type="button" class="pv-wall" style="left:${wx}%;top:${wy}%;--c:${col}"
+      data-action="go-floor" data-floor="${n}" aria-label="${esc(`${n}층 ${f.name}로 들어가기. 오늘 ${cnt}건`)}"><b>${n}F</b> ${esc(f.name)}</button>`;
   }).join('');
   $('#stageFrame').className = `stage-frame bd-${S.family.lobbyRoom.backdrop}`;
   $('#sceneWrap').innerHTML = `<div class="planv">
@@ -578,7 +578,7 @@ function memberPanels(m) {
 function renderWorld() {
   renderDir();
   const n = ui.floor;
-  document.body.classList.toggle('fit', n === 1);
+  document.body.classList.remove('fit'); // 1층도 다른 층과 같은 배치를 쓴다(예전 'fit' 전용 배치는 쓰지 않음)
   if (n === 0) {
     $('#floorHead').innerHTML = lobbyHead();
     const p = lobbyPanels();
@@ -597,6 +597,7 @@ function renderWorld() {
     $('#stageTitle').innerHTML = `<h2>${n}F ${esc(m.space.name)}</h2><span class="hint">캐릭터를 누르면 상태를 바꿀 수 있어요</span>`;
   }
   renderStage();
+  setupFolds();
 }
 
 async function goFloor(n) {
@@ -650,6 +651,7 @@ function renderCal() {
   const side = $('#calDay');
   side.hidden = c.mode === 'day';
   if (c.mode !== 'day') side.innerHTML = dayPanelHTML(c.selected);
+  setupFolds();
 }
 function monthHTML() {
   const c = ui.cal, t = D.today();
@@ -909,6 +911,7 @@ function renderSync() {
       <li><b>'본인만' 공개는 아직 잠금이 아니에요.</b> 위쪽 '지금 보는 사람'을 바꾸면 누구나 볼 수 있어요. 가족 계정이 생기면 실제 권한으로 바뀌도록 모든 항목에 공개 범위를 저장해요.</li>
     </ul>
   </section>`;
+  setupFolds();
 }
 
 
@@ -1014,8 +1017,8 @@ function activityCard() {
   const seen = loadPref(`seen:${ui.viewer}`) || '';
   const list = (S.activity || []).slice().sort((a, b) => b.at.localeCompare(a.at)).slice(0, 8);
   const fresh = list.filter(a => a.by !== ui.viewer && a.at > seen).length;
-  return `<section class="card o-7"><header class="card-h"><h2>🔔 가족 소식 ${fresh ? `<span class="tag tag-high">새 소식 ${fresh}</span>` : ''}</h2>${fresh ? '<button type="button" class="btn-g btn-sm" data-action="seen-activity">다 읽음</button>' : ''}</header>
-    ${list.length ? `<ul class="act-list">${list.map(a => `<li class="${a.by !== ui.viewer && a.at > seen ? 'new' : ''}" style="--c:${member(a.by)?.color || '#FF8FB8'}">${face(member(a.by))}<div><p>${esc(a.text)}</p><small>${esc(memberName(a.by))} · ${D.relTime(a.at)}</small></div>${a.kind === 'event' && S.events.some(e => e.id === a.targetId) ? `<button type="button" class="btn-g btn-sm" data-action="open-event" data-id="${a.targetId}">보기</button>` : ''}</li>`).join('')}</ul>` : '<p class="muted small">일정을 추가하거나 고치면 누가 언제 바꿨는지 여기에 쌓여요. 가족 동기화를 켜면 다른 가족의 변경도 보여요.</p>'}
+  return `<section class="card o-7"><header class="card-h"><h2>🔔 가족 소식 ${fresh ? `<span class="tag tag-high">새 소식 ${fresh}</span>` : ''}</h2>${fresh ? '<button type="button" class="btn-g btn-sm" data-action="seen-activity">다 읽음</button>' : ''}${(S.activity || []).length ? '<button type="button" class="btn-g btn-sm" data-action="clear-activity">모두 지우기</button>' : ''}</header>
+    ${list.length ? `<ul class="act-list">${list.map(a => `<li class="${a.by !== ui.viewer && a.at > seen ? 'new' : ''}" style="--c:${member(a.by)?.color || '#FF8FB8'}">${face(member(a.by))}<div><p>${esc(a.text)}</p><small>${esc(memberName(a.by))} · ${D.relTime(a.at)}</small></div><span class="act-btns">${a.kind === 'event' && S.events.some(e => e.id === a.targetId) ? `<button type="button" class="btn-g btn-sm" data-action="open-event" data-id="${a.targetId}">보기</button>` : ''}<button type="button" class="btn-x" data-action="del-activity" data-id="${a.id}" aria-label="${esc(a.text)} 소식 지우기">✕</button></span></li>`).join('')}</ul>` : '<p class="muted small">일정을 추가하거나 고치면 누가 언제 바꿨는지 여기에 쌓여요. 가족 동기화를 켜면 다른 가족의 변경도 보여요.</p>'}
   </section>`;
 }
 
@@ -1159,6 +1162,7 @@ function renderAdmin() {
   <section class="card"><header class="card-h"><h2>🕘 전체 활동 기록</h2><span class="hint">최근 ${Math.min(30, (S.activity || []).length)}건</span></header>
     ${(S.activity || []).length ? `<ul class="act-list">${(S.activity || []).slice().sort((a, b) => b.at.localeCompare(a.at)).slice(0, 30).map(a => `<li style="--c:${member(a.by)?.color || '#FF8FB8'}">${face(member(a.by))}<div><p>${esc(a.text)}</p><small>${esc(memberName(a.by))} · ${D.fmtStamp(a.at)}</small></div></li>`).join('')}</ul>` : '<p class="muted small">아직 기록이 없어요.</p>'}
   </section>`;
+  setupFolds();
 }
 
 // ───────────────────────── 대화상자 ─────────────────────────
@@ -1643,6 +1647,7 @@ function renderPlan() {
       ${all.length ? `<ul class="is-list">${all.map(b => boardRow(b)).join('')}</ul>` : empty('🛍️', '적어 둔 살 것·준비할 것이 없어요.')}
       <p class="small muted">가족 누구나 추가하고 체크할 수 있어요. 여행과 연결한 항목은 여행 계획표에도 함께 보여요.</p>
     </aside>`;
+  setupFolds();
 }
 function syncTripEvent(t) {
   const now = new Date().toISOString();
@@ -1882,7 +1887,6 @@ function renderView() {
   else if (ui.view === 'plan') renderPlan();
   else if (ui.view === 'admin') renderAdmin();
   else renderSync();
-  setupFolds(); // 어느 경로로 다시 그려도 접기 버튼이 붙도록 여기서 한 번
 }
 // ── 카드 접기 ── 카드 제목 옆 ▾ 로 내용을 접는다. 접은 카드는 이 기기에 기억된다.
 let foldSet = new Set();
@@ -1957,6 +1961,8 @@ const ACTIONS = {
   'new-issue': b => { if ($('#dlg').open) $('#dlg').close(); issueDialog(null, { date: b.dataset.date, eventId: b.dataset.event, ownerId: b.dataset.owner }); },
   'edit-status': b => statusDialog(member(b.dataset.id)),
   'new-post': b => postDialog(member(b.dataset.id)),
+  'del-activity': b => { S.activity = (S.activity || []).filter(x => x.id !== b.dataset.id); persist(); renderAll(); toast('소식을 지웠어요.'); },
+  'clear-activity': () => { if (!confirm('가족 소식을 모두 지울까요?\n일정이나 준비할 일은 지워지지 않아요.')) return; S.activity = []; persist(); renderAll(); toast('가족 소식을 모두 지웠어요.'); },
   'del-post': b => { if (confirm('이 글을 삭제할까요?')) { S.posts = S.posts.filter(p => p.id !== b.dataset.id); persist(); renderAll(); } },
   'del-gb': b => { if (confirm('이 방명록을 삭제할까요?')) { S.guestbook = S.guestbook.filter(g => g.id !== b.dataset.id); persist(); renderAll(); } },
   decorate: b => decorateDialog(b.dataset.id),
