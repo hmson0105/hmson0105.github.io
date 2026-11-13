@@ -87,6 +87,31 @@ function unlock() {
   return true;
 }
 
+/**
+ * 로그인이 아니라는 게 나중에(부팅 뒤에) 밝혀졌을 때도 잠근다.
+ * 저장된 토큰이 남아 있지만 만료된 기기가 여기에 해당한다.
+ */
+function lockNow() {
+  if (locked) return false;
+  if (!localStorage.getItem('family-home:family')) return false;
+  locked = S;
+  S = M.demoState(D.today());
+  if (!S.members.some(m => m.id === ui.viewer)) ui.viewer = S.members[0].id;
+  return true;
+}
+
+/** 로그아웃 — 이 기기에 내려받아 둔 가족 데이터를 지우고 예시만 남긴다 */
+function wipeLocal() {
+  clearInterval(notifyTimer);
+  locked = null;                 // 보관해 둔 것도 함께 버린다
+  S = M.demoState(D.today());
+  if (!S.members.some(m => m.id === ui.viewer)) { ui.viewer = S.members[0].id; savePref('viewer', ui.viewer); }
+  ui.push = null; ui.admin = { accounts: null, accountsErr: null, picked: new Set() };
+  try { localStorage.removeItem('family-home:family'); } catch { /* 지워져 있으면 그만 */ }
+  // fromRemote 로 저장해야 이 예시 데이터가 서버로 거꾸로 올라가지 않는다
+  fromRemote = true; try { persist(); } finally { fromRemote = false; }
+}
+
 function persist() {
   S.meta.updatedAt = new Date().toISOString();
   if (locked) { renderBanner(); return false; }   // 잠긴 동안에는 예시가 진짜 데이터를 덮지 않게 한다
@@ -98,6 +123,8 @@ function persist() {
   if (!fromRemote) sync?.changed();
   return r.ok;
 }
+// 지금 기기가 어떤 빌드를 돌리고 있는지 — 캐시된 옛 버전인지 바로 알 수 있게 화면에 띄운다
+const APP_VER = (import.meta.url.match(/[?&]v=(\d+)/) || [, '?'])[1];
 let fromRemote = false;
 const connected = () => !!(ui.sync && ui.sync.family);
 const sync = createSync({
@@ -110,7 +137,9 @@ const sync = createSync({
   onPeer(row) { peerNotify(row); },
   onStatus(st) {
     const firstConnect = st.family && !connected();
-    if (st.family) unlock();
+    // 로그인 여부가 확정되는 자리. 사람이 확인되면 풀고, 로그아웃이면 그때 잠근다.
+    if (st.user) unlock();
+    else if (st.state === 'signed-out' && lockNow()) { ui.sync = st; renderAll(); return; }
     ui.sync = st;
     if (st.membership && ui.viewer !== st.membership.member_id) { ui.viewer = st.membership.member_id; savePref('viewer', ui.viewer); }
     if (firstConnect) {
@@ -1070,6 +1099,7 @@ function renderSync() {
       <div><dt>마지막 저장</dt><dd>${S.meta.updatedAt ? D.fmtStamp(S.meta.updatedAt) : '—'}</dd></div>
       <div><dt>담긴 항목</dt><dd>${Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(' · ')}${photoBytes ? ` · 사진 약 ${Math.round(photoBytes / 1024)}KB` : ''}</dd></div>
       <div><dt>가족 계정</dt><dd><span class="muted">아직 없음 · 나중에 가족 계정과 초대 기능을 붙일 수 있게 자리를 만들어 두었어요.</span></dd></div>
+      <div><dt>앱 버전</dt><dd>v${esc(APP_VER)} <span class="small muted">· 이 숫자가 낮으면 앱을 완전히 닫았다 다시 열어 주세요</span></dd></div>
     </dl>
     <div class="btn-row">
       <button type="button" class="btn-s" data-action="backup">백업 파일(JSON) 받기</button>
@@ -2257,24 +2287,19 @@ const ACTIONS = {
   'del-tcomment': b => { if (confirm('이 댓글을 지울까요?')) { S.tripComments = S.tripComments.filter(c => c.id !== b.dataset.id); persist(); renderAll(); } },
   'sync-now': async () => { await sync.syncNow(); toast('동기화했어요.'); },
   'sync-signout': async () => {
-    const had = connected();
-    if (!confirm(had
-      ? '이 기기에서 로그아웃할까요?\n\n이 기기에 내려받아 둔 가족 일정·사진·메모를 지우고 예시 화면으로 돌아가요.\n서버에는 그대로 있어서 다시 로그인하면 돌아와요.'
-      : '로그아웃할까요?')) return;
+    if (!confirm('이 기기에서 로그아웃할까요?\n\n이 기기에 내려받아 둔 가족 일정·사진·메모를 지우고 예시 화면으로 돌아가요.\n서버에는 그대로 있어서 다시 로그인하면 돌아와요.')) return;
     // 푸시 구독부터 끊는다 — 서버의 구독 기록을 지우려면 아직 로그인 상태여야 한다
     try { const ep = await N.dropPushSubscription(); if (ep) await sync.dropPush(ep); } catch { /* 못 지워도 로그아웃은 진행 */ }
-    await sync.signOut();
-    if (had) {
-      clearInterval(notifyTimer);
-      S = M.demoState(D.today());
-      if (!S.members.some(m => m.id === ui.viewer)) { ui.viewer = S.members[0].id; savePref('viewer', ui.viewer); }
-      ui.push = null; ui.admin = { accounts: null, accountsErr: null, picked: new Set() };
-      // fromRemote 로 저장해야 이 예시 데이터가 서버로 거꾸로 올라가지 않는다
-      fromRemote = true; try { persist(); } finally { fromRemote = false; }
-    }
+    // 서버 로그아웃이 실패해도(비행기 모드, 토큰 만료 등) 이 기기 정리는 반드시 한다.
+    // 여기서 걸려 버리면 '로그아웃했는데 일정이 그대로 보이는' 상태가 되기 때문이다.
+    let signOutErr = null;
+    try { await sync.signOut(); } catch (e) { signOutErr = e; }
+    wipeLocal();
     setView('world');
     renderAll();
-    toast(had ? '로그아웃했어요. 이 기기에 있던 가족 데이터를 지웠어요.' : '로그아웃했어요.');
+    toast(signOutErr
+      ? '이 기기의 가족 데이터는 지웠어요. 다만 서버 로그아웃은 실패했어요 — 인터넷이 되면 다시 눌러 주세요.'
+      : '로그아웃했어요. 이 기기에 있던 가족 데이터를 지웠어요.', signOutErr ? 'err' : '');
   },
   'copy-invite': async () => { try { await navigator.clipboard.writeText(ui.admin.invite || ''); toast('초대 코드를 복사했어요.'); } catch { toast('코드를 길게 눌러 복사해 주세요.'); } },
   kakao: () => kakaoDialog(),
