@@ -1404,9 +1404,9 @@ function openEvent(id, occDate) {
   if (!ev) return toast('일정을 찾을 수 없어요.', 'err');
   eventDialog(ev, occDate);
 }
-function newEvent(date, ownerId) {
+function newEvent(date, ownerId, title = '') {
   const owner = ownerId || ui.viewer;
-  eventDialog({ title: '', startDate: date || D.today(), endDate: date || D.today(), startTime: '10:00', endTime: '11:00', allDay: false, timeUnset: false, placeId: null, ownerId: owner, attendeeIds: [owner], memo: '', status: 'confirmed', sourceId: 'src_manual', recurrenceRuleId: null, exDates: [], visibility: 'family' }, null);
+  eventDialog({ title: String(title).slice(0, 60), startDate: date || D.today(), endDate: date || D.today(), startTime: '10:00', endTime: '11:00', allDay: false, timeUnset: false, placeId: null, ownerId: owner, attendeeIds: [owner], memo: '', status: 'confirmed', sourceId: 'src_manual', recurrenceRuleId: null, exDates: [], visibility: 'family' }, null);
 }
 function eventDialog(ev, occDate) {
   const isNew = !ev.id;
@@ -1597,7 +1597,7 @@ function eventDialog(ev, occDate) {
 
 function issueDialog(is, preset = {}) {
   const isNew = !is;
-  const x = is || { title: '', date: preset.date || D.today(), type: preset.eventId ? 'prep' : 'prep', ownerId: preset.ownerId ?? ui.viewer, priority: 'normal', eventId: preset.eventId || null, done: false, visibility: 'family', sourceId: 'src_manual' };
+  const x = is || { title: String(preset.title || '').slice(0, 60), date: preset.date || D.today(), type: preset.eventId ? 'prep' : 'prep', ownerId: preset.ownerId ?? ui.viewer, priority: 'normal', eventId: preset.eventId || null, done: false, visibility: 'family', sourceId: 'src_manual' };
   const evOpts = d => {
     const list = onDate(instances(D.addDays(d, -7), D.addDays(d, 7)), d);
     const ids = new Set(list.map(i => i.ev.id));
@@ -2508,6 +2508,32 @@ async function makeShareLink(base = APP_URL || `${location.origin}${location.pat
   const gz = new Blob([JSON.stringify(payload)]).stream().pipeThrough(new CompressionStream('gzip'));
   return `${base}#import=${b64url(await new Response(gz).arrayBuffer())}`;
 }
+/**
+ * 바로 추가.
+ *
+ * 홈 화면 바로가기나 아이폰 단축어가 이 주소로 앱을 열면 추가 창이 바로 뜬다.
+ *   ?add=issue           할 일·메모 추가 창
+ *   ?add=event           일정 추가 창
+ *   ?add=issue&t=우유     제목까지 미리 채워서
+ *
+ * 주소는 곧바로 지운다. 새로고침할 때 또 뜨거나, 적은 글귀가 방문 기록에
+ * 남지 않게 하기 위해서다. 글귀는 창의 입력칸에만 들어가고 화면에 HTML 로
+ * 섞이지 않는다(입력값은 esc 로 감싼다).
+ */
+function readQuickAdd() {
+  const q = new URLSearchParams(location.search);
+  const what = q.get('add');
+  if (!what) return;
+  const t = (q.get('t') || '').slice(0, 60).trim();
+  history.replaceState(null, '', location.pathname + location.hash);
+  if (locked) { toast('로그인하면 바로 추가할 수 있어요.'); return; }
+  // 첫 그리기가 끝난 뒤에 띄워야 창이 가려지지 않는다
+  setTimeout(() => {
+    if (what === 'event') newEvent(D.today(), ui.viewer, t);
+    else if (what === 'issue') issueDialog(null, { date: D.today(), ownerId: ui.viewer, title: t });
+  }, 60);
+}
+
 async function readShareLink() {
   const m = location.hash.match(/^#import=([A-Za-z0-9_-]+)$/);
   if (!m) return;
@@ -2555,6 +2581,7 @@ setView('world');
 renderHeader();
 renderBanner();
 readShareLink();
+readQuickAdd();
 sync.start();
 window.addEventListener('hashchange', readShareLink);
 if ('serviceWorker' in navigator && location.protocol === 'https:') {

@@ -11,8 +11,51 @@
   "background_color": "#FFF5F8",
   "theme_color": "#FFE4EE",
   "icons": [
-    { "src": "img/icon-192.png?v=2", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "img/icon-512.png?v=2", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "img/icon-maskable-512.png?v=2", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "img/icon-192.png?v=2",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/icon-512.png?v=2",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/icon-maskable-512.png?v=2",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "할 일 · 메모 바로 추가",
+      "short_name": "할 일",
+      "description": "오늘 챙길 일을 한 번에 적어요",
+      "url": "./?add=issue",
+      "icons": [
+        {
+          "src": "img/icon-192.png?v=2",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "일정 바로 추가",
+      "short_name": "일정",
+      "description": "새 가족 일정을 바로 적어요",
+      "url": "./?add=event",
+      "icons": [
+        {
+          "src": "img/icon-192.png?v=2",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }
