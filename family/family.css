@@ -991,3 +991,42 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 .notify-when ul { margin: 0 0 6px; padding: 0 14px 0 30px; display: grid; gap: 5px; }
 .notify-when p { margin: 0 14px 10px; }
 .notify-when code { background: #fff; border-radius: 6px; padding: 1px 5px; font-size: 12px; }
+
+/* ───────── 태블릿(가로 761~1100px): 도면과 오늘 정보를 나란히 ───────── */
+@media (min-width: 761px) and (max-width: 1100px) {
+  .world { display: grid; grid-template-columns: minmax(0, 1fr) minmax(286px, 34%);
+    gap: 16px; align-items: start; }
+  .col-center, .col-side { display: block; min-width: 0; }
+  .panels { display: block; }
+  .dir { grid-column: 1 / -1; grid-row: 1; }
+  .col-center { grid-column: 1; grid-row: 2; }
+  .col-side { grid-column: 2; grid-row: 2; }
+  .col-center > * + *, .col-side > * + *, .panels > .card + .card { margin-top: 14px; }
+  #panelMain { margin-top: 14px; }
+
+  /* 층 안내는 위쪽 가로 줄 — 밀지 않고 줄바꿈 */
+  .dir { position: static; padding: 0; background: none; border: 0; box-shadow: none; min-width: 0; }
+  .dir-title, .shaft, .dir-note { display: none; }
+  .building { display: block; }
+  .floors { display: flex; flex-wrap: wrap; overflow: visible; gap: 8px; padding: 2px 0 4px; }
+  .floors li { flex: 0 1 auto; min-width: 0; }
+  .floor-btn { grid-template-columns: auto auto; padding: 7px 11px; gap: 6px; }
+  .fl-face { display: none; }
+  .fl-t small { display: none; }
+  .fl-n { font-size: 18px; }
+  .fl-name { font-size: 14.5px; }
+
+  /* 카드가 너무 널찍해 보이지 않게 */
+  .card { padding: 15px 17px; }
+  .status-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .posts { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+  .stage-top { grid-template-columns: minmax(0, 1fr) minmax(0, auto); }
+  .planv-art { max-width: none; }
+}
+/* 세로로 긴 태블릿(아이패드 세로)에서는 아래 칸이 좁아지지 않게 */
+@media (min-width: 761px) and (max-width: 840px) {
+  .world { grid-template-columns: minmax(0, 1fr) minmax(252px, 32%); gap: 13px; }
+  .stage-top { grid-template-columns: 1fr; gap: 4px; }
+  .stage-top #floorHead { text-align: left; }
+  .stage-top .hello-btns { justify-content: flex-start; }
+}
