@@ -1070,3 +1070,23 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 }
 @media (min-width: 1101px) { .fab-wrap { right: 20px; bottom: 20px; } }
 @media print { .fab-wrap { display: none; } }
+
+/* ───────── 미분류함 ───────── */
+.card-inbox { border-color: var(--lav-d); }
+.inbox { list-style: none; margin: 8px 0 10px; padding: 0; display: grid; gap: 8px; }
+.inbox-it { display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; gap: 9px; align-items: center;
+  padding: 8px; border: 2px solid var(--line); border-radius: 14px; background: var(--pink-xl); }
+.inbox-th { width: 62px; height: 62px; border-radius: 11px; border: 2px solid var(--line); overflow: hidden;
+  padding: 0; background: #fff; display: grid; place-items: center; cursor: pointer; }
+.inbox-th img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.inbox-note { font-size: 24px; cursor: default; }
+.inbox-f { display: grid; gap: 5px; min-width: 0; }
+.inbox-tx { width: 100%; min-width: 0; }
+.inbox-row { display: flex; gap: 5px; min-width: 0; }
+.inbox-row input, .inbox-row select { flex: 1 1 0; min-width: 0; font-size: 13px; padding: 5px 7px; }
+.inbox-b { display: grid; gap: 4px; justify-items: stretch; }
+@media (max-width: 760px) {
+  .inbox-it { grid-template-columns: 54px minmax(0, 1fr); }
+  .inbox-th { width: 54px; height: 54px; }
+  .inbox-b { grid-column: 1 / -1; grid-auto-flow: column; justify-content: end; gap: 6px; }
+}

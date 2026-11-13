@@ -1,6 +1,6 @@
 // 우리집 미니월드 — 가족 캘린더 + 층별 미니룸
 import * as D from './dates.js?v=6';
-import * as M from './model.js?v=9';
+import * as M from './model.js?v=10';
 import * as L from './lunar.js?v=1';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=7';
@@ -17,6 +17,8 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 // 글 속의 http(s) 주소를 눌러서 열 수 있게 바꾼다.
 // esc() 로 먼저 전부 막은 뒤에 쓰므로, 여기서 만드는 <a> 말고는 태그가 살아날 수 없다.
 // http·https 만 링크로 만든다(javascript: 같은 건 그냥 글자로 남는다).
+/** href 에 넣어도 되는 주소만 통과시킨다. http(s) 가 아니면 아예 버린다. */
+const safeUrl = u => (typeof u === 'string' && /^https?:\/\//i.test(u.trim()) ? esc(u.trim()) : '');
 const LINK_RE = /\bhttps?:\/\/[^\s<>"'`]+/g;
 function linkify(str) {
   return esc(str).replace(LINK_RE, u => {
@@ -511,16 +513,89 @@ function viewPhoto(id) {
   });
 }
 
+/** 원본이 있는 곳으로 가는 작은 링크. http(s) 가 아니면 아무것도 안 내놓는다. */
+function originLink(p) {
+  const u = safeUrl(p.url);
+  return u ? ` · <a class="ln" href="${u}" target="_blank" rel="noopener noreferrer">원본 앨범</a>` : '';
+}
+
+const unfiled = () => S.posts.filter(p => p.filed === false && canSee(p))
+  .sort((a, b) => (a.at || '').localeCompare(b.at || ''));
+
+/**
+ * 미분류함.
+ *
+ * 넣는 순간에 분류를 강요하면 사람은 안 넣는다. 그래서 던져넣을 때는 날짜만 받고,
+ * 여행에 붙이거나 설명을 다는 건 마음먹었을 때 여기서 한다.
+ */
+function inboxCard() {
+  const list = unfiled();
+  if (!list.length) return '';
+  const trips = (S.trips || []).filter(t => canSee(t)).sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''));
+  const tripOpts = (sel) => `<option value="">여행 연결 안 함</option>` +
+    trips.map(t => `<option value="${t.id}" ${t.id === sel ? 'selected' : ''}>${esc(t.title)} · ${esc(D.fmtDate(t.startDate))}</option>`).join('');
+  return `<section class="card o-2 card-inbox"><header class="card-h"><h2>🗃️ 미분류함 <span class="pill">${list.length}</span></h2>
+      <button type="button" class="btn-p btn-sm" data-action="inbox-shot">📷 사진 던져넣기</button></header>
+    <p class="muted small">던져넣을 땐 <b>날짜만</b> 있으면 돼요. 한 줄 설명을 달아 두면 나중에 찾기가 훨씬 쉬워요.</p>
+    <ul class="inbox">${list.map(p => `<li class="inbox-it">
+      ${p.photo ? `<button type="button" class="inbox-th" data-action="view-photo" data-id="${p.id}" aria-label="사진 크게 보기"><img src="${esc(p.photo)}" alt="" draggable="false"></button>` : '<span class="inbox-th inbox-note">📝</span>'}
+      <div class="inbox-f">
+        <input class="inbox-tx" data-change="inbox-text" data-id="${p.id}" maxlength="140" value="${esc(p.text || '')}" placeholder="한 줄 설명 (예: 유안이 첫 바다)" aria-label="설명">
+        <div class="inbox-row">
+          <input type="date" data-change="inbox-at" data-id="${p.id}" value="${esc(p.at || D.today())}" aria-label="언제 있었던 일">
+          <select data-change="inbox-trip" data-id="${p.id}" aria-label="여행 연결">${tripOpts(p.tripId)}</select>
+        </div>
+      </div>
+      <div class="inbox-b">
+        <button type="button" class="btn-p btn-sm" data-action="inbox-file" data-id="${p.id}">정리 완료</button>
+        <button type="button" class="btn-x" data-action="del-post" data-id="${p.id}">삭제</button>
+      </div>
+    </li>`).join('')}</ul>
+    <div class="btn-row"><button type="button" class="btn-s" data-action="inbox-file-all">전부 정리 완료로</button></div>
+  </section>`;
+}
+
+/**
+ * 사진 여러 장을 한꺼번에 미분류함에 넣는다.
+ * 여기 담는 건 작게 줄인 미리보기뿐이다 — 원본은 휴대폰에 그대로 두고,
+ * 날짜를 단서로 나중에 사진첩에서 찾는다. 2년치 원본을 품으면 용량이 터진다.
+ */
+const localDay = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+async function importPhotos(files) {
+  const list = [...files].slice(0, 30);
+  if (!list.length) return;
+  const mark = S.posts.length;
+  toast(`사진 ${list.length}장을 줄이는 중…`);
+  let ok = 0;
+  for (const f of list) {
+    try {
+      const photo = await resizeImage(f, 480);
+      // 사진의 시각은 '그 자리의 시각'이다. UTC 로 바꾸면 새벽에 찍은 게 전날로 밀린다.
+      const at = f.lastModified ? localDay(new Date(f.lastModified)) : D.today();
+      S.posts.push({
+        id: M.newId('po'), memberId: ui.viewer, text: '', photo, at, url: '', tripId: null, filed: false,
+        createdAt: new Date().toISOString(), createdBy: ui.viewer, visibility: 'family', sourceId: 'src_manual',
+      });
+      ok++;
+    } catch { /* 한 장을 못 읽어도 나머지는 넣는다 */ }
+  }
+  if (!ok) { toast('사진을 읽지 못했어요.', 'err'); return; }
+  if (!persist()) { S.posts.length = mark; renderAll(); toast('저장 공간이 모자라요. 몇 장씩 나눠 넣어 주세요.', 'err'); return; }
+  renderAll();
+  toast(`미분류함에 ${ok}장 넣었어요. 정리는 나중에 해도 돼요.`);
+}
+
 /** 집 전체 화면에서 보는, 온 가족의 최근 짧은 글·사진 */
 function allPostsCard() {
-  const posts = S.posts.filter(p => canSee(p)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6);
+  const posts = S.posts.filter(p => canSee(p) && p.filed !== false)
+    .sort((a, b) => (b.at || '').localeCompare(a.at || '') || b.createdAt.localeCompare(a.createdAt)).slice(0, 6);
   const me = member(ui.viewer);
   return `<section class="card o-7"><header class="card-h"><h2>짧은 글 · 사진</h2>
       <button type="button" class="btn-p btn-sm" data-action="new-post" data-id="${ui.viewer}">+ 글 쓰기</button></header>
     ${posts.length ? `<ul class="posts">${posts.map(p => `<li class="post">
         ${postPhotoHTML(p)}
         <p>${linkify(p.text)}</p>
-        <footer><span>${face(member(p.memberId))} <button type="button" class="link-ev" data-action="go-floor" data-floor="${member(p.memberId)?.floor || 1}">${esc(memberName(p.memberId))}의 방</button> · ${D.fmtStamp(p.createdAt)} · ${esc(memberName(p.createdBy))} 씀${p.editedAt ? ' · 수정됨' : ''}${p.visibility === 'private' ? ' · 🔒' : ''}</span>${srcTag(p)}<span class="post-btns"><button type="button" class="btn-x" data-action="edit-post" data-id="${p.id}">고치기</button><button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">삭제</button></span></footer>
+        <footer><span>${face(member(p.memberId))} <button type="button" class="link-ev" data-action="go-floor" data-floor="${member(p.memberId)?.floor || 1}">${esc(memberName(p.memberId))}의 방</button> · <b>${esc(D.fmtDate(p.at || (p.createdAt || '').slice(0, 10)))}</b>${originLink(p)} · ${esc(memberName(p.createdBy))} 씀${p.editedAt ? ' · 수정됨' : ''}${p.visibility === 'private' ? ' · 🔒' : ''}</span>${srcTag(p)}<span class="post-btns"><button type="button" class="btn-x" data-action="edit-post" data-id="${p.id}">고치기</button><button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">삭제</button></span></footer>
       </li>`).join('')}</ul>` : empty('📷', `아직 남긴 글이나 사진이 없어요.`, `<button type="button" class="btn-s" data-action="new-post" data-id="${ui.viewer}">${esc(me?.displayName || '나')}의 방에 글 쓰기</button>`)}
   </section>`;
 }
@@ -532,6 +607,7 @@ function lobbyPanels() {
   const up = instances(D.addDays(t, 1), D.addDays(t, 7)).filter(i => i.ev.status !== 'cancelled').slice(0, 6);
   const main = `<section class="card o-5"><header class="card-h"><h2>가족 상태</h2><span class="hint">각자 직접 설정한 상태예요</span></header>
     <div class="status-grid">${S.members.map(statusCard).join('')}</div></section>
+  ${inboxCard()}
   ${allPostsCard()}`;
   const side = `
   <section class="card card-today o-3"><header class="card-h"><h2>오늘의 가족 일정</h2><button type="button" class="btn-p btn-sm" data-action="new-event" data-date="${t}">+ 일정</button></header>
@@ -644,7 +720,8 @@ function memberPanels(m) {
   const memos = S.issues
     .filter(i => canSee(i) && i.ownerId === m.id && i.date >= t && i.date <= D.addDays(t, 7) && (!i.done || i.date === t))
     .sort((a, b) => a.date.localeCompare(b.date) || (a.done - b.done) || prioRank[a.priority] - prioRank[b.priority]);
-  const posts = S.posts.filter(p => p.memberId === m.id && canSee(p)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8);
+  const posts = S.posts.filter(p => p.memberId === m.id && canSee(p) && p.filed !== false)
+    .sort((a, b) => (b.at || '').localeCompare(a.at || '') || b.createdAt.localeCompare(a.createdAt)).slice(0, 8);
   const gb = S.guestbook.filter(g => g.roomOwnerId === m.id && canSee(g)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 20);
   const side = `
   ${m.role === 'kid' ? rewardCardHTML(m) : ''}
@@ -1699,10 +1776,13 @@ function postDialog(m, post = null) {
   let dropPhoto = false;
   const body = `
     <label class="fld"><span>짧은 글</span><textarea name="text" rows="3" maxlength="140" required placeholder="오늘 있었던 일을 한두 줄로">${esc(post?.text || '')}</textarea></label>
+    <label class="fld"><span>언제 있었던 일 <small>(올린 날이 아니라 그 일이 있던 날)</small></span><input type="date" name="at" required value="${post?.at || D.today()}"></label>
     <label class="fld"><span>사진 <small>(선택 · 작게 줄여 저장)</small></span><input type="file" name="photo" accept="image/*"></label>
     <img class="photo-prev" alt="" ${post?.photo ? `src="${esc(post.photo)}"` : 'hidden'}>
     ${post?.photo ? '<label class="fld fld-check"><input type="checkbox" name="nophoto"><span>사진 빼기</span></label>' : ''}
-    <p class="muted small">🔗 http 로 시작하는 주소를 적으면 눌러서 열 수 있는 링크가 돼요.</p>
+    <label class="fld"><span>원본이 있는 곳 <small>(선택 · 공유 앨범 주소 등)</small></span><input name="url" type="url" maxlength="400" inputmode="url" placeholder="https://…" value="${esc(post?.url || '')}"></label>
+    <p class="muted small">📷 여기 담기는 건 <b>작게 줄인 미리보기</b>예요. 원본은 휴대폰에 두고, 모아 둔 앨범 주소를 적어 두면 나중에 한 번에 찾을 수 있어요.</p>
+    <p class="muted small">🔗 글 안에 http 로 시작하는 주소를 적으면 눌러서 열 수 있는 링크가 돼요.</p>
     <label class="fld"><span>공개 범위</span><select name="visibility">${opt(M.VISIBILITY, post?.visibility || 'family')}</select></label>`;
   openDialog({
     title: post ? '글 고치기' : `${esc(m.displayName)}의 미니룸에 글 쓰기`, body, cls: 'dlg-post',
@@ -1727,16 +1807,20 @@ function postDialog(m, post = null) {
       const text = f.text.value.trim();
       if (!text) return '글을 적어 주세요.';
       if (post) {
-        const before = { text: post.text, photo: post.photo, visibility: post.visibility };
+        const before = { text: post.text, photo: post.photo, visibility: post.visibility, at: post.at, url: post.url };
         post.text = text;
         post.photo = dropPhoto ? null : photo;
+        post.at = f.at.value || post.at;
+        post.url = f.url.value.trim().slice(0, 400);
         post.visibility = f.visibility.value;
         post.editedAt = new Date().toISOString();
         if (!persist()) { Object.assign(post, before); renderAll(); return '저장하지 못했어요. 사진이 너무 크면 빼고 올려 주세요.'; }
         renderAll(); toast('글을 고쳤어요.');
         return true;
       }
-      const p = { id: M.newId('po'), memberId: m.id, text, photo: dropPhoto ? null : photo, createdAt: new Date().toISOString(), createdBy: ui.viewer, visibility: f.visibility.value, sourceId: 'src_manual' };
+      const p = { id: M.newId('po'), memberId: m.id, text, photo: dropPhoto ? null : photo,
+        at: f.at.value || D.today(), url: f.url.value.trim().slice(0, 400), tripId: null, filed: true,
+        createdAt: new Date().toISOString(), createdBy: ui.viewer, visibility: f.visibility.value, sourceId: 'src_manual' };
       S.posts.push(p);
       if (!persist()) { S.posts.pop(); renderAll(); return '저장하지 못했어요. 사진이 너무 크면 빼고 올려 주세요.'; }
       renderAll(); toast('글을 올렸어요.');
@@ -2226,6 +2310,26 @@ const ACTIONS = {
   'new-issue': b => { if ($('#dlg').open) $('#dlg').close(); issueDialog(null, { date: b.dataset.date, eventId: b.dataset.event, ownerId: b.dataset.owner }); },
   'edit-status': b => statusDialog(member(b.dataset.id)),
   'new-post': b => postDialog(member(b.dataset.id)),
+  'inbox-shot': () => {
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true;
+    inp.addEventListener('change', () => importPhotos(inp.files));
+    inp.click();
+  },
+  'inbox-file': b => {
+    const p = S.posts.find(x => x.id === b.dataset.id);
+    if (!p) return;
+    p.filed = true; p.updatedAt = new Date().toISOString();
+    persist(); renderAll(); toast('정리했어요.');
+  },
+  'inbox-file-all': () => {
+    const list = unfiled();
+    if (!list.length) return;
+    if (!confirm(`${list.length}건을 모두 정리 완료로 둘까요?\n설명을 안 단 것도 그대로 들어가요.`)) return;
+    const now = new Date().toISOString();
+    for (const p of list) { p.filed = true; p.updatedAt = now; }
+    persist(); renderAll(); toast(`${list.length}건을 정리했어요.`);
+  },
   'view-photo': b => { if ($('#dlg').open) $('#dlg').close(); viewPhoto(b.dataset.id); },
   'del-activity': b => { S.activity = (S.activity || []).filter(x => x.id !== b.dataset.id); persist(); renderAll(); toast('소식을 지웠어요.'); },
   'clear-activity': () => { if (!confirm('가족 소식을 모두 지울까요?\n일정이나 준비할 일은 지워지지 않아요.')) return; S.activity = []; persist(); renderAll(); toast('가족 소식을 모두 지웠어요.'); },
@@ -2391,6 +2495,16 @@ document.addEventListener('change', e => {
   if (t.id === 'viewerSel') { ui.viewer = t.value; savePref('viewer', t.value); renderAll(); toast(`${viewerName()}(으)로 보고 있어요. (로그인이 아니라 보기 전환이에요)`); return; }
   const a = t.dataset.change;
   if (a === 'toggle-issue') toggleIssue(t.dataset.id, t.checked);
+  if (a === 'inbox-text' || a === 'inbox-at' || a === 'inbox-trip') {
+    const p = S.posts.find(x => x.id === t.dataset.id);
+    if (p) {
+      if (a === 'inbox-text') p.text = t.value.trim().slice(0, 140);
+      if (a === 'inbox-at' && t.value) p.at = t.value;
+      if (a === 'inbox-trip') p.tripId = t.value || null;
+      p.updatedAt = new Date().toISOString();
+      persist();            // 화면은 다시 그리지 않는다 — 타이핑하던 칸이 사라지면 안 되니까
+    }
+  }
   if (a === 'adm-pick') { t.checked ? ui.admin.picked.add(t.value) : ui.admin.picked.delete(t.value); renderAdmin(); }
   if (a === 'adm-pick-all') { ui.admin.picked = t.checked ? new Set(S.events.filter(e => e.sourceId !== 'src_demo').map(e => e.id)) : new Set(); renderAdmin(); }
   if (a === 'toggle-board') {
@@ -2522,6 +2636,7 @@ async function makeShareLink(base = APP_URL || `${location.origin}${location.pat
  *   ?add=event            일정 추가 창
  *   ?add=issue&t=우유      제목까지 미리 채워서
  *   ?add=issue&t=우유&go=1 창 없이 바로 오늘 할 일로 저장 (위젯용)
+ *   ?add=record&t=…&at=… 미분류함에 한 줄 던져넣기 (나중에 정리)
  *
  * 주소는 곧바로 지운다. 새로고침할 때 또 뜨거나, 적은 글귀가 방문 기록에
  * 남지 않게 하기 위해서다. 글귀는 창의 입력칸에만 들어가고 화면에 HTML 로
@@ -2537,11 +2652,25 @@ function readQuickAdd() {
   // 위젯에서 이미 글을 받아 왔으면 창을 또 띄우지 않고 바로 적는다.
   // 일정은 시각·장소를 정해야 하므로 바로 저장하지 않고 창을 띄운다.
   if (what === 'issue' && q.get('go') === '1' && t) { quickSaveIssue(t); return; }
+  if (what === 'record') { quickSaveRecord(t, q.get('at'), q.get('u')); return; }
   // 첫 그리기가 끝난 뒤에 띄워야 창이 가려지지 않는다
   setTimeout(() => {
     if (what === 'event') newEvent(D.today(), ui.viewer, t);
     else if (what === 'issue') issueDialog(null, { date: D.today(), ownerId: ui.viewer, title: t });
   }, 60);
+}
+
+/** 미분류함에 한 줄 던져넣는다. 날짜만 챙기고 분류는 묻지 않는다. */
+function quickSaveRecord(text, at, url) {
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(at || '') ? at : D.today();
+  const now = new Date().toISOString();
+  S.posts.push({
+    id: M.newId('po'), memberId: ui.viewer, text: (text || '').slice(0, 140), photo: null,
+    at: day, url: /^https?:\/\//i.test(url || '') ? url.slice(0, 400) : '', tripId: null, filed: false,
+    createdAt: now, createdBy: ui.viewer, visibility: 'family', sourceId: 'src_manual',
+  });
+  persist(); renderAll();
+  toast('🗃️ 미분류함에 넣었어요. 정리는 나중에.');
 }
 
 /**

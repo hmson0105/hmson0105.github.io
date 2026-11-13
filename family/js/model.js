@@ -22,7 +22,7 @@ export const SCHEMA_VERSION = 1;
 //  - 그 밖의 값(id·날짜·시간·종류 …)에서는 HTML·속성을 깨뜨릴 수 있는 문자를 지운다.
 //  - 사진은 기기에서 만든 data:image 만, 색은 #hex 만 받는다.
 const FREE_TEXT = new Set(['title', 'memo', 'text', 'name', 'displayName', 'roleLabel', 'label', 'bgm', 'destination', 'changes', 'reason', 'prize',
-  'place', 'location', 'qty', 'raw', 'line', 'lastImportFile', 'externalUid', 'uid', 'email', 'summary', 'description']);
+  'place', 'location', 'qty', 'raw', 'line', 'url', 'lastImportFile', 'externalUid', 'uid', 'email', 'summary', 'description']);
 const BAD_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 const UNSAFE = /[<>"'`&\\\u0000-\u001f\u007f]/;
 const UNSAFE_G = new RegExp(UNSAFE.source, 'g');
@@ -332,6 +332,19 @@ export function migrate(S) {
     S.recurrenceRules = S.recurrenceRules.filter(r => !daycare.some(e => e.recurrenceRuleId === r.id));
     S.issues.forEach(i => { if (ids.has(i.eventId)) i.eventId = null; });
   }
+  // 기록(짧은 글·사진)에 '언제 있었던 일인지'와 '정리했는지'를 붙인다.
+  // at 은 올린 날이 아니라 일어난 날이다 — 반년 뒤에 몰아 올려도 제자리에 꽂히라고.
+  // 예전 글은 이미 제자리에 있으니 정리 끝난 것으로 둔다.
+  const todayISO = new Date().toISOString().slice(0, 10);
+  for (const x of S.posts) {
+    if (typeof x.at !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(x.at)) {
+      x.at = typeof x.createdAt === 'string' && x.createdAt.length >= 10 ? x.createdAt.slice(0, 10) : todayISO;
+    }
+    if (typeof x.url !== 'string') x.url = '';
+    if (x.tripId === undefined) x.tripId = null;
+    if (typeof x.filed !== 'boolean') x.filed = true;
+  }
+
   // 칭찬 스티커 판이 없던 예전 데이터에 빈 판을 만들어 준다.
   const rw = S.family.rewards && typeof S.family.rewards === 'object' ? S.family.rewards : {};
   S.family.rewards = {
