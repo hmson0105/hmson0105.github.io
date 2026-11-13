@@ -259,10 +259,38 @@ function renderDir() {
   else $('#car').textContent = '🏠';
 }
 
-/** 네 방을 한 도면에 담은 등각 평면도. 각자 자기 방에 서 있고, 방을 누르면 그 층으로 들어간다. */
+/**
+ * 네 방을 한 도면에 담은 등각 평면도.
+ * 주중 저녁 6시부터 다음 날 아침 9시까지는 온 가족이 1층 가족 로비에 모인다.
+ * 캐릭터를 누르면 그 사람의 방으로 들어간다.
+ */
+const isWeekday = d => { const w = D.weekday(d); return w >= 1 && w <= 5; };
+/** 지금이 '가족이 로비에 모이는' 시간인가 */
+function lobbyHours() {
+  const now = D.seoul();
+  if (now.hour >= 18) return isWeekday(now.date);              // 주중 저녁
+  if (now.hour < 9) return isWeekday(D.addDays(now.date, -1)); // 그 저녁에서 이어진 밤·아침
+  return false;
+}
+/** 로비에 셋이 함께 설 때의 자리(평면도 % 기준) */
+// 셋이 겹치지 않게 대각선으로 비스듬히 세운다
+const LOBBY_LINE = [[-9, -2], [0, 2.5], [9, 7]];
+// gathered: 로비에 다 모였을 때 — 상태 말풍선 대신 머리 위에 빨간 하트만
+function planAvatarHTML(m, { x, y, h, gathered = false }) {
+  const st = avatarState(m);
+  const mood = st.status && !st.stale && M.MOODS.find(k => k.k === st.status.mood);
+  const say = `${mood ? mood.e + ' ' : ''}${st.status?.text && !st.stale ? st.status.text : st.label}`;
+  return `<button type="button" class="pv-av act-${st.act}" style="left:${x}%;top:${y}%;--h:${h}%;--c:${m.color}"
+    data-action="go-floor" data-floor="${m.floor}" aria-label="${esc(`${m.displayName}, ${st.label}. ${m.floor}층 ${m.space.name}으로 들어가기`)}">
+    <span class="av-fig">${avatarFigure(m, st.act)}</span>${gathered ? '' : fxHTML(st.act, false)}
+    ${gathered ? '<span class="pv-heart" aria-hidden="true">❤️</span>'
+      : `<span class="pv-say"><b>${esc(m.displayName)}</b><small>${esc(say)}</small></span>`}
+  </button>`;
+}
 function renderHouse() {
   const t = D.today();
   const today = instances(t, t).filter(i => i.ev.status !== 'cancelled');
+  const gather = lobbyHours();
   const over = [4, 3, 2, 1].map(n => {
     const f = floorInfo(n);
     const lobby = n === 1;
@@ -270,23 +298,23 @@ function renderHouse() {
     const col = f.m?.color || '#FF8FB8';
     const cnt = lobby ? today.length : today.filter(i => involves(i.ev, new Set([f.m.id]))).length;
     let who = '';
-    if (!lobby) {
-      const m = f.m, st = avatarState(m);
-      const mood = st.status && !st.stale && M.MOODS.find(k => k.k === st.status.mood);
-      const say = `${mood ? mood.e + ' ' : ''}${st.status?.text && !st.stale ? st.status.text : st.label}`;
-      who = `<button type="button" class="pv-av act-${st.act}" style="left:${sx}%;top:${sy}%;--h:${m.role === 'kid' ? 18 : 21}%;--c:${m.color}"
-        data-action="edit-status" data-id="${m.id}" aria-label="${esc(`${m.displayName}, ${st.label}. 상태 바꾸기`)}">
-        <span class="av-fig">${avatarFigure(m, st.act)}</span>${fxHTML(st.act, false)}
-        <span class="pv-say"><b>${esc(m.displayName)}</b><small>${esc(say)}</small></span>
-      </button>`;
+    if (gather && lobby) {
+      // 온 가족이 로비에 — 셋을 나란히 세운다
+      who = S.members.map((m, i) => {
+        const [dx, dy] = LOBBY_LINE[i] || [0, 0];
+        return planAvatarHTML(m, { x: sx + dx, y: sy + dy, h: m.role === 'kid' ? 15 : 17.5, gathered: true });
+      }).join('');
+    } else if (!gather && !lobby) {
+      who = planAvatarHTML(f.m, { x: sx, y: sy, h: f.m.role === 'kid' ? 18 : 21 });
     }
-    return `${who}<button type="button" class="pv-tag" style="left:${sx}%;top:${sy + 7}%;--c:${col}"
+    const tagY = sy + (gather && lobby ? 11 : 7);
+    return `${who}<button type="button" class="pv-tag" style="left:${sx}%;top:${tagY}%;--c:${col}"
       data-action="go-floor" data-floor="${n}" aria-label="${esc(`${n}층 ${f.name}로 들어가기. 오늘 ${cnt}건`)}"><b>${n}F</b> ${esc(f.name)}${cnt ? `<i>${cnt}</i>` : ''}</button>`;
   }).join('');
   $('#stageFrame').className = `stage-frame bd-${S.family.lobbyRoom.backdrop}`;
   $('#sceneWrap').innerHTML = `<div class="planv">
     <div class="planv-art">${ASSETS.housePlan ? `<img class="plan-svg" src="${ASSETS.housePlan}" alt="우리집 평면도">` : housePlanSVG()}${over}</div>
-    <p class="planv-cap">우리집 평면도 · 방 이름을 누르면 그 층으로 들어가요</p>
+    <p class="planv-cap">${gather ? '🌙 저녁엔 가족이 로비에 모여요 · ' : ''}캐릭터나 방 이름을 누르면 그 방으로 들어가요</p>
   </div>`;
   $('#elevInd').textContent = '🏠';
 }
@@ -376,13 +404,28 @@ function statusCard(m) {
   </article>`;
 }
 
+/** 집 전체 화면에서 보는, 온 가족의 최근 짧은 글·사진 */
+function allPostsCard() {
+  const posts = S.posts.filter(p => canSee(p)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6);
+  const me = member(ui.viewer);
+  return `<section class="card o-7"><header class="card-h"><h2>짧은 글 · 사진</h2>
+      <button type="button" class="btn-p btn-sm" data-action="new-post" data-id="${ui.viewer}">+ 글 쓰기</button></header>
+    ${posts.length ? `<ul class="posts">${posts.map(p => `<li class="post">
+        ${p.photo ? `<img src="${esc(p.photo)}" alt="${esc(memberName(p.memberId))}의 사진">` : ''}
+        <p>${esc(p.text)}</p>
+        <footer><span>${face(member(p.memberId))} <button type="button" class="link-ev" data-action="go-floor" data-floor="${member(p.memberId)?.floor || 1}">${esc(memberName(p.memberId))}의 방</button> · ${D.fmtStamp(p.createdAt)} · ${esc(memberName(p.createdBy))} 씀${p.visibility === 'private' ? ' · 🔒' : ''}</span>${srcTag(p)}<button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">삭제</button></footer>
+      </li>`).join('')}</ul>` : empty('📷', `아직 남긴 글이나 사진이 없어요.`, `<button type="button" class="btn-s" data-action="new-post" data-id="${ui.viewer}">${esc(me?.displayName || '나')}의 방에 글 쓰기</button>`)}
+  </section>`;
+}
+
 function lobbyPanels() {
   const t = D.today();
   const today = instances(t, t);
   const iss = issuesOn(t);
   const up = instances(D.addDays(t, 1), D.addDays(t, 7)).filter(i => i.ev.status !== 'cancelled').slice(0, 6);
   const main = `<section class="card o-5"><header class="card-h"><h2>가족 상태</h2><span class="hint">각자 직접 설정한 상태예요</span></header>
-    <div class="status-grid">${S.members.map(statusCard).join('')}</div></section>`;
+    <div class="status-grid">${S.members.map(statusCard).join('')}</div></section>
+  ${allPostsCard()}`;
   const side = `
   <section class="card card-today o-3"><header class="card-h"><h2>오늘의 가족 일정</h2><button type="button" class="btn-p btn-sm" data-action="new-event" data-date="${t}">+ 일정</button></header>
     ${today.length ? `<ul class="ev-list">${today.map(i => evRow(i)).join('')}</ul>` : empty('☁️', '오늘은 등록된 가족 일정이 없어요.', `<button type="button" class="btn-s" data-action="new-event" data-date="${t}">일정 추가하기</button>`)}

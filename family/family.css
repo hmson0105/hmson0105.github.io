@@ -903,3 +903,9 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 .pz-log small { color: var(--ink-3); font-size: 11.5px; white-space: nowrap; }
 .pz-e { font-size: 16px; }
 .pz-pick label span { font-size: 20px; }
+
+/* 로비에 다 모였을 때 — 말풍선 대신 머리 위 하트 하나 */
+.pv-heart { position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, -3px);
+  font-size: clamp(11px, 1.5vw, 17px); filter: drop-shadow(0 1px 0 #fff) drop-shadow(0 0 2px #fff); pointer-events: none; }
+@media (prefers-reduced-motion: no-preference) { .pv-heart { animation: heartbeat 1.9s ease-in-out infinite; } }
+@keyframes heartbeat { 0%, 100% { transform: translate(-50%, -3px) scale(1); } 18% { transform: translate(-50%, -3px) scale(1.22); } 36% { transform: translate(-50%, -3px) scale(1); } 54% { transform: translate(-50%, -3px) scale(1.15); } }
