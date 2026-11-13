@@ -30,7 +30,7 @@ function snapshot(S) {
       out[`${kind}:${x.id}`] = { kind, id: x.id, data };
     }
   }
-  out['family:main'] = { kind: 'family', id: 'main', data: { lobbyRoom: S.family.lobbyRoom, name: S.family.name } };
+  out['family:main'] = { kind: 'family', id: 'main', data: { lobbyRoom: S.family.lobbyRoom, name: S.family.name, rewards: S.family.rewards } };
   out['sync:apple'] = { kind: 'sync', id: 'apple', data: S.sync.apple };
   return out;
 }
@@ -134,7 +134,7 @@ export function createSync({ getState, onRemote, onStatus, onPeer }) {
       }
       const j = r.deleted ? null : JSON.stringify(r.data);
       synced[key] = j;
-      if (r.kind === 'family') { if (r.data) { S.family.lobbyRoom = r.data.lobbyRoom || S.family.lobbyRoom; S.family.name = r.data.name || S.family.name; changed = true; } continue; }
+      if (r.kind === 'family') { if (r.data) { S.family.lobbyRoom = r.data.lobbyRoom || S.family.lobbyRoom; S.family.name = r.data.name || S.family.name; if (r.data.rewards) S.family.rewards = r.data.rewards; changed = true; } continue; }
       if (r.kind === 'sync') { if (r.data) { S.sync.apple = { ...S.sync.apple, ...r.data }; changed = true; } continue; }
       if (!COLLECTIONS.includes(r.kind)) continue;
       S[r.kind] ||= [];

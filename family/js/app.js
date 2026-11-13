@@ -1,10 +1,10 @@
 // 우리집 미니월드 — 가족 캘린더 + 층별 미니룸
 import * as D from './dates.js?v=6';
-import * as M from './model.js?v=7';
+import * as M from './model.js?v=8';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=6';
 import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS } from './scene.js?v=12';
-import { createSync, syncConfigured } from './sync.js?v=14';
+import { createSync, syncConfigured } from './sync.js?v=15';
 import { parseKakao } from './kakao.js?v=4';
 import * as N from './notify.js?v=1';
 import { APP_URL } from './config.js?v=10';
@@ -398,6 +398,92 @@ function lobbyPanels() {
   return { main, side };
 }
 
+// ───────────────────── 🌟 칭찬 스티커 · 보상 ─────────────────────
+const rewards = () => S.family.rewards;
+/** 마지막 보상 이후 모은 스티커 */
+const sinceLast = () => {
+  const r = rewards();
+  const last = r.done.length ? r.done[r.done.length - 1].at : '';
+  return r.stickers.filter(x => (x.at || '') > last);
+};
+function rewardCardHTML(m) {
+  const r = rewards();
+  const got = sinceLast();
+  const n = got.length, goal = Math.max(1, r.goal);
+  const full = n >= goal;
+  const row = [...Array(Math.min(goal, 30))].map((_, i) =>
+    `<span class="pz-dot${i < n ? ' on' : ''}">${i < n ? esc(got[i].emoji || '⭐') : ''}</span>`).join('');
+  const recent = got.slice(-4).reverse();
+  return `<section class="card card-praise o-3" style="--c:${m.color}">
+    <header class="card-h"><h2>🌟 칭찬 스티커</h2>
+      <button type="button" class="btn-g btn-sm" data-action="reward-setup">보상 정하기</button></header>
+    <p class="pz-count"><b>${n}</b> / ${goal}개</p>
+    <div class="pz-board">${row}</div>
+    <div class="pz-bar"><i style="width:${Math.min(100, Math.round(n / goal * 100))}%"></i></div>
+    <p class="pz-prize">🎁 ${r.prize ? esc(r.prize) : '<span class="muted">보상을 아직 안 정했어요</span>'}</p>
+    <p class="pz-left">${full ? '<b>다 모았어요! 보상 받을 수 있어요 🎉</b>' : `${goal - n}개만 더 모으면 받아요!`}</p>
+    <div class="btn-row">
+      <button type="button" class="btn-p" data-action="reward-add" data-id="${m.id}">+ 칭찬 스티커 주기</button>
+      ${full && r.prize ? '<button type="button" class="btn-s" data-action="reward-claim">🎁 보상 받기</button>' : ''}
+    </div>
+    ${recent.length ? `<ul class="pz-log">${recent.map(x => `<li><span class="pz-e">${esc(x.emoji || '⭐')}</span><span>${esc(x.reason || '칭찬!')}</span><small>${esc(memberName(x.by))} · ${D.fmtStamp(x.at)}</small></li>`).join('')}</ul>` : ''}
+    ${r.done.length ? `<p class="muted small">지금까지 받은 보상 ${r.done.length}번 · 가장 최근 ${esc(r.done[r.done.length - 1].prize)}</p>` : ''}
+  </section>`;
+}
+function giveSticker(memberId) {
+  const body = `<fieldset class="fld chips pz-pick"><legend>스티커</legend>
+      ${M.PRAISE.map((e, i) => `<label><input type="radio" name="emoji" value="${e}" ${i === 0 ? 'checked' : ''}><span>${e}</span></label>`).join('')}</fieldset>
+    <label class="fld"><span>어떤 칭찬인가요?</span><input name="reason" maxlength="40" required placeholder="예) 양치 혼자 했어요"></label>`;
+  openDialog({
+    title: '칭찬 스티커 주기', body,
+    actions: '<span class="sp"></span><button type="submit" value="save" class="btn-p">주기</button>',
+    onMount(f) { f.reason.focus(); },
+    onSubmit(f) {
+      const fd = new FormData(f);
+      const reason = String(fd.get('reason') || '').trim();
+      if (!reason) return '어떤 칭찬인지 적어 주세요.';
+      const r = rewards();
+      r.stickers.push({ id: M.newId('pz'), emoji: String(fd.get('emoji') || '⭐'), reason, by: ui.viewer, at: new Date().toISOString() });
+      if (r.stickers.length > 200) r.stickers = r.stickers.slice(-200);
+      logActivity('member', memberId, `칭찬 스티커를 받았어요 — ${reason}`);
+      ui.celebrate = { id: memberId, until: Date.now() + 2600 };
+      persist(); renderAll(); toast('칭찬 스티커를 줬어요 🌟');
+      return true;
+    },
+  });
+}
+function rewardSetup() {
+  const r = rewards();
+  const body = `<label class="fld"><span>보상</span><input name="prize" maxlength="60" value="${esc(r.prize)}" placeholder="예) 놀이공원 가기"></label>
+    <label class="fld"><span>스티커 몇 개를 모으면 받나요?</span><input type="number" name="goal" min="1" max="100" required value="${r.goal}"></label>
+    <p class="muted small">보상을 받으면 스티커는 0개부터 다시 모아요. 지금까지 기록은 남아요.</p>`;
+  openDialog({
+    title: '보상 정하기', body,
+    actions: '<span class="sp"></span><button type="submit" value="save" class="btn-p">저장</button>',
+    onSubmit(f) {
+      const fd = new FormData(f);
+      const goal = Math.round(+fd.get('goal'));
+      if (!Number.isFinite(goal) || goal < 1 || goal > 100) return '1부터 100 사이로 정해 주세요.';
+      r.prize = String(fd.get('prize') || '').trim().slice(0, 60);
+      r.goal = goal;
+      persist(); renderAll(); toast('보상을 정했어요 🎁');
+      return true;
+    },
+  });
+}
+function claimReward() {
+  const r = rewards();
+  const n = sinceLast().length;
+  if (n < r.goal || !r.prize) return;
+  if (!confirm(`'${r.prize}' 보상을 받을까요?\n스티커는 0개부터 다시 모아요.`)) return;
+  r.done.push({ id: M.newId('rw'), prize: r.prize, count: n, at: new Date().toISOString() });
+  if (r.done.length > 50) r.done = r.done.slice(-50);
+  logActivity('family', 'main', `🎁 보상을 받았어요 — ${r.prize}`);
+  const kid = S.members.find(x => x.role === 'kid');
+  if (kid) ui.celebrate = { id: kid.id, until: Date.now() + 3200 };
+  persist(); renderAll(); toast(`🎁 ${r.prize} — 축하해요!`);
+}
+
 function memberPanels(m) {
   const t = D.today();
   const st = avatarState(m);
@@ -411,6 +497,7 @@ function memberPanels(m) {
   const posts = S.posts.filter(p => p.memberId === m.id && canSee(p)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8);
   const gb = S.guestbook.filter(g => g.roomOwnerId === m.id && canSee(g)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 20);
   const side = `
+  ${m.role === 'kid' ? rewardCardHTML(m) : ''}
   <section class="card me-status o-3" style="--c:${m.color}"><header class="card-h"><h2>오늘의 상태</h2><button type="button" class="btn-s" data-action="edit-status" data-id="${m.id}">바꾸기</button></header>
     <div class="speech${st.stale ? ' is-stale' : ''}">${s?.text && canSee({ ...s, ownerId: m.id }) ? esc(s.text) : '<span class="muted">아직 상태 메시지가 없어요</span>'}</div>
     <dl class="kv">
@@ -1801,6 +1888,9 @@ function toast(msg, kind = '') {
 
 const ACTIONS = {
   'go-floor': b => goFloor(b.dataset.floor),
+  'reward-add': b => giveSticker(b.dataset.id),
+  'reward-setup': () => rewardSetup(),
+  'reward-claim': () => claimReward(),
   'notify-ask': async () => {
     const r = await N.ask();
     renderSync();

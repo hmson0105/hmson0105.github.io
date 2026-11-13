@@ -20,7 +20,7 @@ export const SCHEMA_VERSION = 1;
 //  - 사람이 쓴 글(FREE_TEXT)은 그대로 두고, 화면에 넣을 때 esc() 로 처리한다.
 //  - 그 밖의 값(id·날짜·시간·종류 …)에서는 HTML·속성을 깨뜨릴 수 있는 문자를 지운다.
 //  - 사진은 기기에서 만든 data:image 만, 색은 #hex 만 받는다.
-const FREE_TEXT = new Set(['title', 'memo', 'text', 'name', 'displayName', 'roleLabel', 'label', 'bgm', 'destination', 'changes',
+const FREE_TEXT = new Set(['title', 'memo', 'text', 'name', 'displayName', 'roleLabel', 'label', 'bgm', 'destination', 'changes', 'reason', 'prize',
   'place', 'location', 'qty', 'raw', 'line', 'lastImportFile', 'externalUid', 'uid', 'email', 'summary', 'description']);
 const BAD_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 const UNSAFE = /[<>"'`&\\\u0000-\u001f\u007f]/;
@@ -91,6 +91,9 @@ export const VISIBILITY = [
   { k: 'family', l: '가족 전체' },
   { k: 'private', l: '본인만' },
 ];
+/** 칭찬 스티커로 고를 수 있는 그림 */
+export const PRAISE = ['⭐', '🌟', '💖', '🍀', '🏅', '🌈', '🐤', '🍪'];
+
 export const FREQS = [
   { k: '', l: '반복 안 함' },
   { k: 'DAILY', l: '매일' },
@@ -169,6 +172,8 @@ function baseState() {
       id: 'fam_1', name: '우리 가족', timezone: 'Asia/Seoul',
       memberIds: members.map(m => m.id),
       lobbyRoom: { backdrop: 'pinkDots', stickers: ['heart', 'cloud'] },
+      // 칭찬 스티커 판 — 모으면 보상을 받는다
+      rewards: { goal: 10, prize: '', stickers: [], done: [] },
       // 나중에 계정·초대 기능을 붙일 자리. 지금은 비어 있다.
       accounts: [], invites: [],
     },
@@ -325,6 +330,14 @@ export function migrate(S) {
     S.recurrenceRules = S.recurrenceRules.filter(r => !daycare.some(e => e.recurrenceRuleId === r.id));
     S.issues.forEach(i => { if (ids.has(i.eventId)) i.eventId = null; });
   }
+  // 칭찬 스티커 판이 없던 예전 데이터에 빈 판을 만들어 준다.
+  const rw = S.family.rewards && typeof S.family.rewards === 'object' ? S.family.rewards : {};
+  S.family.rewards = {
+    goal: Number.isFinite(+rw.goal) && +rw.goal > 0 ? Math.min(100, Math.round(+rw.goal)) : 10,
+    prize: typeof rw.prize === 'string' ? rw.prize.slice(0, 60) : '',
+    stickers: Array.isArray(rw.stickers) ? rw.stickers.filter(x => x && typeof x === 'object' && typeof x.id === 'string').slice(-200) : [],
+    done: Array.isArray(rw.done) ? rw.done.filter(x => x && typeof x === 'object' && typeof x.id === 'string').slice(-50) : [],
+  };
   S.schemaVersion = SCHEMA_VERSION;
   return S;
 }

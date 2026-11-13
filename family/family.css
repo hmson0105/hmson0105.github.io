@@ -884,3 +884,22 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
   .is-list, .act-list { gap: 6px; }
   main { padding-bottom: 10px; }
 }
+
+/* ───────── 🌟 칭찬 스티커 · 보상 ───────── */
+.card-praise { border-color: var(--c); }
+.pz-count { margin: 0 0 6px; font-size: 14px; color: var(--ink-2); }
+.pz-count b { font-family: var(--font-d); font-weight: 400; font-size: 24px; color: var(--c); }
+.pz-board { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 9px; }
+.pz-dot { width: 30px; height: 30px; display: grid; place-items: center; font-size: 17px;
+  border: 2px dashed var(--line); border-radius: 50%; background: var(--pink-xl); }
+.pz-dot.on { border-style: solid; border-color: var(--c); background: #fff; box-shadow: 0 2px 0 var(--c); }
+.pz-bar { height: 10px; border-radius: 99px; background: var(--pink-xl); border: 2px solid var(--line); overflow: hidden; }
+.pz-bar i { display: block; height: 100%; background: var(--c); transition: width .4s ease; }
+.pz-prize { margin: 9px 0 2px; font-family: var(--font-d); font-weight: 400; font-size: 16.5px; }
+.pz-left { margin: 0 0 10px; font-size: 13.5px; color: var(--ink-2); }
+.pz-log { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 5px; }
+.pz-log li { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center;
+  padding: 6px 9px; background: var(--pink-xl); border-radius: 12px; font-size: 13.5px; }
+.pz-log small { color: var(--ink-3); font-size: 11.5px; white-space: nowrap; }
+.pz-e { font-size: 16px; }
+.pz-pick label span { font-size: 20px; }
