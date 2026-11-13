@@ -1029,7 +1029,7 @@ function syncCardBody() {
   if (s.state === 'signed-out') return `<p>가족 각자 <b>이메일과 비밀번호</b>로 로그인하면, 한 사람이 고친 내용이 다른 가족의 폰·컴퓨터에도 바로 반영돼요. 처음이면 '처음이에요'로 계정을 만들어요.</p>
     <form class="sync-form sync-col" data-submit="sync-login">
       <input type="email" name="email" required autocomplete="email" placeholder="이메일 주소" aria-label="이메일 주소">
-      <input type="password" name="password" required minlength="8" autocomplete="current-password" placeholder="비밀번호 (8자 이상)" aria-label="비밀번호">
+      <input type="password" name="password" required minlength="12" autocomplete="current-password" placeholder="비밀번호 (12자 이상)" aria-label="비밀번호">
       <div class="sync-row"><button class="btn-p" name="how" value="up">🌱 처음이에요 · 계정 만들기</button><button class="btn-s" name="how" value="in">이미 계정이 있어요 · 로그인</button></div>
     </form>
     <p class="small muted">비밀번호는 이 앱이 아니라 가족 서버(Supabase)의 로그인 기능이 안전하게 보관해요. 다른 곳과 같은 비밀번호는 쓰지 마세요.</p>`;
@@ -2272,7 +2272,7 @@ document.addEventListener('submit', e => {
   if (f.dataset.submit === 'sync-login') {
     e.preventDefault();
     const how = e.submitter?.value, email = f.email.value.trim(), pw = f.password.value;
-    if (pw.length < 8) return toast('비밀번호는 8자 이상이에요.');
+    if (pw.length < 12) return toast('비밀번호는 12자 이상이에요. (가족 서버가 요구하는 길이예요)');
     const btns = [...f.querySelectorAll('button')];
     btns.forEach(x => { x.disabled = true; });
     const done = () => btns.forEach(x => { x.disabled = false; });
