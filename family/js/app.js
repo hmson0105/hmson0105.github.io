@@ -3,7 +3,7 @@ import * as D from './dates.js?v=6';
 import * as M from './model.js?v=7';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=6';
-import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS } from './scene.js?v=11';
+import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS } from './scene.js?v=12';
 import { createSync, syncConfigured } from './sync.js?v=13';
 import { parseKakao } from './kakao.js?v=4';
 import { APP_URL } from './config.js?v=10';
@@ -274,7 +274,7 @@ function renderHouse() {
       const say = `${mood ? mood.e + ' ' : ''}${st.status?.text && !st.stale ? st.status.text : st.label}`;
       who = `<button type="button" class="pv-av act-${st.act}" style="left:${sx}%;top:${sy}%;--h:${m.role === 'kid' ? 18 : 21}%;--c:${m.color}"
         data-action="edit-status" data-id="${m.id}" aria-label="${esc(`${m.displayName}, ${st.label}. 상태 바꾸기`)}">
-        <span class="av-fig">${avatarFigure(m)}</span>${fxHTML(st.act, false)}
+        <span class="av-fig">${avatarFigure(m, st.act)}</span>${fxHTML(st.act, false)}
         <span class="pv-say"><b>${esc(m.displayName)}</b><small>${esc(say)}</small></span>
       </button>`;
     }
@@ -311,7 +311,7 @@ function avatarHTML(m, mode) {
   const action = mode === 'lobby' ? `data-action="go-floor" data-floor="${m.floor}"` : `data-action="edit-status" data-id="${m.id}"`;
   const aria = `${m.displayName}, ${st.label}. ${mode === 'lobby' ? `${m.floor}층 방으로 이동` : '상태 바꾸기'}`;
   return `<button type="button" class="av act-${st.act}${cele ? ' celebrate' : ''}" style="left:${x}%;top:${y}%;--h:${h}%;--c:${m.color}" ${action} aria-label="${esc(aria)}">
-    <span class="av-fig">${avatarFigure(m)}</span>${fxHTML(st.act, cele)}
+    <span class="av-fig">${avatarFigure(m, st.act)}</span>${fxHTML(st.act, cele)}
     <span class="av-tag"><b>${esc(m.displayName)}</b><small>${mood ? mood.e + ' ' : ''}${esc(st.label)}</small></span>
     ${mode === 'single' && st.status?.text && !st.stale ? `<span class="av-bubble">${esc(st.status.text)}</span>` : ''}
   </button>`;

@@ -15,6 +15,14 @@ export const ASSETS = {
     kid: 'img/avatar-kid.png',
     dad: 'img/avatar-dad.png', // Higgsfield · Z Image, 배경 제거
   },
+  // 상태별 자세 그림 ← 만든 것만 적으면 된다. 없는 상태는 위 avatars 의 기본 그림을 쓴다.
+  // 파일 이름 규칙: img/pose-<사람>-<상태>.png (배경 제거 PNG, 기본 아바타와 같은 키·화풍)
+  // 상태: busy(책상에 앉아 작업) · rest(누워/기대어 쉼) · out(걷기) · done(두 팔 들고 만세)
+  poses: {
+    // dad: { busy: 'img/pose-dad-busy.png', rest: 'img/pose-dad-rest.png', out: 'img/pose-dad-out.png', done: 'img/pose-dad-done.png' },
+    // mom: { busy: 'img/pose-mom-busy.png', rest: 'img/pose-mom-rest.png', out: 'img/pose-mom-out.png', done: 'img/pose-mom-done.png' },
+    // kid: { busy: 'img/pose-kid-busy.png', rest: 'img/pose-kid-rest.png', out: 'img/pose-kid-out.png', done: 'img/pose-kid-done.png' },
+  },
   // 🏠 집 전체 평면도 그림 ← 생성 후 아래 줄의 주석만 풀면 바뀐다.
   // 없으면 housePlanSVG() 가 그린 등각 평면도가 쓰인다. 가로:세로 = 1200:820.
   // 사람·이름표 위치(PLAN_SPOTS)는 그대로 얹히므로 코드 수정은 이 한 줄뿐이다.
@@ -171,10 +179,19 @@ export function dadSVG() {
 </svg>`;
 }
 
-export function avatarFigure(member) {
-  const src = ASSETS.avatars[member.avatar];
+/**
+ * 아바타 그림. 상태(act)에 맞는 자세 그림이 ASSETS.poses 에 있으면 그걸 쓰고,
+ * 없으면 기본 서 있는 그림으로 돌아간다. 그래서 자세를 한 장씩 채워 넣어도 되고,
+ * 아예 없어도 지금처럼 동작한다. 'event'(일정 중)는 'busy' 자세를 같이 쓴다.
+ */
+export function avatarFigure(member, act) {
+  const key = act === 'event' ? 'busy' : act;
+  const pose = key && POSE_KEYS.includes(key) ? ASSETS.poses?.[member.avatar]?.[key] : null;
+  const src = pose || ASSETS.avatars[member.avatar];
   return src ? `<img src="${src}" alt="" draggable="false">` : dadSVG();
 }
+/** 자세 그림을 따로 둘 수 있는 상태들 — 나머지는 기본 그림을 쓴다 */
+export const POSE_KEYS = ['busy', 'rest', 'out', 'done'];
 export const hasImage = member => !!ASSETS.avatars[member.avatar];
 
 // ───────────────────── 🏠 집 평면도(등각 단면) ─────────────────────
