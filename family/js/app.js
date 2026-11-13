@@ -418,11 +418,6 @@ function memberPanels(m) {
       <div><dt>기분</dt><dd>${mood && !st.stale ? `${mood.e} ${mood.l}` : '<span class="muted">—</span>'}</dd></div>
       <div><dt>기준</dt><dd class="small">${esc(st.basis)}</dd></div>
     </dl>
-    <div class="bgm" title="장식용입니다. 음악은 재생되지 않아요.">
-      <span class="bgm-ico" aria-hidden="true">♫</span>
-      <span class="bgm-t">${m.bgm ? esc(m.bgm) : '오늘의 노래를 정해 보세요'}</span>
-      <span class="bgm-note">장식 · 재생 안 됨</span>
-    </div>
   </section>
   <section class="card o-4"><header class="card-h"><h2>오늘 일정</h2><button type="button" class="btn-p btn-sm" data-action="new-event" data-date="${t}" data-owner="${m.id}">+ 일정</button></header>
     ${today.length ? `<ul class="ev-list">${today.map(i => evRow(i)).join('')}</ul>` : empty('🌷', `오늘 ${esc(m.displayName)}의 일정은 없어요.`)}
@@ -1321,16 +1316,12 @@ function statusDialog(m) {
     <fieldset class="fld chips"><legend>지금 하는 일 <small>(캐릭터 동작에 반영돼요)</small></legend>
       <label><input type="radio" name="activity" value="" ${!s.activity ? 'checked' : ''}><span>고르지 않음</span></label>
       ${M.ACTS.map(o => `<label><input type="radio" name="activity" value="${o.k}" ${o.k === s.activity ? 'checked' : ''}><span>${o.e} ${o.l}</span></label>`).join('')}</fieldset>
-    <div class="fld-row">
-      <label class="fld"><span>미니홈피 노래 제목 <small>(장식)</small></span><input name="bgm" maxlength="40" value="${esc(m.bgm || '')}" placeholder="재생되지 않아요"></label>
-      <label class="fld"><span>공개 범위</span><select name="visibility">${opt(M.VISIBILITY, s.visibility || 'family')}</select></label>
-    </div>`;
+    <label class="fld"><span>공개 범위</span><select name="visibility">${opt(M.VISIBILITY, s.visibility || 'family')}</select></label>`;
   const actions = `${m.status ? '<button type="submit" value="clear" class="btn-g" formnovalidate>상태 비우기</button>' : ''}<span class="sp"></span><button type="submit" value="save" class="btn-p">저장</button>`;
   openDialog({
     title: `${esc(m.displayName)}의 상태`, body, actions, cls: 'dlg-status',
     onSubmit(f, sub) {
       const fd = new FormData(f);
-      m.bgm = String(fd.get('bgm') || '').trim();
       if (sub === 'clear') { m.status = null; persist(); renderAll(); toast('상태를 비웠어요.'); return true; }
       const text = String(fd.get('text') || '').trim();
       const mood = fd.get('mood') || null, activity = fd.get('activity') || null;
@@ -1761,12 +1752,23 @@ function renderView() {
   else if (ui.view === 'plan') renderPlan();
   else if (ui.view === 'admin') renderAdmin();
   else renderSync();
+  setupFolds(); // 어느 경로로 다시 그려도 접기 버튼이 붙도록 여기서 한 번
 }
 // ── 카드 접기 ── 카드 제목 옆 ▾ 로 내용을 접는다. 접은 카드는 이 기기에 기억된다.
 let foldSet = new Set();
 try { foldSet = new Set(JSON.parse(loadPref('folded') || '[]')); } catch { foldSet = new Set(); }
 const foldKey = h2 => h2.textContent.replace(/[0-9]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 40);
+// 휴대폰에서 처음 열 때만, 주로 보는 것 말고는 접어 둔다. 그 뒤로는 사용자가 정한 대로.
+const FOLD_DEFAULTS = ['가족 상태', '다가오는 일정', '🔔 가족 소식', '🧳 여행 · 🛒 살 것'];
+function applyMobileFoldDefaults() {
+  if (loadPref('foldInit') === '1') return;
+  if (!window.matchMedia('(max-width: 760px)').matches) return;
+  savePref('foldInit', '1');
+  FOLD_DEFAULTS.forEach(k => foldSet.add(k));
+  savePref('folded', JSON.stringify([...foldSet]));
+}
 function setupFolds() {
+  applyMobileFoldDefaults();
   $$('.card').forEach(card => {
     if (card.classList.contains('stage-card')) return; // 미니월드 그림은 접지 않는다
     const head = card.querySelector(':scope > .card-h');
@@ -1787,7 +1789,7 @@ function setupFolds() {
     head.appendChild(b);
   });
 }
-function renderAll() { renderHeader(); renderBanner(); renderView(); setupFolds(); }
+function renderAll() { renderHeader(); renderBanner(); renderView(); }
 
 let toastT;
 function toast(msg, kind = '') {
