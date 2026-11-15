@@ -5,10 +5,11 @@
 //  - 다른 기기의 변경은 실시간(Realtime)으로 받아 바로 반영한다.
 //  - 오프라인이면 올리지 못한 변경을 남겨 두었다가 다시 연결되면 올린다.
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=10';
-import { clean, ID_OK } from './model.js?v=9';
+import { clean, ID_OK } from './model.js?v=11';
 
-const COLLECTIONS = ['events', 'issues', 'trips', 'tripComments', 'boardItems', 'places', 'recurrenceRules', 'sources', 'posts', 'guestbook', 'members', 'activity'];
-const SYNCED_KEY = 'family-home:synced';
+const COLLECTIONS = ['events', 'issues', 'trips', 'tripComments', 'boardItems', 'places', 'recurrenceRules', 'sources', 'posts', 'postComments', 'postReactions', 'guestbook', 'members', 'activity'];
+const SYNCED_KEY = 'family-home:synced2';
+const OLD_SYNCED_KEY = 'family-home:synced';
 const PULL_KEY = 'family-home:pulledAt';
 const FAMILY_KEY = 'family-home:family';
 const isDemo = x => x && x.sourceId === 'src_demo';
@@ -16,6 +17,56 @@ const isDemo = x => x && x.sourceId === 'src_demo';
 export const syncConfigured = () => !!(SUPABASE_URL && SUPABASE_KEY);
 
 function readJSON(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }
+
+/**
+ * 키 순서에 상관없는 '정규' JSON.
+ *
+ * 서버(Postgres jsonb)는 객체의 키 순서를 제 나름대로 다시 정렬해 돌려준다.
+ * 그래서 보통 JSON.stringify 로 비교하면 내용이 똑같아도 글자가 달라지고,
+ * '이 기기에서 아직 안 올린 변경'으로 잘못 읽힌다. 그 상태가 되면
+ *   ① 가족이 바꾼 값을 영원히 안 받고(건너뛰고)
+ *   ② 내 낡은 값을 계속 서버에 덮어쓴다.
+ * 일정·글처럼 서버 값으로 통째로 바꿔 끼우는 항목은 우연히 넘어갔지만,
+ * family(가족 이름·로비·칭찬 스티커)처럼 칸칸이 합치는 항목은 못 넘어갔다.
+ * 칭찬 스티커가 다른 기기에 안 보인 게 이것 때문이다.
+ */
+function stable(v) {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v) ?? 'null';
+  if (Array.isArray(v)) return `[${v.map(stable).join(',')}]`;
+  return `{${Object.keys(v).sort().map(k => `${JSON.stringify(k)}:${stable(v[k])}`).join(',')}}`;
+}
+
+// 비교 방식이 바뀌었으니 예전 기록은 버린다. 비운 채로 다시 연결하면
+// '서버에 있는 건 서버를 따르고, 이 기기에만 있는 건 올린다'가 되어 안전하다.
+try {
+  if (localStorage.getItem(OLD_SYNCED_KEY) !== null) {
+    localStorage.removeItem(OLD_SYNCED_KEY);
+    localStorage.removeItem(PULL_KEY);   // 지운 기록 대신 서버를 처음부터 다시 읽는다
+  }
+} catch { /* 저장소를 못 쓰는 브라우저 */ }
+
+/**
+ * 칭찬 스티커와 받은 보상은 쌓이기만 하는 목록이다.
+ * 서버 값으로 그냥 갈아 끼우면, 낡은 기기가 올린 빈 목록이 방금 준 스티커를 지운다.
+ * 그래서 양쪽을 합친다 — 누가 늦게 올렸든 스티커는 사라지지 않는다.
+ */
+function mergeRewards(mine, theirs) {
+  if (!theirs || typeof theirs !== 'object' || Array.isArray(theirs)) return mine;
+  const union = (a, b, cap) => {
+    const seen = new Map();
+    for (const x of [...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])]) {
+      if (x && typeof x === 'object' && typeof x.id === 'string' && !seen.has(x.id)) seen.set(x.id, x);
+    }
+    return [...seen.values()].sort((x, y) => String(x.at || '').localeCompare(String(y.at || ''))).slice(-cap);
+  };
+  return {
+    // 목표 개수와 보상 이름은 하나뿐인 값이라 마지막에 정한 쪽을 따른다
+    goal: Number.isFinite(+theirs.goal) && +theirs.goal > 0 ? Math.min(100, Math.round(+theirs.goal)) : (mine?.goal ?? 10),
+    prize: typeof theirs.prize === 'string' ? theirs.prize : (mine?.prize ?? ''),
+    stickers: union(mine?.stickers, theirs.stickers, 200),
+    done: union(mine?.done, theirs.done, 50),
+  };
+}
 function writeJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* 저장 공간 부족 등 */ } }
 
 /** 상태 → { 'kind:id': {kind,id,data} } (예시 데이터·기기 전용 값 제외) */
@@ -68,7 +119,7 @@ export function createSync({ getState, onRemote, onStatus, onPeer }) {
     const snap = snapshot(getState());
     const rows = [];
     for (const [k, v] of Object.entries(snap)) {
-      const j = JSON.stringify(v.data);
+      const j = stable(v.data);
       if (synced[k] !== j) rows.push({ key: k, row: { family_id: family.id, kind: v.kind, id: v.id, data: v.data, deleted: false }, j });
     }
     for (const k of Object.keys(synced)) {
@@ -128,13 +179,21 @@ export function createSync({ getState, onRemote, onStatus, onPeer }) {
       }
       const key = `${r.kind}:${r.id}`;
       if (!force && local) {
-        const lj = local[key] ? JSON.stringify(local[key].data) : null;
+        const lj = local[key] ? stable(local[key].data) : null;
         const dirty = synced[key] !== undefined ? lj !== synced[key] : false;
         if (dirty) continue;
       }
-      const j = r.deleted ? null : JSON.stringify(r.data);
+      const j = r.deleted ? null : stable(r.data);
       synced[key] = j;
-      if (r.kind === 'family') { if (r.data) { S.family.lobbyRoom = r.data.lobbyRoom || S.family.lobbyRoom; S.family.name = r.data.name || S.family.name; if (r.data.rewards) S.family.rewards = r.data.rewards; changed = true; } continue; }
+      if (r.kind === 'family') {
+        if (r.data) {
+          S.family.lobbyRoom = r.data.lobbyRoom || S.family.lobbyRoom;
+          S.family.name = r.data.name || S.family.name;
+          if (r.data.rewards) S.family.rewards = mergeRewards(S.family.rewards, r.data.rewards);
+          changed = true;
+        }
+        continue;
+      }
       if (r.kind === 'sync') { if (r.data) { S.sync.apple = { ...S.sync.apple, ...r.data }; changed = true; } continue; }
       if (!COLLECTIONS.includes(r.kind)) continue;
       S[r.kind] ||= [];

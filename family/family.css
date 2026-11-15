@@ -1090,3 +1090,28 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
   .inbox-th { width: 54px; height: 54px; }
   .inbox-b { grid-column: 1 / -1; grid-auto-flow: column; justify-content: end; gap: 6px; }
 }
+
+/* ───────── 💬 글 댓글 · 공감 ───────── */
+.pc-wrap { margin-top: 10px; padding-top: 10px; border-top: 2px dashed var(--line); display: grid; gap: 8px; }
+.rx-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.rx { display: inline-flex; align-items: center; gap: 4px; min-height: 34px; padding: 4px 10px; border-radius: 99px;
+  border: 2px solid var(--line); background: #fff; color: var(--ink-2); font-size: 14px; cursor: pointer;
+  transition: transform .1s ease, background .12s ease, border-color .12s ease; }
+.rx:hover { background: var(--pink-xl); }
+.rx:active { transform: scale(.92); }
+.rx.on { background: var(--pink-l); border-color: var(--pink-d); color: var(--pink-d); }
+.rx-e { font-size: 17px; line-height: 1; }
+.rx b { font-family: var(--font-d); font-size: 13.5px; font-weight: 400; }
+.pc-list { margin: 0; }
+.pc-toggle { justify-self: start; border: 0; background: none; padding: 5px 8px; border-radius: 10px;
+  color: var(--ink-2); font-size: 14px; cursor: pointer; }
+.pc-toggle:hover { background: var(--pink-xl); }
+.pc-toggle.on { color: var(--pink-d); }
+.pc-form { margin: 0; }
+@media (max-width: 520px) {
+  /* 손가락으로 누르는 화면에서는 단추를 조금 키운다 */
+  .rx { min-height: 40px; padding: 4px 12px; }
+  .pc-toggle { min-height: 40px; }
+  .pc-list li { grid-template-columns: auto 1fr; }
+  .pc-list .post-btns { grid-column: 2; justify-self: end; }
+}

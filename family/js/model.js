@@ -57,6 +57,14 @@ export const validItems = list => (Array.isArray(list) ? list.filter(x => x && t
 
 export const newId = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 
+/** 글에 남기는 공감 — 한 사람이 글마다 하나만 고른다. */
+export const REACTIONS = [
+  { k: 'heart', e: '❤️', l: '사랑해요' },
+  { k: 'up', e: '👍', l: '좋아요' },
+  { k: 'check', e: '✅', l: '봤어요' },
+  { k: 'cry', e: '😢', l: '속상해요' },
+];
+
 export const MOODS = [
   { k: 'happy', e: '😊', l: '좋아요' },
   { k: 'excited', e: '🤩', l: '신나요' },
@@ -190,6 +198,10 @@ function baseState() {
     trips: [],      // 여행 계획: { id, title, startDate, endDate, destination, memberIds, plan:[{id,date,time,title,memo}], eventId, ... }
     activity: [],   // 가족 소식(변경 내역): { id, at, by, kind, targetId, text }
     tripComments: [], // 여행 댓글: { id, tripId, authorId, text, createdAt, visibility }
+    postComments: [], // 글 댓글: { id, postId, authorId, text, createdAt, visibility }
+    // 글 공감: { id:'rx_<글id>.<사람id>', postId, memberId, kind, at }
+    // 한 사람이 글마다 하나만 — id 를 사람·글로 정해 두면 두 기기에서 동시에 눌러도 한 줄로 합쳐진다.
+    postReactions: [],
     boardItems: [], // 살 것·준비할 것: { id, title, kind:'buy'|'prep', qty, ownerId, tripId, dueDate, done, ... }
     candidates: [], // 카톡 붙여넣기 등에서 만든 '일정 후보'(확인 전) 자리. 아직 생성 기능 없음.
     sync: {
@@ -284,9 +296,18 @@ export function demoState(T) {
   bi({ title: '우유', qty: '2팩', ownerId: 'm_dad' });
   bi({ title: '기저귀 · 물티슈', qty: '각 1팩', ownerId: '' });
 
+  const po1 = newId('po'), po2 = newId('po');
   S.posts.push(
-    { id: newId('po'), memberId: 'm_dad', text: '연구실 창밖 은행잎이 노랗게 물들었어요.', photo: null, createdAt: now, createdBy: 'm_dad', visibility: 'family', sourceId: 'src_demo' },
-    { id: newId('po'), memberId: 'm_kid', text: '오늘 그린 그림: 우리 집 무지개 🌈', photo: null, createdAt: now, createdBy: 'm_mom', visibility: 'family', sourceId: 'src_demo' },
+    { id: po1, memberId: 'm_dad', text: '연구실 창밖 은행잎이 노랗게 물들었어요.', photo: null, createdAt: now, createdBy: 'm_dad', visibility: 'family', sourceId: 'src_demo' },
+    { id: po2, memberId: 'm_kid', text: '오늘 그린 그림: 우리 집 무지개 🌈', photo: null, createdAt: now, createdBy: 'm_mom', visibility: 'family', sourceId: 'src_demo' },
+  );
+  S.postComments.push(
+    { id: newId('pc'), postId: po2, authorId: 'm_dad', text: '무지개 색이 정말 예쁘다! 냉장고에 붙여 둘까? 🌈', createdAt: now, visibility: 'family', sourceId: 'src_demo' },
+  );
+  S.postReactions.push(
+    { id: `rx_${po2}.m_dad`, postId: po2, memberId: 'm_dad', kind: 'heart', at: now, sourceId: 'src_demo' },
+    { id: `rx_${po2}.m_mom`, postId: po2, memberId: 'm_mom', kind: 'up', at: now, sourceId: 'src_demo' },
+    { id: `rx_${po1}.m_mom`, postId: po1, memberId: 'm_mom', kind: 'check', at: now, sourceId: 'src_demo' },
   );
   S.guestbook.push(
     { id: newId('gb'), roomOwnerId: 'm_kid', authorId: 'm_dad', text: '콩이 오늘도 씩씩하게 화이팅!', createdAt: now, visibility: 'family', sourceId: 'src_demo' },
@@ -306,6 +327,8 @@ export function stripDemo(S) {
   S.trips = (S.trips || []).filter(t => !isDemo(t));
   S.boardItems = (S.boardItems || []).filter(b => !isDemo(b));
   S.tripComments = (S.tripComments || []).filter(c => !isDemo(c) && S.trips.some(t => t.id === c.tripId));
+  S.postComments = (S.postComments || []).filter(c => !isDemo(c) && S.posts.some(x => x.id === c.postId));
+  S.postReactions = (S.postReactions || []).filter(c => !isDemo(c) && S.posts.some(x => x.id === c.postId));
   S.guestbook = S.guestbook.filter(g => !isDemo(g));
   for (const m of S.members) if (m.status && m.status.demo) m.status = null;
   const usedRules = new Set(S.events.map(e => e.recurrenceRuleId).filter(Boolean));
@@ -344,6 +367,12 @@ export function migrate(S) {
     if (x.tripId === undefined) x.tripId = null;
     if (typeof x.filed !== 'boolean') x.filed = true;
   }
+
+  // 글 댓글·공감. 글이 지워졌으면 딸린 것도 함께 버린다(동기화가 지움으로 올려 준다).
+  const postIds = new Set(S.posts.map(x => x.id));
+  S.postComments = validItems(S.postComments).filter(c => postIds.has(c.postId) && typeof c.text === 'string');
+  S.postReactions = validItems(S.postReactions)
+    .filter(x => postIds.has(x.postId) && REACTIONS.some(r => r.k === x.kind) && typeof x.memberId === 'string');
 
   // 칭찬 스티커 판이 없던 예전 데이터에 빈 판을 만들어 준다.
   const rw = S.family.rewards && typeof S.family.rewards === 'object' ? S.family.rewards : {};

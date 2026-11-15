@@ -1,11 +1,11 @@
 // 우리집 미니월드 — 가족 캘린더 + 층별 미니룸
 import * as D from './dates.js?v=6';
-import * as M from './model.js?v=10';
+import * as M from './model.js?v=11';
 import * as L from './lunar.js?v=1';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=7';
 import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS, WALL_SPOTS } from './scene.js?v=16';
-import { createSync, syncConfigured } from './sync.js?v=17';
+import { createSync, syncConfigured } from './sync.js?v=18';
 import { parseKakao } from './kakao.js?v=4';
 import * as N from './notify.js?v=2';
 import { APP_URL, PUSH_PUBLIC_KEY } from './config.js?v=12';
@@ -57,6 +57,7 @@ const ui = {
   elevating: false,
   celebrate: null,
   lastMinute: '',
+  openComments: new Set(),   // 댓글 쓰는 칸을 펼쳐 둔 글
 };
 if (![0, 1, 2, 3, 4].includes(ui.floor)) ui.floor = 1; // 0 = 집 전체(1~4층 한 화면)
 if (!S.members.some(m => m.id === ui.viewer)) ui.viewer = S.members[0].id;
@@ -499,6 +500,78 @@ function postPhotoHTML(post) {
   return `<button type="button" class="post-photo" data-action="view-photo" data-id="${post.id}"
     aria-label="${esc(who)}의 사진 크게 보기"><img src="${esc(post.photo)}" alt="${esc(who)}의 사진" draggable="false"></button>`;
 }
+// ───────────────────── 💬 글 댓글 · 공감 ─────────────────────
+const commentsOn = id => (S.postComments || []).filter(c => c.postId === id && canSee(c))
+  .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+const reactionsOn = id => (S.postReactions || []).filter(x => x.postId === id);
+const myReaction = id => (S.postReactions || []).find(x => x.postId === id && x.memberId === ui.viewer);
+
+/** 공감 단추 줄 — 한 사람이 글마다 하나만. 같은 걸 다시 누르면 취소된다. */
+function reactionRowHTML(p) {
+  const all = reactionsOn(p.id);
+  const mine = myReaction(p.id);
+  return `<div class="rx-row" role="group" aria-label="이 글에 공감하기">${M.REACTIONS.map(r => {
+    const who = all.filter(x => x.kind === r.k);
+    const on = !!mine && mine.kind === r.k;
+    const names = who.map(x => memberName(x.memberId)).join('·');
+    return `<button type="button" class="rx${on ? ' on' : ''}" data-action="react" data-id="${p.id}" data-kind="${r.k}"
+      aria-pressed="${on}" aria-label="${esc(r.l)}${who.length ? ` ${who.length}명` : ''}" title="${esc(r.l)}${names ? ` · ${esc(names)}` : ''}"
+      ><span class="rx-e" aria-hidden="true">${r.e}</span>${who.length ? `<b>${who.length}</b>` : ''}</button>`;
+  }).join('')}</div>`;
+}
+
+/** 글 아래 붙는 공감 줄 + 댓글 목록 + 쓰는 칸 */
+function postFootHTML(p) {
+  const list = commentsOn(p.id);
+  const open = ui.openComments.has(p.id);
+  const one = c => `<li style="--c:${member(c.authorId)?.color || '#FF8FB8'}">${face(member(c.authorId))}<div><p><b>${esc(memberName(c.authorId))}</b> ${linkify(c.text)}</p><small>${D.fmtStamp(c.createdAt)}${c.editedAt ? ' · 수정됨' : ''}</small></div>${c.authorId === ui.viewer ? `<span class="post-btns"><button type="button" class="btn-x" data-action="edit-pcomment" data-id="${c.id}">고치기</button><button type="button" class="btn-x" data-action="del-pcomment" data-id="${c.id}" aria-label="댓글 지우기">✕</button></span>` : ''}</li>`;
+  return `<div class="pc-wrap">
+    ${reactionRowHTML(p)}
+    ${list.length ? `<ul class="gb-list pc-list">${list.map(one).join('')}</ul>` : ''}
+    <button type="button" class="pc-toggle${open ? ' on' : ''}" data-action="toggle-comments" data-id="${p.id}" aria-expanded="${open}">💬 ${list.length ? `댓글 ${list.length}개` : '댓글 달기'}</button>
+    ${open ? `<form class="gb-form pc-form" data-submit="post-comment" data-id="${p.id}">
+      <span class="gb-me">${face(member(ui.viewer))}</span>
+      <input name="text" maxlength="200" required placeholder="${esc(memberName(ui.viewer))}(으)로 댓글 남기기" aria-label="댓글">
+      <button class="btn-p btn-sm">남기기</button>
+    </form>` : ''}
+  </div>`;
+}
+
+function toggleReaction(postId, kind) {
+  const p = S.posts.find(x => x.id === postId);
+  if (!p || !canSee(p) || !M.REACTIONS.some(r => r.k === kind)) return;
+  S.postReactions ||= [];
+  const i = S.postReactions.findIndex(x => x.postId === postId && x.memberId === ui.viewer);
+  const at = new Date().toISOString();
+  if (i >= 0 && S.postReactions[i].kind === kind) S.postReactions.splice(i, 1);
+  else if (i >= 0) S.postReactions[i] = { ...S.postReactions[i], kind, at };
+  // id 를 글·사람으로 정해 둔다 — 두 기기에서 같이 눌러도 한 줄로 합쳐지게.
+  else S.postReactions.push({ id: `rx_${postId}.${ui.viewer}`, postId, memberId: ui.viewer, kind, at, sourceId: 'src_manual' });
+  persist(); renderAll();
+}
+
+function editPostComment(id) {
+  const c = (S.postComments || []).find(x => x.id === id);
+  if (!c) return;
+  openDialog({
+    title: '댓글 고치기',
+    body: `<label class="fld"><span>댓글</span><textarea name="text" rows="3" maxlength="200" required>${esc(c.text)}</textarea></label>
+      <p class="muted small">🔗 http 로 시작하는 주소를 적으면 눌러서 열 수 있는 링크가 돼요.</p>`,
+    actions: '<span class="sp"></span><button type="submit" value="save" class="btn-p">저장</button>',
+    onMount(f) { f.text.focus(); f.text.setSelectionRange(f.text.value.length, f.text.value.length); },
+    onSubmit(f) {
+      const text = f.text.value.trim();
+      if (!text) return '내용을 적어 주세요.';
+      const before = { text: c.text, editedAt: c.editedAt };
+      c.text = text;
+      c.editedAt = new Date().toISOString();
+      if (!persist()) { Object.assign(c, before); renderAll(); return '저장하지 못했어요.'; }
+      renderAll(); toast('고쳤어요.');
+      return true;
+    },
+  });
+}
+
 function viewPhoto(id) {
   const post = S.posts.find(x => x.id === id);
   if (!post?.photo || !canSee(post)) return;
@@ -596,6 +669,7 @@ function allPostsCard() {
         ${postPhotoHTML(p)}
         <p>${linkify(p.text)}</p>
         <footer><span>${face(member(p.memberId))} <button type="button" class="link-ev" data-action="go-floor" data-floor="${member(p.memberId)?.floor || 1}">${esc(memberName(p.memberId))}의 방</button> · <b>${esc(D.fmtDate(p.at || (p.createdAt || '').slice(0, 10)))}</b>${originLink(p)} · ${esc(memberName(p.createdBy))} 씀${p.editedAt ? ' · 수정됨' : ''}${p.visibility === 'private' ? ' · 🔒' : ''}</span>${srcTag(p)}<span class="post-btns"><button type="button" class="btn-x" data-action="edit-post" data-id="${p.id}">고치기</button><button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">삭제</button></span></footer>
+        ${postFootHTML(p)}
       </li>`).join('')}</ul>` : empty('📷', `아직 남긴 글이나 사진이 없어요.`, `<button type="button" class="btn-s" data-action="new-post" data-id="${ui.viewer}">${esc(me?.displayName || '나')}의 방에 글 쓰기</button>`)}
   </section>`;
 }
@@ -745,6 +819,7 @@ function memberPanels(m) {
         ${postPhotoHTML(p)}
         <p>${linkify(p.text)}</p>
         <footer><span>${D.fmtStamp(p.createdAt)} · ${esc(memberName(p.createdBy))} 씀${p.editedAt ? ' · 수정됨' : ''}${p.visibility === 'private' ? ' · 🔒' : ''}</span>${srcTag(p)}<span class="post-btns"><button type="button" class="btn-x" data-action="edit-post" data-id="${p.id}">고치기</button><button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">삭제</button></span></footer>
+        ${postFootHTML(p)}
       </li>`).join('')}</ul>` : empty('📷', '아직 남긴 글이나 사진이 없어요.')}
   </section>
   <section class="card guest o-8"><header class="card-h"><h2>방명록</h2><span class="hint">${gb.length}개</span></header>
@@ -1043,7 +1118,7 @@ async function morningBrief() {
   for (const i of iss) { const n = issueNotice(i, t); await N.show(n.title, n.body, { key: n.key }); }
 }
 
-const PEER_LABEL = { events: '일정', issues: '준비할 일', trips: '여행 계획', tripComments: '여행 메모', boardItems: '살 것', posts: '가족 글', guestbook: '방명록', places: '장소' };
+const PEER_LABEL = { events: '일정', issues: '준비할 일', trips: '여행 계획', tripComments: '여행 메모', boardItems: '살 것', posts: '가족 글', postComments: '글 댓글', guestbook: '방명록', places: '장소' };
 /** 가족이 뭔가 올리거나 바꿨을 때 */
 function peerNotify(row) {
   if (!peerOn() || !N.granted()) return;
@@ -2335,7 +2410,28 @@ const ACTIONS = {
   'clear-activity': () => { if (!confirm('가족 소식을 모두 지울까요?\n일정이나 준비할 일은 지워지지 않아요.')) return; S.activity = []; persist(); renderAll(); toast('가족 소식을 모두 지웠어요.'); },
   'edit-post': b => { const p = S.posts.find(x => x.id === b.dataset.id); if (p) postDialog(member(p.memberId) || member(ui.viewer), p); },
   'edit-tcomment': b => editTripComment(b.dataset.id),
-  'del-post': b => { if (confirm('이 글을 삭제할까요?')) { S.posts = S.posts.filter(p => p.id !== b.dataset.id); persist(); renderAll(); } },
+  'react': b => toggleReaction(b.dataset.id, b.dataset.kind),
+  'edit-pcomment': b => editPostComment(b.dataset.id),
+  'del-pcomment': b => {
+    if (!confirm('이 댓글을 지울까요?')) return;
+    S.postComments = (S.postComments || []).filter(c => c.id !== b.dataset.id);
+    persist(); renderAll();
+  },
+  'toggle-comments': b => {
+    const id = b.dataset.id;
+    if (ui.openComments.has(id)) ui.openComments.delete(id); else ui.openComments.add(id);
+    renderAll();
+    if (ui.openComments.has(id)) $$('.pc-form').find(f => f.dataset.id === id)?.text?.focus();
+  },
+  'del-post': b => {
+    if (!confirm('이 글을 삭제할까요?\n\n달린 댓글과 공감도 함께 지워져요.')) return;
+    const id = b.dataset.id;
+    S.posts = S.posts.filter(p => p.id !== id);
+    S.postComments = (S.postComments || []).filter(c => c.postId !== id);
+    S.postReactions = (S.postReactions || []).filter(x => x.postId !== id);
+    ui.openComments.delete(id);
+    persist(); renderAll();
+  },
   'del-gb': b => { if (confirm('이 방명록을 삭제할까요?')) { S.guestbook = S.guestbook.filter(g => g.id !== b.dataset.id); persist(); renderAll(); } },
   decorate: b => decorateDialog(b.dataset.id),
   'new-trip': () => { if ($('#dlg').open) $('#dlg').close(); tripDialog(null); },
@@ -2545,6 +2641,17 @@ document.addEventListener('submit', e => {
     if (!text) return;
     S.tripComments ||= [];
     S.tripComments.push({ id: M.newId('tc'), tripId: f.dataset.id, authorId: ui.viewer, text, createdAt: new Date().toISOString(), visibility: 'family', sourceId: 'src_manual' });
+    persist(); renderAll(); toast('댓글을 남겼어요 💬');
+    return;
+  }
+  if (f.dataset.submit === 'post-comment') {
+    e.preventDefault();
+    const text = f.text.value.trim();
+    if (!text) return;
+    const post = S.posts.find(x => x.id === f.dataset.id);
+    if (!post) return;
+    S.postComments ||= [];
+    S.postComments.push({ id: M.newId('pc'), postId: post.id, authorId: ui.viewer, text, createdAt: new Date().toISOString(), visibility: 'family', sourceId: 'src_manual' });
     persist(); renderAll(); toast('댓글을 남겼어요 💬');
     return;
   }
