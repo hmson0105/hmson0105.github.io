@@ -1,12 +1,12 @@
 // 우리집 미니월드 — 가족 캘린더 + 층별 미니룸
 import * as D from './dates.js?v=6';
-import * as M from './model.js?v=14';
+import * as M from './model.js?v=15';
 import * as PH from './photos.js?v=1';
 import * as L from './lunar.js?v=1';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=7';
 import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS, WALL_SPOTS } from './scene.js?v=16';
-import { createSync, syncConfigured } from './sync.js?v=21';
+import { createSync, syncConfigured } from './sync.js?v=22';
 import { parseKakao } from './kakao.js?v=4';
 import * as N from './notify.js?v=2';
 import { APP_URL, PUSH_PUBLIC_KEY } from './config.js?v=12';
@@ -584,6 +584,78 @@ async function movePhotosOut() {
     if (moved) { persist(); renderAll(); }
   } finally { movingPhotos = false; }
 }
+// ───────────────────── 🔗 이어 둔 기록 ─────────────────────
+
+/** id 하나로 그 기록을 찾아, 무엇이고 뭐라고 부를지 돌려준다. */
+function findRecord(id) {
+  const p = S.posts.find(x => x.id === id);
+  if (p) return { icon: '📷', what: '글', title: p.text || '사진', date: p.at,
+    go: () => { if (p.photoId || p.photo) viewPhoto(p.id); else goFloor(member(p.memberId)?.floor || 1); } };
+  const t = (S.trips || []).find(x => x.id === id);
+  if (t) return { icon: '🧳', what: '여행', title: t.title, date: t.startDate, go: () => { setView('plan'); renderAll(); } };
+  const e = S.events.find(x => x.id === id);
+  if (e) return { icon: '📅', what: '일정', title: e.title, date: e.startDate, go: () => openEvent(e.id, e.startDate) };
+  const i = S.issues.find(x => x.id === id);
+  if (i) return { icon: '📝', what: '준비할 일', title: i.title, date: i.date, go: null };
+  return null;
+}
+
+/** 이 기록에 이어 둔 것들. 어느 쪽에 적혔든 상대를 돌려준다. */
+function linksOf(id) {
+  return (S.links || []).map(l => {
+    if (l.from === id) return { l, other: l.to, rel: M.RELS.find(r => r.k === l.rel), back: false };
+    if (l.to === id) return { l, other: l.from, rel: M.RELS.find(r => r.k === l.rel), back: true };
+    return null;
+  }).filter(x => x && x.rel);
+}
+
+/** 글 아래에 붙는 '이어진 기록' 줄. 없으면 아무것도 안 내놓는다. */
+function linkChipsHTML(id) {
+  const rows = linksOf(id).map(x => ({ ...x, rec: findRecord(x.other) })).filter(x => x.rec);
+  if (!rows.length) return '';
+  return `<div class="lk-row">${rows.map(x => `<span class="lk">
+    <button type="button" class="lk-go" data-action="link-go" data-id="${esc(x.other)}" title="${esc(x.back ? x.rel.rl : x.rel.l)}">${x.rec.icon} ${esc(x.rec.title).slice(0, 40)}</button>
+    <button type="button" class="lk-x" data-action="link-del" data-id="${esc(x.l.id)}" aria-label="이 연결 풀기">✕</button>
+  </span>`).join('')}</div>`;
+}
+
+/** 무엇과 이어 붙일지 고르는 창. 관계는 고른 것에서 저절로 정해진다. */
+function linkDialog(post) {
+  const dated = (a, b) => String(b.d || '').localeCompare(String(a.d || ''));
+  const already = new Set(linksOf(post.id).map(x => x.other));
+  const cand = [
+    ...(S.trips || []).filter(canSee).map(t => ({ id: t.id, g: '🧳 여행', t: t.title, d: t.startDate, rel: 'PART_OF' })),
+    ...S.events.filter(canSee).sort((a, b) => dated({ d: a.startDate }, { d: b.startDate })).slice(0, 15)
+      .map(e => ({ id: e.id, g: '📅 일정', t: e.title, d: e.startDate, rel: 'ABOUT' })),
+    ...S.posts.filter(x => x.id !== post.id && canSee(x) && x.filed !== false).sort((a, b) => dated({ d: a.at }, { d: b.at })).slice(0, 15)
+      .map(x => ({ id: x.id, g: '📷 다른 글', t: x.text || '사진', d: x.at, rel: 'FOLLOWS' })),
+  ].filter(c => !already.has(c.id));
+  if (!cand.length) { toast('이어 붙일 것이 아직 없어요.'); return; }
+  const groups = [...new Set(cand.map(c => c.g))];
+  const body = `<p class="muted small">고른 것에 따라 어떻게 이어졌는지는 저절로 정해져요.</p>
+    ${groups.map(g => `<fieldset class="fld lk-pick"><legend>${g}</legend>
+      ${cand.filter(c => c.g === g).map((c, i) => `<label><input type="radio" name="to" value="${esc(c.id)}.${c.rel}" ${i === 0 && g === groups[0] ? 'checked' : ''}><span>${esc(String(c.t).slice(0, 40))}<small> · ${esc(c.d ? D.fmtDate(c.d) : '')}</small></span></label>`).join('')}
+    </fieldset>`).join('')}`;
+  openDialog({
+    title: '🔗 이어 붙이기', body,
+    actions: '<span class="sp"></span><button type="submit" value="save" class="btn-p">잇기</button>',
+    onSubmit(f) {
+      const v = String(new FormData(f).get('to') || '');
+      const at = v.lastIndexOf('.');
+      const to = v.slice(0, at), rel = v.slice(at + 1);
+      if (!to || !M.RELS.some(r => r.k === rel) || !findRecord(to)) return '이어 붙일 것을 골라 주세요.';
+      S.links ||= [];
+      const id = M.linkId(post.id, rel, to);
+      if (!S.links.some(l => l.id === id)) {
+        S.links.push({ id, from: post.id, rel, to, at: new Date().toISOString(), by: ui.viewer, sourceId: 'src_manual' });
+      }
+      if (!persist()) { S.links = S.links.filter(l => l.id !== id); return '저장하지 못했어요.'; }
+      renderAll(); toast('이어 붙였어요 🔗');
+      return true;
+    },
+  });
+}
+
 // ───────────────────── 💬 글 댓글 · 공감 ─────────────────────
 const commentsOn = id => (S.postComments || []).filter(c => c.postId === id && canSee(c))
   .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
@@ -831,8 +903,9 @@ function allPostsCard() {
         ${sameWho ? '' : `<p class="chat-who"><button type="button" class="link-ev" data-action="go-floor" data-floor="${m?.floor || 1}">${esc(memberName(p.memberId))}</button>${p.createdBy && p.createdBy !== p.memberId ? `<small> · ${esc(memberName(p.createdBy))} 씀</small>` : ''}${srcTag(p)}</p>`}
         <div class="bubble">${postPhotoHTML(p)}${p.text ? `<p>${linkify(p.text)}</p>` : ''}</div>
         <div class="chat-meta"><time>${esc(stampTime(p.createdAt))}</time>${postedOn && postedOn !== day ? `<span>${esc(D.fmtDate(postedOn, { wd: false }))}에 올림</span>` : ''}${p.editedAt ? '<span>수정됨</span>' : ''}${p.visibility === 'private' ? '<span>🔒</span>' : ''}${traceHTML(p)}
-          ${reactionRowHTML(p, true)}${commentToggleHTML(p, true)}
+          ${reactionRowHTML(p, true)}${commentToggleHTML(p, true)}<button type="button" class="pc-toggle" data-action="link-add" data-id="${p.id}" aria-label="이어 붙이기">🔗</button>
           <span class="post-btns"><button type="button" class="btn-x" data-action="edit-post" data-id="${p.id}">고치기</button><button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">✕</button></span></div>
+        ${linkChipsHTML(p.id)}
         ${commentsOn(p.id).length || ui.openComments.has(p.id)
           ? `<div class="chat-thread">${postCommentsHTML(p, true)}</div>` : ''}
       </div>
@@ -1641,7 +1714,7 @@ function renderAdmin() {
     return;
   }
   if (connected() && !ui.admin.accounts && !ui.admin.accountsErr) loadAccounts();
-  const counts = [['일정', S.events], ['이슈', S.issues], ['여행', S.trips || []], ['여행 댓글', S.tripComments || []], ['살 것·준비할 것', S.boardItems || []], ['글', S.posts], ['방명록', S.guestbook], ['칭찬 스티커', S.praise || []], ['가족 소식', S.activity || []]]
+  const counts = [['일정', S.events], ['이슈', S.issues], ['여행', S.trips || []], ['여행 댓글', S.tripComments || []], ['살 것·준비할 것', S.boardItems || []], ['글', S.posts], ['방명록', S.guestbook], ['칭찬 스티커', S.praise || []], ['이어 둔 줄', S.links || []], ['가족 소식', S.activity || []]]
     .map(([l, a]) => [l, a.filter(x => x.sourceId !== 'src_demo').length, a.filter(x => x.sourceId === 'src_demo').length]);
   const evs = S.events.filter(e => e.sourceId !== 'src_demo').sort((a, b) => a.startDate.localeCompare(b.startDate));
   const today = D.today();
@@ -2620,6 +2693,13 @@ const ACTIONS = {
     persist(); renderAll();
   },
   'posts-more': () => { ui.postsShown += 12; renderAll(); },
+  'link-add': b => { const p = S.posts.find(x => x.id === b.dataset.id); if (p) linkDialog(p); },
+  'link-go': b => { findRecord(b.dataset.id)?.go?.(); },
+  'link-del': b => {
+    if (!confirm('이 연결을 풀까요?\n\n기록 자체는 지워지지 않아요.')) return;
+    S.links = (S.links || []).filter(l => l.id !== b.dataset.id);
+    persist(); renderAll(); toast('연결을 풀었어요.');
+  },
   'rx-open': b => {
     const id = b.dataset.id;
     if (ui.openRx.has(id)) ui.openRx.delete(id); else ui.openRx.add(id);
@@ -2639,6 +2719,7 @@ const ACTIONS = {
     S.posts = S.posts.filter(p => p.id !== id);
     S.postComments = (S.postComments || []).filter(c => c.postId !== id);
     S.postReactions = (S.postReactions || []).filter(x => x.postId !== id);
+    S.links = (S.links || []).filter(l => l.from !== id && l.to !== id);
     ui.openComments.delete(id);
     persist(); renderAll();
   },

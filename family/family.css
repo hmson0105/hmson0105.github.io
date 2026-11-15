@@ -1216,3 +1216,17 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 .chat-meta .trace { font-size: 11px; }
 .post footer .trace { font-size: 12px; }
 .inbox-row select[data-change="inbox-where"] { min-width: 0; }
+
+/* 🔗 이어 둔 기록 */
+.lk-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 3px; }
+.lk { display: inline-flex; align-items: center; border: 2px solid var(--lav); border-radius: 99px;
+  background: #fff; overflow: hidden; max-width: 100%; }
+.lk-go { border: 0; background: none; padding: 3px 4px 3px 10px; color: var(--lav-d); font-size: 12.5px;
+  cursor: pointer; max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lk-go:hover { text-decoration: underline; }
+.lk-x { border: 0; background: none; padding: 3px 8px 3px 2px; color: var(--ink-3); font-size: 11px; cursor: pointer; }
+.lk-x:hover { color: var(--err); }
+.lk-pick label { display: flex; align-items: center; gap: 8px; padding: 6px 2px; cursor: pointer; }
+.lk-pick label span { font-size: 15px; }
+.lk-pick label small { color: var(--ink-3); }
+.lk-pick input { width: 18px; height: 18px; accent-color: var(--pink); flex: 0 0 auto; }

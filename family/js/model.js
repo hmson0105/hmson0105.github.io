@@ -72,6 +72,27 @@ export function absorb(list, incoming) {
 export const newId = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 
 /**
+ * 기록과 기록을 잇는 관계.
+ *
+ * 가족의 기록은 따로 떨어져 있을 때보다 이어졌을 때 쓸모가 있다 —
+ * 이 글은 그 여행의 하루였고, 이 준비물은 저 일정 때문이었고,
+ * 올해 생일 사진은 작년 생일 사진에 이어진다.
+ *
+ * 표를 서른 개로 쪼개는 대신 '관계도 기록 한 줄'로 둔다. 동기화 장치가 그대로 쓰인다.
+ * id 를 from·관계·to 로 못 박아서, 두 기기가 같은 연결을 동시에 만들어도 한 줄로 합쳐진다
+ * (칭찬 공감 rx_<글>.<사람> 과 같은 수법).
+ */
+export const RELS = [
+  { k: 'PART_OF', l: '여행에 묶임', rl: '이 여행의 기록' },
+  { k: 'ABOUT', l: '이 일정 이야기', rl: '이 일정의 기록' },
+  { k: 'FOLLOWS', l: '이어지는 이야기', rl: '여기서 이어짐' },
+  { k: 'PREPARES', l: '이걸 위한 준비', rl: '준비한 것' },
+  { k: 'SAME_AS', l: '같은 일', rl: '같은 일' },
+];
+/** 두 기기가 같은 연결을 만들어도 한 줄이 되도록, 이름을 내용으로 정한다. */
+export const linkId = (from, rel, to) => `lk_${from}.${rel}.${to}`;
+
+/**
  * 원본이 있는 곳 — '자리표'.
  *
  * 이 앱에 담기는 사진은 작게 줄인 미리보기다. 원본은 각자의 사진첩·클라우드에 그대로 있다.
@@ -234,6 +255,9 @@ function baseState() {
     // 글 공감: { id:'rx_<글id>.<사람id>', postId, memberId, kind, at }
     // 한 사람이 글마다 하나만 — id 를 사람·글로 정해 두면 두 기기에서 동시에 눌러도 한 줄로 합쳐진다.
     postReactions: [],
+    // 기록과 기록을 잇는 줄: { id:'lk_<from>.<관계>.<to>', from, rel, to, at, by }
+    // 표를 늘리지 않고 관계를 갖는 방법이다. 자세한 건 RELS 설명 참고.
+    links: [],
     praise: [],  // 칭찬 스티커 한 장: { id, memberId, emoji, reason, by, at }
     prizes: [],  // 받은 보상 한 번: { id, prize, count, at }
     boardItems: [], // 살 것·준비할 것: { id, title, kind:'buy'|'prep', qty, ownerId, tripId, dueDate, done, ... }
@@ -364,6 +388,7 @@ export function stripDemo(S) {
   S.postComments = (S.postComments || []).filter(c => !isDemo(c) && S.posts.some(x => x.id === c.postId));
   S.postReactions = (S.postReactions || []).filter(c => !isDemo(c) && S.posts.some(x => x.id === c.postId));
   S.guestbook = S.guestbook.filter(g => !isDemo(g));
+  S.links = (S.links || []).filter(x => !isDemo(x));
   S.praise = (S.praise || []).filter(x => !isDemo(x));
   S.prizes = (S.prizes || []).filter(x => !isDemo(x));
   for (const m of S.members) if (m.status && m.status.demo) m.status = null;
@@ -417,6 +442,13 @@ export function migrate(S) {
   S.postComments = validItems(S.postComments).filter(c => postIds.has(c.postId) && typeof c.text === 'string');
   S.postReactions = validItems(S.postReactions)
     .filter(x => postIds.has(x.postId) && REACTIONS.some(r => r.k === x.kind) && typeof x.memberId === 'string');
+
+  // 이어 둔 줄 — 양쪽이 다 있는 것만 남긴다. 한쪽이 지워졌으면 줄도 버린다
+  // (지움은 동기화가 올려 준다). 한 해를 책으로 묶어 비우면 그 해의 줄도 함께 간다.
+  const linkable = new Set([...S.posts, ...S.events, ...(S.trips || []), ...S.issues, ...S.places].map(x => x.id));
+  S.links = validItems(S.links).filter(l => RELS.some(r => r.k === l.rel)
+    && typeof l.from === 'string' && typeof l.to === 'string' && l.from !== l.to
+    && linkable.has(l.from) && linkable.has(l.to));
 
   // 칭찬 스티커를 '가족' 한 줄에서 꺼내 한 장씩 따로 둔다.
   //

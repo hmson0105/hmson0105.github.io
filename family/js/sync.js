@@ -5,10 +5,10 @@
 //  - 다른 기기의 변경은 실시간(Realtime)으로 받아 바로 반영한다.
 //  - 오프라인이면 올리지 못한 변경을 남겨 두었다가 다시 연결되면 올린다.
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=10';
-import { clean, ID_OK, absorb } from './model.js?v=14';
+import { clean, ID_OK, absorb } from './model.js?v=15';
 import * as PH from './photos.js?v=1';
 
-const COLLECTIONS = ['events', 'issues', 'trips', 'tripComments', 'boardItems', 'places', 'recurrenceRules', 'sources', 'posts', 'postComments', 'postReactions', 'guestbook', 'members', 'activity', 'praise', 'prizes'];
+const COLLECTIONS = ['events', 'issues', 'trips', 'tripComments', 'boardItems', 'places', 'recurrenceRules', 'sources', 'posts', 'postComments', 'postReactions', 'guestbook', 'members', 'activity', 'praise', 'prizes', 'links'];
 // 이 버전이 다룰 줄 아는 종류. 모르는 종류는 읽지도, 지우지도 않는다(아래 설명).
 const KNOWN = new Set([...COLLECTIONS, 'family', 'sync']);
 const SYNCED_KEY = 'family-home:synced2';
