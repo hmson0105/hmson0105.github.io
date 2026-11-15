@@ -1440,6 +1440,49 @@ function notifyCardHTML() {
   </section>`;
 }
 
+/**
+ * 기록이 '언제의 일'인지 — 올린 날이 아니라 일어난 날에서 뽑는다.
+ *
+ * 연말에 한 해를 한 권으로 묶으려면 기록마다 이 값이 흔들리지 않아야 한다.
+ * 반년 전 사진을 오늘 올려도 그 사진은 반년 전 해에 속한다.
+ */
+const YEAR_OF = {
+  events: x => x.startDate, issues: x => x.date, posts: x => x.at, trips: x => x.startDate,
+  praise: x => x.at, prizes: x => x.at, activity: x => x.at, links: x => x.at,
+  postComments: x => x.createdAt, postReactions: x => x.at, guestbook: x => x.createdAt,
+};
+const yearOf = (kind, x) => String((YEAR_OF[kind] && YEAR_OF[kind](x)) || x.createdAt || '').slice(0, 4);
+
+/** 한 권이 될 묶음 — 해마다 무엇이 얼마나 쌓였나. */
+const YEAR_KINDS = [['posts', '글·사진'], ['postComments', '댓글'], ['events', '일정'], ['praise', '칭찬 스티커'],
+  ['trips', '여행'], ['issues', '준비할 일'], ['guestbook', '방명록'], ['links', '이어 둔 줄']];
+function yearCardHTML() {
+  const years = new Map();
+  for (const [k] of YEAR_KINDS) {
+    for (const x of S[k] || []) {
+      if (!x || x.sourceId === 'src_demo') continue;
+      const y = yearOf(k, x);
+      if (!/^\d{4}$/.test(y)) continue;
+      if (!years.has(y)) years.set(y, {});
+      const row = years.get(y);
+      row[k] = (row[k] || 0) + 1;
+    }
+  }
+  if (!years.size) return '';
+  const now = D.today().slice(0, 4);
+  const rows = [...years.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+  return `<section class="card"><header class="card-h"><h2>📚 해마다 쌓인 기록</h2></header>
+    <p class="muted small">연말에 한 해를 <b>한 권</b>으로 묶어 책장에 꽂고, 새 해를 빈 책상에서 시작할 거예요. 아래가 그 한 권이 될 묶음이에요.</p>
+    <div class="yr-wrap"><table class="adm-table"><thead><tr><th>해</th>${YEAR_KINDS.map(([, l]) => `<th>${l}</th>`).join('')}<th>모두</th></tr></thead>
+      <tbody>${rows.map(([y, row]) => {
+        const total = YEAR_KINDS.reduce((a, [k]) => a + (row[k] || 0), 0);
+        return `<tr${y === now ? ' class="yr-now"' : ''}><td><b>${y}년</b>${y === now ? ' <span class="tag">쓰는 중</span>' : ''}</td>${YEAR_KINDS.map(([k]) => `<td>${row[k] || '<span class="muted">·</span>'}</td>`).join('')}<td><b>${total}</b></td></tr>`;
+      }).join('')}</tbody></table></div>
+    <p class="muted small">책에 들어가는 건 위 표의 기록이에요. <b>넘어가는 것</b>은 식구 · 장소 · 반복 일정(생일·제사) · 보상 설정 · 아직 안 끝난 준비할 일이고요.</p>
+    <p class="muted small">묶는 기능은 아직 없어요. 지금은 <b>한 해가 어떻게 차고 있는지</b>만 보여 줍니다.</p>
+  </section>`;
+}
+
 function renderSync() {
   const a = S.sync.apple;
   const srcs = S.sources.filter(s => s.kind === 'ics-import');
@@ -1452,6 +1495,7 @@ function renderSync() {
     ${syncCardBody()}
   </section>
   ${notifyCardHTML()}
+  ${yearCardHTML()}
   <section class="card"><header class="card-h"><h2>🍎 Apple 캘린더 연결 상태</h2></header>
     <dl class="kv kv-wide">
       <div><dt>현재 연결 방식</dt><dd><b>.ics 파일로 주고받기 (수동)</b></dd></div>

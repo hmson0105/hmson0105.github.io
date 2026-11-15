@@ -1230,3 +1230,9 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 .lk-pick label span { font-size: 15px; }
 .lk-pick label small { color: var(--ink-3); }
 .lk-pick input { width: 18px; height: 18px; accent-color: var(--pink); flex: 0 0 auto; }
+
+/* 📚 해마다 쌓인 기록 */
+.yr-wrap { overflow-x: auto; }
+.yr-wrap .adm-table { min-width: 520px; }
+.yr-wrap td { white-space: nowrap; }
+.yr-now td { background: var(--pink-xl); }
