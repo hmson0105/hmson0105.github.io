@@ -55,6 +55,20 @@ export function clean(v, key = '', depth = 0) {
 /** 목록에서 id 가 올바른 객체만 남긴다. */
 export const validItems = list => (Array.isArray(list) ? list.filter(x => x && typeof x === 'object' && !Array.isArray(x) && typeof x.id === 'string' && ID_OK.test(x.id)) : []);
 
+/**
+ * 쌓이기만 하는 목록에 더해 넣는다 — 같은 id 는 하나로, 지우는 일은 없다.
+ *
+ * 낡은 버전을 돌리는 기기는 아직 스티커를 '가족' 한 줄 안에 담아 보낸다.
+ * 그 줄을 그대로 믿고 갈아 끼우면 방금 준 스티커가 지워진다. 그래서 받으면
+ * 버리지 않고 합치기만 한다. 누가 늦게 보냈든 스티커는 사라지지 않는다.
+ */
+export function absorb(list, incoming) {
+  const out = validItems(list);
+  const seen = new Set(out.map(x => x.id));
+  for (const x of validItems(incoming)) if (!seen.has(x.id)) { seen.add(x.id); out.push(x); }
+  return out.sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')));
+}
+
 export const newId = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 
 /** 글에 남기는 공감 — 한 사람이 글마다 하나만 고른다. */
@@ -182,8 +196,9 @@ function baseState() {
       id: 'fam_1', name: '우리 가족', timezone: 'Asia/Seoul',
       memberIds: members.map(m => m.id),
       lobbyRoom: { backdrop: 'pinkDots', stickers: ['heart', 'cloud'] },
-      // 칭찬 스티커 판 — 모으면 보상을 받는다
-      rewards: { goal: 10, prize: '', stickers: [], done: [] },
+      // 칭찬 스티커 판의 '설정'만 여기 둔다 — 목표 개수와 보상 이름.
+      // 스티커와 받은 보상은 S.praise · S.prizes 로 따로 나갔다(아래 migrate 참고).
+      rewards: { goal: 10, prize: '' },
       // 나중에 계정·초대 기능을 붙일 자리. 지금은 비어 있다.
       accounts: [], invites: [],
     },
@@ -202,6 +217,8 @@ function baseState() {
     // 글 공감: { id:'rx_<글id>.<사람id>', postId, memberId, kind, at }
     // 한 사람이 글마다 하나만 — id 를 사람·글로 정해 두면 두 기기에서 동시에 눌러도 한 줄로 합쳐진다.
     postReactions: [],
+    praise: [],  // 칭찬 스티커 한 장: { id, memberId, emoji, reason, by, at }
+    prizes: [],  // 받은 보상 한 번: { id, prize, count, at }
     boardItems: [], // 살 것·준비할 것: { id, title, kind:'buy'|'prep', qty, ownerId, tripId, dueDate, done, ... }
     candidates: [], // 카톡 붙여넣기 등에서 만든 '일정 후보'(확인 전) 자리. 아직 생성 기능 없음.
     sync: {
@@ -330,6 +347,8 @@ export function stripDemo(S) {
   S.postComments = (S.postComments || []).filter(c => !isDemo(c) && S.posts.some(x => x.id === c.postId));
   S.postReactions = (S.postReactions || []).filter(c => !isDemo(c) && S.posts.some(x => x.id === c.postId));
   S.guestbook = S.guestbook.filter(g => !isDemo(g));
+  S.praise = (S.praise || []).filter(x => !isDemo(x));
+  S.prizes = (S.prizes || []).filter(x => !isDemo(x));
   for (const m of S.members) if (m.status && m.status.demo) m.status = null;
   const usedRules = new Set(S.events.map(e => e.recurrenceRuleId).filter(Boolean));
   S.recurrenceRules = S.recurrenceRules.filter(r => usedRules.has(r.id));
@@ -374,13 +393,18 @@ export function migrate(S) {
   S.postReactions = validItems(S.postReactions)
     .filter(x => postIds.has(x.postId) && REACTIONS.some(r => r.k === x.kind) && typeof x.memberId === 'string');
 
-  // 칭찬 스티커 판이 없던 예전 데이터에 빈 판을 만들어 준다.
-  const rw = S.family.rewards && typeof S.family.rewards === 'object' ? S.family.rewards : {};
+  // 칭찬 스티커를 '가족' 한 줄에서 꺼내 한 장씩 따로 둔다.
+  //
+  // 전에는 가족 이름·로비 꾸미기·스티커가 한 줄(family:main)에 묶여 있었다.
+  // 그 줄은 누가 무엇을 바꾸든 통째로 올라가니, 낡은 스티커 목록을 든 기기가
+  // 한 번 올리면 방금 준 스티커가 지워졌다. 11월 15일에 실제로 그렇게 잃었다.
+  // 이제 스티커 한 장이 글 한 편처럼 자기 줄을 갖는다 — 남의 줄을 건드릴 방법이 없다.
+  const rw = S.family.rewards && typeof S.family.rewards === 'object' && !Array.isArray(S.family.rewards) ? S.family.rewards : {};
+  S.praise = absorb(S.praise, rw.stickers);
+  S.prizes = absorb(S.prizes, rw.done);
   S.family.rewards = {
     goal: Number.isFinite(+rw.goal) && +rw.goal > 0 ? Math.min(100, Math.round(+rw.goal)) : 10,
     prize: typeof rw.prize === 'string' ? rw.prize.slice(0, 60) : '',
-    stickers: Array.isArray(rw.stickers) ? rw.stickers.filter(x => x && typeof x === 'object' && typeof x.id === 'string').slice(-200) : [],
-    done: Array.isArray(rw.done) ? rw.done.filter(x => x && typeof x === 'object' && typeof x.id === 'string').slice(-50) : [],
   };
   S.schemaVersion = SCHEMA_VERSION;
   return S;

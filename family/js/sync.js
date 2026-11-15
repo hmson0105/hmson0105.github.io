@@ -5,9 +5,9 @@
 //  - 다른 기기의 변경은 실시간(Realtime)으로 받아 바로 반영한다.
 //  - 오프라인이면 올리지 못한 변경을 남겨 두었다가 다시 연결되면 올린다.
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=10';
-import { clean, ID_OK } from './model.js?v=11';
+import { clean, ID_OK, absorb } from './model.js?v=12';
 
-const COLLECTIONS = ['events', 'issues', 'trips', 'tripComments', 'boardItems', 'places', 'recurrenceRules', 'sources', 'posts', 'postComments', 'postReactions', 'guestbook', 'members', 'activity'];
+const COLLECTIONS = ['events', 'issues', 'trips', 'tripComments', 'boardItems', 'places', 'recurrenceRules', 'sources', 'posts', 'postComments', 'postReactions', 'guestbook', 'members', 'activity', 'praise', 'prizes'];
 const SYNCED_KEY = 'family-home:synced2';
 const OLD_SYNCED_KEY = 'family-home:synced';
 const PULL_KEY = 'family-home:pulledAt';
@@ -45,28 +45,6 @@ try {
   }
 } catch { /* 저장소를 못 쓰는 브라우저 */ }
 
-/**
- * 칭찬 스티커와 받은 보상은 쌓이기만 하는 목록이다.
- * 서버 값으로 그냥 갈아 끼우면, 낡은 기기가 올린 빈 목록이 방금 준 스티커를 지운다.
- * 그래서 양쪽을 합친다 — 누가 늦게 올렸든 스티커는 사라지지 않는다.
- */
-function mergeRewards(mine, theirs) {
-  if (!theirs || typeof theirs !== 'object' || Array.isArray(theirs)) return mine;
-  const union = (a, b, cap) => {
-    const seen = new Map();
-    for (const x of [...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])]) {
-      if (x && typeof x === 'object' && typeof x.id === 'string' && !seen.has(x.id)) seen.set(x.id, x);
-    }
-    return [...seen.values()].sort((x, y) => String(x.at || '').localeCompare(String(y.at || ''))).slice(-cap);
-  };
-  return {
-    // 목표 개수와 보상 이름은 하나뿐인 값이라 마지막에 정한 쪽을 따른다
-    goal: Number.isFinite(+theirs.goal) && +theirs.goal > 0 ? Math.min(100, Math.round(+theirs.goal)) : (mine?.goal ?? 10),
-    prize: typeof theirs.prize === 'string' ? theirs.prize : (mine?.prize ?? ''),
-    stickers: union(mine?.stickers, theirs.stickers, 200),
-    done: union(mine?.done, theirs.done, 50),
-  };
-}
 function writeJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* 저장 공간 부족 등 */ } }
 
 /** 상태 → { 'kind:id': {kind,id,data} } (예시 데이터·기기 전용 값 제외) */
@@ -81,7 +59,7 @@ function snapshot(S) {
       out[`${kind}:${x.id}`] = { kind, id: x.id, data };
     }
   }
-  out['family:main'] = { kind: 'family', id: 'main', data: { lobbyRoom: S.family.lobbyRoom, name: S.family.name, rewards: S.family.rewards } };
+  out['family:main'] = { kind: 'family', id: 'main', data: { lobbyRoom: S.family.lobbyRoom, name: S.family.name, rewards: { goal: S.family.rewards.goal, prize: S.family.rewards.prize } } };
   out['sync:apple'] = { kind: 'sync', id: 'apple', data: S.sync.apple };
   return out;
 }
@@ -189,7 +167,16 @@ export function createSync({ getState, onRemote, onStatus, onPeer }) {
         if (r.data) {
           S.family.lobbyRoom = r.data.lobbyRoom || S.family.lobbyRoom;
           S.family.name = r.data.name || S.family.name;
-          if (r.data.rewards) S.family.rewards = mergeRewards(S.family.rewards, r.data.rewards);
+          const rw = r.data.rewards;
+          if (rw && typeof rw === 'object' && !Array.isArray(rw)) {
+            // 목표 개수와 보상 이름은 하나뿐인 값이라 마지막에 정한 쪽을 따른다
+            if (Number.isFinite(+rw.goal) && +rw.goal > 0) S.family.rewards.goal = Math.min(100, Math.round(+rw.goal));
+            if (typeof rw.prize === 'string') S.family.rewards.prize = rw.prize.slice(0, 60);
+            // 낡은 버전 기기는 아직 스티커를 이 줄에 담아 보낸다. 받아서 합치기만 한다 —
+            // 그쪽이 보낸 빈 목록으로 이쪽 스티커를 지우지 않는다.
+            S.praise = absorb(S.praise, rw.stickers);
+            S.prizes = absorb(S.prizes, rw.done);
+          }
           changed = true;
         }
         continue;

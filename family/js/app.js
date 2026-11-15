@@ -1,11 +1,11 @@
 // 우리집 미니월드 — 가족 캘린더 + 층별 미니룸
 import * as D from './dates.js?v=6';
-import * as M from './model.js?v=11';
+import * as M from './model.js?v=12';
 import * as L from './lunar.js?v=1';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=7';
 import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS, WALL_SPOTS } from './scene.js?v=16';
-import { createSync, syncConfigured } from './sync.js?v=18';
+import { createSync, syncConfigured } from './sync.js?v=19';
 import { parseKakao } from './kakao.js?v=4';
 import * as N from './notify.js?v=2';
 import { APP_URL, PUSH_PUBLIC_KEY } from './config.js?v=12';
@@ -710,12 +710,14 @@ function lobbyPanels() {
 }
 
 // ───────────────────── 🌟 칭찬 스티커 · 보상 ─────────────────────
-const rewards = () => S.family.rewards;
-/** 마지막 보상 이후 모은 스티커 */
+const rewards = () => S.family.rewards;            // 목표 개수·보상 이름
+const praise = () => (S.praise ||= []);            // 스티커 한 장이 한 줄
+const prizes = () => (S.prizes ||= []);            // 받은 보상 한 번이 한 줄
+/** 마지막 보상 이후 모은 스티커 — 보상을 받으면 0개부터 다시 모은다 */
 const sinceLast = () => {
-  const r = rewards();
-  const last = r.done.length ? r.done[r.done.length - 1].at : '';
-  return r.stickers.filter(x => (x.at || '') > last);
+  const last = prizes().reduce((t, x) => (String(x.at || '') > t ? String(x.at) : t), '');
+  return praise().filter(x => (x.at || '') > last)
+    .sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')));
 };
 function rewardCardHTML(m) {
   const r = rewards();
@@ -738,7 +740,7 @@ function rewardCardHTML(m) {
       ${full && r.prize ? '<button type="button" class="btn-s" data-action="reward-claim">🎁 보상 받기</button>' : ''}
     </div>
     ${recent.length ? `<ul class="pz-log">${recent.map(x => `<li><span class="pz-e">${esc(x.emoji || '⭐')}</span><span>${esc(x.reason || '칭찬!')}</span><small>${esc(memberName(x.by))} · ${D.fmtStamp(x.at)}</small></li>`).join('')}</ul>` : ''}
-    ${r.done.length ? `<p class="muted small">지금까지 받은 보상 ${r.done.length}번 · 가장 최근 ${esc(r.done[r.done.length - 1].prize)}</p>` : ''}
+    ${prizes().length ? `<p class="muted small">지금까지 받은 보상 ${prizes().length}번 · 가장 최근 ${esc(prizes()[prizes().length - 1].prize)}</p>` : ''}
   </section>`;
 }
 function giveSticker(memberId) {
@@ -753,9 +755,8 @@ function giveSticker(memberId) {
       const fd = new FormData(f);
       const reason = String(fd.get('reason') || '').trim();
       if (!reason) return '어떤 칭찬인지 적어 주세요.';
-      const r = rewards();
-      r.stickers.push({ id: M.newId('pz'), emoji: String(fd.get('emoji') || '⭐'), reason, by: ui.viewer, at: new Date().toISOString() });
-      if (r.stickers.length > 200) r.stickers = r.stickers.slice(-200);
+      // 스티커 한 장이 자기 줄로 올라간다 — 다른 기기가 덮어쓸 수 없다. 그래서 개수도 줄이지 않는다.
+      praise().push({ id: M.newId('pz'), memberId, emoji: String(fd.get('emoji') || '⭐'), reason, by: ui.viewer, at: new Date().toISOString(), sourceId: 'src_manual' });
       logActivity('member', memberId, `칭찬 스티커를 받았어요 — ${reason}`);
       ui.celebrate = { id: memberId, until: Date.now() + 2600 };
       persist(); renderAll(); toast('칭찬 스티커를 줬어요 🌟');
@@ -787,8 +788,7 @@ function claimReward() {
   const n = sinceLast().length;
   if (n < r.goal || !r.prize) return;
   if (!confirm(`'${r.prize}' 보상을 받을까요?\n스티커는 0개부터 다시 모아요.`)) return;
-  r.done.push({ id: M.newId('rw'), prize: r.prize, count: n, at: new Date().toISOString() });
-  if (r.done.length > 50) r.done = r.done.slice(-50);
+  prizes().push({ id: M.newId('rw'), prize: r.prize, count: n, at: new Date().toISOString(), sourceId: 'src_manual' });
   logActivity('family', 'main', `🎁 보상을 받았어요 — ${r.prize}`);
   const kid = S.members.find(x => x.role === 'kid');
   if (kid) ui.celebrate = { id: kid.id, until: Date.now() + 3200 };
@@ -1479,7 +1479,7 @@ function renderAdmin() {
     return;
   }
   if (connected() && !ui.admin.accounts && !ui.admin.accountsErr) loadAccounts();
-  const counts = [['일정', S.events], ['이슈', S.issues], ['여행', S.trips || []], ['여행 댓글', S.tripComments || []], ['살 것·준비할 것', S.boardItems || []], ['글', S.posts], ['방명록', S.guestbook], ['가족 소식', S.activity || []]]
+  const counts = [['일정', S.events], ['이슈', S.issues], ['여행', S.trips || []], ['여행 댓글', S.tripComments || []], ['살 것·준비할 것', S.boardItems || []], ['글', S.posts], ['방명록', S.guestbook], ['칭찬 스티커', S.praise || []], ['가족 소식', S.activity || []]]
     .map(([l, a]) => [l, a.filter(x => x.sourceId !== 'src_demo').length, a.filter(x => x.sourceId === 'src_demo').length]);
   const evs = S.events.filter(e => e.sourceId !== 'src_demo').sort((a, b) => a.startDate.localeCompare(b.startDate));
   const today = D.today();
