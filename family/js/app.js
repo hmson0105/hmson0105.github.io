@@ -355,11 +355,22 @@ function renderDir() {
  */
 const isWeekday = d => { const w = D.weekday(d); return w >= 1 && w <= 5; };
 /** 지금이 '가족이 로비에 모이는' 시간인가 */
+/**
+ * 온 가족이 1층 가족 로비에 모여 있을 시간인가.
+ *  - 주말(토·일)은 하루 종일. 다들 집에 있는 날이니 각자 방에 세워 둘 이유가 없다.
+ *  - 주중은 저녁 6시부터, 그리고 그 저녁에서 이어진 다음 날 아침 9시까지.
+ * 그래서 '각자 자기 방'인 때는 주중 낮(9~18시)뿐이다.
+ */
 function lobbyHours() {
   const now = D.seoul();
-  if (now.hour >= 18) return isWeekday(now.date);              // 주중 저녁
-  if (now.hour < 9) return isWeekday(D.addDays(now.date, -1)); // 그 저녁에서 이어진 밤·아침
-  return false;
+  if (!isWeekday(now.date)) return true;
+  return now.hour >= 18 || now.hour < 9;
+}
+/** 지금 모여 있는 이유 — 평면도 아래 한 줄에 쓴다 */
+function gatherWhy() {
+  const now = D.seoul();
+  if (!isWeekday(now.date)) return '🏡 주말엔 온 가족이 가족 로비에 모여요';
+  return now.hour >= 18 ? '🌙 저녁엔 가족이 로비에 모여요' : '🌅 아침엔 아직 가족이 로비에 있어요';
 }
 /** 로비에 셋이 함께 설 때의 자리(평면도 % 기준) */
 // 셋이 겹치지 않게 대각선으로 비스듬히 세운다
@@ -403,7 +414,7 @@ function renderHouse() {
   $('#stageFrame').className = `stage-frame bd-${S.family.lobbyRoom.backdrop}`;
   $('#sceneWrap').innerHTML = `<div class="planv">
     <div class="planv-art">${ASSETS.housePlan ? `<img class="plan-svg" src="${ASSETS.housePlan}" alt="우리집 평면도">` : housePlanSVG()}${over}</div>
-    <p class="planv-cap">${gather ? '🌙 저녁엔 가족이 로비에 모여요 · ' : ''}캐릭터나 방 이름을 누르면 그 방으로 들어가요</p>
+    <p class="planv-cap">${gather ? `${gatherWhy()} · ` : ''}캐릭터나 방 이름을 누르면 그 방으로 들어가요</p>
   </div>`;
   $('#elevInd').textContent = '🏠';
 }
