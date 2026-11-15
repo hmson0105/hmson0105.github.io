@@ -1,12 +1,12 @@
 // 우리집 미니월드 — 가족 캘린더 + 층별 미니룸
 import * as D from './dates.js?v=6';
-import * as M from './model.js?v=15';
+import * as M from './model.js?v=16';
 import * as PH from './photos.js?v=1';
 import * as L from './lunar.js?v=1';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=7';
 import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS, WALL_SPOTS } from './scene.js?v=16';
-import { createSync, syncConfigured } from './sync.js?v=22';
+import { createSync, syncConfigured } from './sync.js?v=23';
 import { parseKakao } from './kakao.js?v=4';
 import * as N from './notify.js?v=2';
 import { APP_URL, PUSH_PUBLIC_KEY } from './config.js?v=12';
@@ -504,7 +504,7 @@ function statusCard(m) {
       <p class="st-text">${s?.text && canSee({ ...s, ownerId: m.id }) ? esc(s.text) : '<span class="muted">상태 메시지 없음</span>'}</p>
       <p class="st-meta"><span class="pill act-${st.act}">${esc(st.label)}</span>${mood && !st.stale ? `<span class="mood">${mood.e} ${mood.l}</span>` : ''}</p>
       <p class="st-basis">${esc(st.basis)}</p>
-      <div class="st-actions"><button type="button" class="btn-s" data-action="edit-status" data-id="${m.id}">상태 바꾸기</button><button type="button" class="btn-g" data-action="go-floor" data-floor="${m.floor}">방 가기 →</button></div>
+      <div class="st-actions"><button type="button" class="btn-s" data-action="edit-status" data-id="${m.id}">상태 바꾸기</button><button type="button" class="btn-g" data-action="edit-away" data-id="${m.id}">📍 지내는 곳</button><button type="button" class="btn-g" data-action="go-floor" data-floor="${m.floor}">방 가기 →</button></div>
     </div>
   </article>`;
 }
@@ -584,6 +584,134 @@ async function movePhotosOut() {
     if (moved) { persist(); renderAll(); }
   } finally { movingPhotos = false; }
 }
+// ───────────────────── 📍 장소 사전 · 지내는 곳 ─────────────────────
+
+/** 적은 말로 장소를 찾는다 — 이름이든 다른 이름('소아과')이든. */
+const normName = s => String(s || '').trim().replace(/\s+/g, '').toLowerCase();
+function findPlace(name) {
+  const k = normName(name);
+  if (!k) return null;
+  return S.places.find(p => normName(p.name) === k)
+    || S.places.find(p => (p.aka || []).some(a => normName(a) === k))
+    || null;
+}
+
+/**
+ * 그 날 그 시간에 이 사람이 움직일 수 있나. 못 하면 이유를 돌려준다.
+ * 여기서 보는 건 '사실'뿐이다 — 어디에 있는지, 무엇에 묶여 있는지.
+ */
+function awayReason(m, date, time) {
+  if (!date) return null;
+  const wd = D.weekday(date);
+  for (const a of m.away || []) {
+    if (!a.days.includes(wd)) continue;
+    if (a.until && date > a.until) continue;
+    if (a.from && a.to && time && !(time >= a.from && time < a.to)) continue;
+    const when = a.from && a.to ? `${a.from}~${a.to} ` : '';
+    return a.kind === 'out'
+      ? `${when}${a.where || a.label || '밖'}에 있어요`
+      : `${when}${a.label || '수업'} 중이에요`;
+  }
+  return null;
+}
+
+/**
+ * 누가 맡으면 좋을지 제안한다. 제안일 뿐, 정하는 건 사람이다.
+ *   ① 못 가는 사람을 뺀다(지내는 곳)
+ *   ② 남은 사람 중 그 장소에 주로 갔던 사람을 고른다(지난 기록)
+ * 왜 그렇게 골랐는지 항상 같이 돌려준다 — 이유를 못 대는 추천은 믿을 수 없다.
+ */
+function suggestOwner(date, time, placeId) {
+  const adults = S.members.filter(m => m.role !== 'kid');
+  if (!adults.length) return null;
+  const blocked = adults.map(m => ({ m, why: awayReason(m, date, time) })).filter(x => x.why);
+  const free = adults.filter(m => !blocked.some(b => b.m.id === m.id));
+  if (!free.length) return null;
+  const count = new Map();
+  if (placeId) for (const e of S.events) {
+    if (e.placeId !== placeId || e.sourceId === 'src_demo') continue;
+    count.set(e.ownerId, (count.get(e.ownerId) || 0) + 1);
+  }
+  const best = free.slice().sort((a, b) => (count.get(b.id) || 0) - (count.get(a.id) || 0))[0];
+  const why = [];
+  for (const b of blocked) why.push(`${memberName(b.m.id)}는 ${b.why}`);
+  const c = count.get(best.id) || 0;
+  const total = [...count.values()].reduce((x, y) => x + y, 0);
+  if (c && total) why.push(`이 장소는 지난 ${total}번 중 ${memberName(best.id)}가 ${c}번`);
+  if (!why.length) return null;
+  return { ownerId: best.id, why: why.join(' · ') };
+}
+
+/** 내가 언제 어디에 있는지 적어 두는 창. */
+function awayDialog(m) {
+  const rows = [...(m.away || []), {}].slice(0, 6);
+  const row = (a, i) => `<fieldset class="fld aw-row"><legend>${i + 1}</legend>
+    <div class="chips aw-days">${D.WD.map((w, d) => `<label><input type="checkbox" name="d${i}" value="${d}" ${(a.days || []).includes(d) ? 'checked' : ''}><span>${w}</span></label>`).join('')}</div>
+    <div class="fld-row">
+      <label class="fld"><span>무엇</span><input name="label${i}" maxlength="20" value="${esc(a.label || '')}" placeholder="대학원 · 현장강의"></label>
+      <label class="fld"><span>어디</span><input name="where${i}" maxlength="20" value="${esc(a.where || '')}" placeholder="서울 · 집"></label>
+    </div>
+    <label class="fld"><span>어떤 상태</span><select name="kind${i}">${opt(M.AWAY_KINDS, a.kind || 'out')}</select></label>
+    <div class="fld-row">
+      <label class="fld"><span>시작 <small>(비우면 하루 종일)</small></span><input type="time" name="from${i}" value="${esc(a.from || '')}"></label>
+      <label class="fld"><span>끝</span><input type="time" name="to${i}" value="${esc(a.to || '')}"></label>
+    </div>
+    <label class="fld"><span>언제까지 <small>(학기가 끝나는 날 등 · 비우면 계속)</small></span><input type="date" name="until${i}" value="${esc(a.until || '')}"></label>
+  </fieldset>`;
+  openDialog({
+    title: `${esc(m.displayName)}는 언제 어디에 있나요`,
+    body: `<p class="muted small">요일을 고른 줄만 저장돼요. 지우려면 요일을 모두 꺼 주세요.<br>
+      여기 적은 건 <b>사실</b>이에요. 일정을 만들 때 누가 맡을지 고르는 데 쓰이고, 정하는 건 늘 사람이에요.</p>
+      ${rows.map(row).join('')}`,
+    actions: '<span class="sp"></span><button type="submit" value="save" class="btn-p">저장</button>',
+    onSubmit(f) {
+      const fd = new FormData(f);
+      const next = [];
+      for (let i = 0; i < rows.length; i++) {
+        const days = fd.getAll(`d${i}`).map(Number);
+        if (!days.length) continue;
+        next.push({
+          id: (rows[i] && rows[i].id) || M.newId('aw'), days,
+          kind: String(fd.get(`kind${i}`) || 'out'),
+          label: String(fd.get(`label${i}`) || '').trim(),
+          where: String(fd.get(`where${i}`) || '').trim(),
+          from: String(fd.get(`from${i}`) || ''), to: String(fd.get(`to${i}`) || ''),
+          until: String(fd.get(`until${i}`) || ''),
+        });
+      }
+      const before = m.away;
+      m.away = next;
+      if (!persist()) { m.away = before; return '저장하지 못했어요.'; }
+      renderAll(); toast('적어 뒀어요.');
+      return true;
+    },
+  });
+}
+
+/** 장소마다 다른 이름을 달아 둔다 — '소아과'로도 찾히게. */
+function placeAkaDialog() {
+  const used = id => S.events.filter(e => e.placeId === id).length;
+  const list = S.places.slice().sort((a, b) => used(b.id) - used(a.id));
+  if (!list.length) { toast('아직 장소가 없어요. 일정에 장소를 적으면 생겨요.'); return; }
+  openDialog({
+    title: '📍 장소 사전', cls: 'dlg-wide',
+    body: `<p class="muted small">다른 이름을 쉼표로 적어 두면, 그렇게만 적어도 같은 장소로 알아봐요.<br>예) <b>튼튼소아과</b> → <code>소아과, 병원</code></p>
+      ${list.map((p, i) => `<label class="fld"><span>${esc(p.name)} <small class="muted">· 일정 ${used(p.id)}번</small></span>
+        <input name="aka${i}" maxlength="80" value="${esc((p.aka || []).join(', '))}" placeholder="다른 이름 (쉼표로)"></label>`).join('')}`,
+    actions: '<span class="sp"></span><button type="submit" value="save" class="btn-p">저장</button>',
+    onSubmit(f) {
+      const fd = new FormData(f);
+      const before = list.map(p => p.aka);
+      list.forEach((p, i) => {
+        p.aka = String(fd.get(`aka${i}`) || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 6);
+      });
+      if (!persist()) { list.forEach((p, i) => { p.aka = before[i]; }); return '저장하지 못했어요.'; }
+      renderAll(); toast('장소 사전을 고쳤어요.');
+      return true;
+    },
+  });
+}
+
 // ───────────────────── 🔗 이어 둔 기록 ─────────────────────
 
 /** id 하나로 그 기록을 찾아, 무엇이고 뭐라고 부를지 돌려준다. */
@@ -1495,6 +1623,11 @@ function renderSync() {
     ${syncCardBody()}
   </section>
   ${notifyCardHTML()}
+  <section class="card"><header class="card-h"><h2>📍 장소 사전</h2>
+      <button type="button" class="btn-g btn-sm" data-action="place-aka">다른 이름 달기</button></header>
+    <p class="muted small">장소 <b>${S.places.length}곳</b>을 알고 있어요. '소아과'처럼 평소 부르는 말을 달아 두면, 그렇게만 적어도 같은 장소로 알아봐요.</p>
+    <p class="muted small">그리고 일정을 만들 때 <b>그 장소에 주로 간 사람</b>과 <b>그날 지내는 곳</b>을 보고 담당자를 제안해요. 정하는 건 늘 사람이고요.</p>
+  </section>
   ${yearCardHTML()}
   <section class="card"><header class="card-h"><h2>🍎 Apple 캘린더 연결 상태</h2></header>
     <dl class="kv kv-wide">
@@ -1878,6 +2011,7 @@ function eventDialog(ev, occDate) {
       <label class="fld"><span>담당자</span><select name="ownerId">${memberOpts(ev.ownerId)}</select></label>
       <label class="fld"><span>상태</span><select name="status">${opt(M.EVENT_STATUS, ev.status)}</select></label>
     </div>
+    <p class="muted small sg-why" hidden></p>
     <fieldset class="fld chips"><legend>참석자</legend>${S.members.map(m => `<label style="--c:${m.color}"><input type="checkbox" name="att" value="${m.id}" ${(ev.attendeeIds || []).includes(m.id) ? 'checked' : ''}><span>${face(m)}${esc(m.displayName)}</span></label>`).join('')}</fieldset>
     <div class="fld-row">
       <label class="fld"><span>반복</span><select name="freq">${opt(M.FREQS, rr?.freq || '')}</select></label>
@@ -1914,7 +2048,27 @@ function eventDialog(ev, occDate) {
           if (fr === 'LUNAR_YEARLY') lun.textContent = `🌙 ${L.human(f.startDate.value) || '음력을 읽지 못했어요'} 기준으로 해마다 돌아와요.`;
         }
       };
+      /*
+       * 담당자 제안 — 새 일정에서, 사람이 담당자를 직접 건드리기 전까지만.
+       * 한 번이라도 직접 고르면 그 뒤로는 끼어들지 않는다. 제안은 제안이어야 한다.
+       */
+      let ownerTouched = !isNew;
+      const why = f.querySelector('.sg-why');
+      const suggest = () => {
+        if (!why) return;
+        const sg = suggestOwner(f.startDate.value, f.kind.value === 'timed' ? f.startTime.value : '', findPlace(f.place.value)?.id || null);
+        why.hidden = !sg;
+        if (!sg) return;
+        if (!ownerTouched && f.ownerId.value !== sg.ownerId) {
+          f.ownerId.value = sg.ownerId;
+          const c = f.querySelector(`input[name=att][value="${sg.ownerId}"]`);
+          if (c) c.checked = true;
+        }
+        why.innerHTML = `💡 ${esc(memberName(sg.ownerId))}로 뒀어요 — ${esc(sg.why)}. 바꿔도 돼요.`;
+      };
       f.addEventListener('change', e => {
+        if (e.target.name === 'ownerId') ownerTouched = true;
+        if (['startDate', 'startTime', 'place', 'kind'].includes(e.target.name)) suggest();
         if (e.target.name === 'startDate' && f.endDate.value < f.startDate.value) f.endDate.value = f.startDate.value;
         if (e.target.name === 'startDate' && f.startDate.value) {
           // 반복 요일이 하나만 골라져 있으면 새 날짜의 요일로 따라간다
@@ -1925,6 +2079,7 @@ function eventDialog(ev, occDate) {
         sync();
       });
       sync();
+      suggest();
       if (isNew) f.title.focus();
     },
     onSubmit(f, sub) {
@@ -2004,8 +2159,9 @@ function eventDialog(ev, occDate) {
       const placeName = String(fd.get('place') || '').trim();
       let placeId = null;
       if (placeName) {
-        let p = S.places.find(x => x.name === placeName);
-        if (!p) { p = { id: M.newId('pl'), name: placeName }; S.places.push(p); }
+        // '소아과'처럼 다른 이름으로 적어도 이미 있는 장소를 찾는다(같은 곳이 두 줄로 늘지 않게).
+        let p = findPlace(placeName);
+        if (!p) { p = { id: M.newId('pl'), name: placeName, aka: [] }; S.places.push(p); }
         placeId = p.id;
       }
       const ownerId = fd.get('ownerId');
@@ -2737,6 +2893,8 @@ const ACTIONS = {
     persist(); renderAll();
   },
   'posts-more': () => { ui.postsShown += 12; renderAll(); },
+  'edit-away': b => { const m = member(b.dataset.id); if (m) awayDialog(m); },
+  'place-aka': () => placeAkaDialog(),
   'link-add': b => { const p = S.posts.find(x => x.id === b.dataset.id); if (p) linkDialog(p); },
   'link-go': b => { findRecord(b.dataset.id)?.go?.(); },
   'link-del': b => {

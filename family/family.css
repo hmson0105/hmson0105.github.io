@@ -1236,3 +1236,15 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 .yr-wrap .adm-table { min-width: 520px; }
 .yr-wrap td { white-space: nowrap; }
 .yr-now td { background: var(--pink-xl); }
+
+/* 📍 지내는 곳 */
+.aw-row { border: 2px solid var(--line); border-radius: 14px; padding: 10px 12px; margin-bottom: 10px; gap: 8px; }
+.aw-row > legend { padding: 0 6px; color: var(--ink-3); font-size: 12px; }
+.aw-days { display: flex; flex-wrap: wrap; gap: 4px; }
+.aw-days label { cursor: pointer; }
+.aw-days input { position: absolute; opacity: 0; pointer-events: none; }
+.aw-days span { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; min-height: 34px;
+  border: 2px solid var(--line); border-radius: 10px; background: #fff; font-size: 14px; }
+.aw-days input:checked + span { background: var(--pink-l); border-color: var(--pink-d); color: var(--pink-d); }
+.aw-days input:focus-visible + span { outline: 2px solid var(--pink-d); }
+.sg-why { margin: -2px 0 0; color: var(--lav-d); }

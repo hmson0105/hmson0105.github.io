@@ -72,6 +72,23 @@ export function absorb(list, incoming) {
 export const newId = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 
 /**
+ * 지내는 곳 — 그 사람이 언제 어디에 묶여 있는지.
+ *
+ * 이건 '사실'이다. 판단이 아니다.
+ *   사실 — 아빠는 월·화·수에 서울 대학원에 있다. 2027년 2월까지.
+ *   판단 — 그러니 수요일 낮 병원은 엄마가 간다.
+ * 둘을 섞어 '병원은 엄마 담당'이라고 적어 두면, 학기가 끝나는 순간 전부 틀린 기록이 된다.
+ * 그래서 사실만 저장하고, 담당자는 쓸 때마다 다시 따진다(app.js 의 suggestOwner).
+ *
+ * out  — 그 지역에 없다. 못 간다.
+ * tied — 있지만 그 시간엔 묶여 있다(온라인 수업 등).
+ */
+export const AWAY_KINDS = [
+  { k: 'out', l: '그 지역에 없어요' },
+  { k: 'tied', l: '있지만 그 시간엔 묶여요' },
+];
+
+/**
  * 기록과 기록을 잇는 관계.
  *
  * 가족의 기록은 따로 떨어져 있을 때보다 이어졌을 때 쓸모가 있다 —
@@ -408,6 +425,26 @@ export function migrate(S) {
   S.sync.apple = { ...base.sync.apple, ...(S.sync.apple || {}) };
   for (const s of SOURCES_BASE) if (!S.sources.some(x => x.id === s.id)) S.sources.push({ ...s });
   for (const e of S.events) { e.exDates ||= []; e.attendeeIds ||= []; e.visibility ||= 'family'; }
+
+  // 장소의 다른 이름 — '소아과'라고만 적어도 그 병원을 찾게 한다.
+  for (const pl of S.places) {
+    pl.aka = Array.isArray(pl.aka)
+      ? [...new Set(pl.aka.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim().slice(0, 20)))].slice(0, 6)
+      : [];
+  }
+  // 지내는 곳 — 사실만. 요일이 없으면 규칙이 아니다.
+  for (const m of S.members) {
+    m.away = (Array.isArray(m.away) ? m.away : []).map(a => ({
+      id: typeof a.id === 'string' && ID_OK.test(a.id) ? a.id : newId('aw'),
+      days: [...new Set((Array.isArray(a.days) ? a.days : []).map(Number).filter(d => d >= 0 && d <= 6))].sort(),
+      kind: AWAY_KINDS.some(k => k.k === a.kind) ? a.kind : 'out',
+      label: typeof a.label === 'string' ? a.label.slice(0, 20) : '',
+      where: typeof a.where === 'string' ? a.where.slice(0, 20) : '',
+      from: /^\d{2}:\d{2}$/.test(a.from) ? a.from : '',
+      to: /^\d{2}:\d{2}$/.test(a.to) ? a.to : '',
+      until: /^\d{4}-\d{2}-\d{2}$/.test(a.until) ? a.until : '',
+    })).filter(a => a.days.length).slice(0, 6);
+  }
   // 어린이집은 매일 가므로 데모 '어린이집 등원' 반복 일정을 지운다.
   const daycare = S.events.filter(e => e.sourceId === 'src_demo' && e.title === '어린이집 등원');
   if (daycare.length) {
