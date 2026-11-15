@@ -58,6 +58,8 @@ const ui = {
   celebrate: null,
   lastMinute: '',
   openComments: new Set(),   // 댓글 쓰는 칸을 펼쳐 둔 글
+  openRx: new Set(),         // 공감 고르는 칸을 펼쳐 둔 글(문자형에서만)
+  postsShown: 12,            // 집 전체 화면에서 한 번에 보여 줄 글 수
 };
 if (![0, 1, 2, 3, 4].includes(ui.floor)) ui.floor = 1; // 0 = 집 전체(1~4층 한 화면)
 if (!S.members.some(m => m.id === ui.viewer)) ui.viewer = S.members[0].id;
@@ -518,20 +520,50 @@ const reactionsOn = id => (S.postReactions || []).filter(x => x.postId === id);
 const myReaction = id => (S.postReactions || []).find(x => x.postId === id && x.memberId === ui.viewer);
 
 /** 공감 단추 줄 — 한 사람이 글마다 하나만. 같은 걸 다시 누르면 취소된다. */
-function reactionRowHTML(p) {
+function reactionRowHTML(p, compact = false) {
   const all = reactionsOn(p.id);
   const mine = myReaction(p.id);
-  return `<div class="rx-row" role="group" aria-label="이 글에 공감하기">${M.REACTIONS.map(r => {
+  // 문자형에서는 네 개를 늘 펼쳐 두지 않는다. 말풍선마다 단추 네 개가 서 있으면
+  // 글보다 단추가 많아져 읽히지 않는다. 받은 공감만 보여 주고, 누를 때 펼친다.
+  const pick = !compact || ui.openRx.has(p.id);
+  const one = r => {
     const who = all.filter(x => x.kind === r.k);
+    if (compact && !pick && !who.length) return '';
     const on = !!mine && mine.kind === r.k;
     const names = who.map(x => memberName(x.memberId)).join('·');
     return `<button type="button" class="rx${on ? ' on' : ''}" data-action="react" data-id="${p.id}" data-kind="${r.k}"
       aria-pressed="${on}" aria-label="${esc(r.l)}${who.length ? ` ${who.length}명` : ''}" title="${esc(r.l)}${names ? ` · ${esc(names)}` : ''}"
       ><span class="rx-e" aria-hidden="true">${r.e}</span>${who.length ? `<b>${who.length}</b>` : ''}</button>`;
-  }).join('')}</div>`;
+  };
+  const add = compact
+    ? `<button type="button" class="rx rx-add${pick ? ' on' : ''}" data-action="rx-open" data-id="${p.id}"
+        aria-expanded="${pick}" aria-label="공감 고르기" title="공감 고르기"><span class="rx-e" aria-hidden="true">${pick ? '×' : '☺'}</span></button>`
+    : '';
+  return `<div class="rx-row" role="group" aria-label="이 글에 공감하기">${M.REACTIONS.map(one).join('')}${add}</div>`;
 }
 
-/** 글 아래 붙는 공감 줄 + 댓글 목록 + 쓰는 칸 */
+/** 댓글 펼치기 단추 — 달린 수를 보여 준다 */
+function commentToggleHTML(p, compact = false) {
+  const nc = commentsOn(p.id).length;
+  const open = ui.openComments.has(p.id);
+  return `<button type="button" class="pc-toggle${open ? ' on' : ''}" data-action="toggle-comments" data-id="${p.id}" aria-expanded="${open}"
+    aria-label="댓글 ${nc}개">💬${nc ? ` ${nc}` : compact ? '' : ' 댓글 달기'}${nc && !compact ? '개' : ''}</button>`;
+}
+
+/** 댓글 목록과 쓰는 칸 (공감 줄은 빼고) */
+function postCommentsHTML(p) {
+  const list = commentsOn(p.id);
+  const open = ui.openComments.has(p.id);
+  const one = c => `<li style="--c:${member(c.authorId)?.color || '#FF8FB8'}">${face(member(c.authorId))}<div><p><b>${esc(memberName(c.authorId))}</b> ${linkify(c.text)}</p><small>${D.fmtStamp(c.createdAt)}${c.editedAt ? ' · 수정됨' : ''}</small></div>${c.authorId === ui.viewer ? `<span class="post-btns"><button type="button" class="btn-x" data-action="edit-pcomment" data-id="${c.id}">고치기</button><button type="button" class="btn-x" data-action="del-pcomment" data-id="${c.id}" aria-label="댓글 지우기">✕</button></span>` : ''}</li>`;
+  return `${list.length ? `<ul class="gb-list pc-list">${list.map(one).join('')}</ul>` : ''}
+    ${open ? `<form class="gb-form pc-form" data-submit="post-comment" data-id="${p.id}">
+      <span class="gb-me">${face(member(ui.viewer))}</span>
+      <input name="text" maxlength="200" required placeholder="${esc(memberName(ui.viewer))}(으)로 댓글 남기기" aria-label="댓글">
+      <button class="btn-p btn-sm">남기기</button>
+    </form>` : ''}`;
+}
+
+/** 글 아래 붙는 공감 줄 + 댓글 목록 + 쓰는 칸 (방 안에서 쓰는 칸 모양) */
 function postFootHTML(p) {
   const list = commentsOn(p.id);
   const open = ui.openComments.has(p.id);
@@ -558,6 +590,7 @@ function toggleReaction(postId, kind) {
   else if (i >= 0) S.postReactions[i] = { ...S.postReactions[i], kind, at };
   // id 를 글·사람으로 정해 둔다 — 두 기기에서 같이 눌러도 한 줄로 합쳐지게.
   else S.postReactions.push({ id: `rx_${postId}.${ui.viewer}`, postId, memberId: ui.viewer, kind, at, sourceId: 'src_manual' });
+  ui.openRx.delete(postId);   // 골랐으면 접는다 — 다시 조용한 한 줄로
   persist(); renderAll();
 }
 
@@ -669,19 +702,57 @@ async function importPhotos(files) {
   toast(`미분류함에 ${ok}장 넣었어요. 정리는 나중에 해도 돼요.`);
 }
 
-/** 집 전체 화면에서 보는, 온 가족의 최근 짧은 글·사진 */
+/** 날짜 구분선에 쓰는 이름 — 오늘·어제는 그렇게 부른다 */
+function dayLabel(d) {
+  const t = D.today();
+  if (d === t) return '오늘';
+  if (d === D.addDays(t, -1)) return '어제';
+  return D.fmtDate(d, { year: d.slice(0, 4) !== t.slice(0, 4) });
+}
+/** 글이 올라온 시각(서울 시계)에서 '21:03' */
+const stampTime = iso => (iso ? D.seoul(new Date(iso).getTime()).time : '');
+
+/**
+ * 집 전체 화면에서 보는, 온 가족의 짧은 글·사진 — 문자처럼.
+ *
+ * 전에는 가로 2칸 격자였다. 그래서 같은 줄에 어제 글과 오늘 글이 나란히 놓여,
+ * 시간 순으로 읽을 수가 없었다. 이제 위에서 아래로 흐른다 —
+ * 날짜가 바뀌면 구분선이 들어가고, 가장 최근 글이 맨 아래에 온다.
+ * 내가 올린 글은 오른쪽, 남이 올린 글은 왼쪽. 문자와 같은 자리다.
+ */
 function allPostsCard() {
-  const posts = S.posts.filter(p => canSee(p) && p.filed !== false)
-    .sort((a, b) => (b.at || '').localeCompare(a.at || '') || b.createdAt.localeCompare(a.createdAt)).slice(0, 6);
+  const all = S.posts.filter(p => canSee(p) && p.filed !== false)
+    .sort((a, b) => (a.at || '').localeCompare(b.at || '') || (a.createdAt || '').localeCompare(b.createdAt || ''));
+  // 최근 것부터 세어 자르고, 보여 줄 때는 다시 시간 순으로 — 맨 아래가 가장 최근이다.
+  const posts = all.slice(Math.max(0, all.length - ui.postsShown));
   const me = member(ui.viewer);
+  let lastDay = '', lastWho = '';
+  const rows = posts.map(p => {
+    const day = p.at || (p.createdAt || '').slice(0, 10);
+    const sep = day !== lastDay ? `<p class="chat-day"><span>${esc(dayLabel(day))}</span></p>` : '';
+    const sameWho = day === lastDay && p.memberId === lastWho;   // 문자처럼, 이어지는 글은 이름을 되풀이하지 않는다
+    lastDay = day; lastWho = p.memberId;
+    const m = member(p.memberId);
+    const mine = p.memberId === ui.viewer;
+    const postedOn = (p.createdAt || '').slice(0, 10);
+    return `${sep}<article class="chat-row${mine ? ' mine' : ''}${sameWho ? ' tight' : ''}" style="--c:${m?.color || '#FF8FB8'}">
+      <span class="chat-face">${sameWho ? '' : face(m)}</span>
+      <div class="chat-b">
+        ${sameWho ? '' : `<p class="chat-who"><button type="button" class="link-ev" data-action="go-floor" data-floor="${m?.floor || 1}">${esc(memberName(p.memberId))}</button>${p.createdBy && p.createdBy !== p.memberId ? `<small> · ${esc(memberName(p.createdBy))} 씀</small>` : ''}${srcTag(p)}</p>`}
+        <div class="bubble">${postPhotoHTML(p)}${p.text ? `<p>${linkify(p.text)}</p>` : ''}</div>
+        <div class="chat-meta"><time>${esc(stampTime(p.createdAt))}</time>${postedOn && postedOn !== day ? `<span>${esc(D.fmtDate(postedOn, { wd: false }))}에 올림</span>` : ''}${p.editedAt ? '<span>수정됨</span>' : ''}${p.visibility === 'private' ? '<span>🔒</span>' : ''}${originLink(p)}
+          ${reactionRowHTML(p, true)}${commentToggleHTML(p, true)}
+          <span class="post-btns"><button type="button" class="btn-x" data-action="edit-post" data-id="${p.id}">고치기</button><button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">✕</button></span></div>
+        ${postCommentsHTML(p)}
+      </div>
+    </article>`;
+  }).join('');
   return `<section class="card o-7"><header class="card-h"><h2>짧은 글 · 사진</h2>
       <button type="button" class="btn-p btn-sm" data-action="new-post" data-id="${ui.viewer}">+ 글 쓰기</button></header>
-    ${posts.length ? `<ul class="posts">${posts.map(p => `<li class="post">
-        ${postPhotoHTML(p)}
-        <p>${linkify(p.text)}</p>
-        <footer><span>${face(member(p.memberId))} <button type="button" class="link-ev" data-action="go-floor" data-floor="${member(p.memberId)?.floor || 1}">${esc(memberName(p.memberId))}의 방</button> · <b>${esc(D.fmtDate(p.at || (p.createdAt || '').slice(0, 10)))}</b>${originLink(p)} · ${esc(memberName(p.createdBy))} 씀${p.editedAt ? ' · 수정됨' : ''}${p.visibility === 'private' ? ' · 🔒' : ''}</span>${srcTag(p)}<span class="post-btns"><button type="button" class="btn-x" data-action="edit-post" data-id="${p.id}">고치기</button><button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">삭제</button></span></footer>
-        ${postFootHTML(p)}
-      </li>`).join('')}</ul>` : empty('📷', `아직 남긴 글이나 사진이 없어요.`, `<button type="button" class="btn-s" data-action="new-post" data-id="${ui.viewer}">${esc(me?.displayName || '나')}의 방에 글 쓰기</button>`)}
+    ${posts.length ? `<div class="chat">
+      ${all.length > posts.length ? `<button type="button" class="chat-more" data-action="posts-more">↑ 이전 글 ${all.length - posts.length}개 더 보기</button>` : ''}
+      ${rows}
+    </div>` : empty('📷', `아직 남긴 글이나 사진이 없어요.`, `<button type="button" class="btn-s" data-action="new-post" data-id="${ui.viewer}">${esc(me?.displayName || '나')}의 방에 글 쓰기</button>`)}
   </section>`;
 }
 
@@ -2427,6 +2498,12 @@ const ACTIONS = {
     if (!confirm('이 댓글을 지울까요?')) return;
     S.postComments = (S.postComments || []).filter(c => c.id !== b.dataset.id);
     persist(); renderAll();
+  },
+  'posts-more': () => { ui.postsShown += 12; renderAll(); },
+  'rx-open': b => {
+    const id = b.dataset.id;
+    if (ui.openRx.has(id)) ui.openRx.delete(id); else ui.openRx.add(id);
+    renderAll();
   },
   'toggle-comments': b => {
     const id = b.dataset.id;
