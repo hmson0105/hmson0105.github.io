@@ -1201,3 +1201,9 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
   .chat-meta .pc-toggle { min-height: 30px; padding: 2px 5px; }
   .chat-meta .post-btns .btn-x { padding: 2px 5px; }
 }
+
+/* 사진은 글 안에 없다 — 보관소에서 찾아 끼우는 동안 자리만 잡아 둔다.
+   자리를 안 잡아 두면 사진이 끼워질 때 글이 아래로 밀려 읽던 줄을 놓친다. */
+.post-photo.ph-wait { display: block; min-height: 110px; border-radius: 10px;
+  background: var(--pink-xl) repeating-linear-gradient(45deg, transparent 0 10px, rgba(255,255,255,.6) 10px 20px); }
+.post-photo.ph-wait img { display: none; }

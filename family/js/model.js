@@ -383,6 +383,8 @@ export function migrate(S) {
       x.at = typeof x.createdAt === 'string' && x.createdAt.length >= 10 ? x.createdAt.slice(0, 10) : todayISO;
     }
     if (typeof x.url !== 'string') x.url = '';
+    // 사진은 글 안에 담지 않고 보관소에 두고, 여기엔 그 이름만 남긴다(js/photos.js).
+    if (typeof x.photoId !== 'string' || !ID_OK.test(x.photoId)) x.photoId = null;
     if (x.tripId === undefined) x.tripId = null;
     if (typeof x.filed !== 'boolean') x.filed = true;
   }

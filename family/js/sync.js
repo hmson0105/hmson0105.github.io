@@ -5,7 +5,8 @@
 //  - 다른 기기의 변경은 실시간(Realtime)으로 받아 바로 반영한다.
 //  - 오프라인이면 올리지 못한 변경을 남겨 두었다가 다시 연결되면 올린다.
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=10';
-import { clean, ID_OK, absorb } from './model.js?v=12';
+import { clean, ID_OK, absorb } from './model.js?v=13';
+import * as PH from './photos.js?v=1';
 
 const COLLECTIONS = ['events', 'issues', 'trips', 'tripComments', 'boardItems', 'places', 'recurrenceRules', 'sources', 'posts', 'postComments', 'postReactions', 'guestbook', 'members', 'activity', 'praise', 'prizes'];
 // 이 버전이 다룰 줄 아는 종류. 모르는 종류는 읽지도, 지우지도 않는다(아래 설명).
@@ -139,6 +140,7 @@ export function createSync({ getState, onRemote, onStatus, onPeer }) {
         for (const r of part) synced[r.key] = r.j;
         writeJSON(SYNCED_KEY, synced);
       }
+      await flushPhotos();
       st.pending = 0; st.error = null; st.lastSyncAt = new Date().toISOString();
       if (st.state !== 'connected') st.state = 'connected';
     } catch (e) {
@@ -150,6 +152,22 @@ export function createSync({ getState, onRemote, onStatus, onPeer }) {
       if (again) { again = false; schedule(); }
     }
   }
+  /**
+   * 아직 못 올린 사진을 올린다.
+   * 사진은 기록과 다른 표(family_photos)에 있다 — 기기마다 통째로 내려받지 않게 하려고 그랬다.
+   * 그래서 바뀐 것 비교(dirtyItems)에 끼지 않고, 여기서 따로 올린다.
+   */
+  async function flushPhotos() {
+    if (!family) return;
+    for (const id of PH.pending()) {
+      const src = await PH.local(id);
+      if (!src) { PH.markSent(id); continue; }   // 이 기기에서 사라졌으면 올릴 것도 없다
+      const { error } = await sb.from('family_photos').upsert({ family_id: family.id, id, src }, { onConflict: 'family_id,id' });
+      if (error) return;                          // 다음 기회에 다시
+      PH.markSent(id);
+    }
+  }
+
   function schedule() {
     if (!family) return;
     clearTimeout(pushTimer);
@@ -234,6 +252,12 @@ export function createSync({ getState, onRemote, onStatus, onPeer }) {
       if (!mem.length) { family = null; membership = null; st.state = 'no-family'; emit(); return; }
       membership = { member_id: mem[0].member_id, isAdmin: mem[0].families.created_by === user.id };
       family = mem[0].families;
+      // 사진 보관소에 '서버에서 한 장 읽어 오는 길'을 꽂아 준다.
+      PH.setFetcher(async id => {
+        const { data, error } = await sb.from('family_photos').select('src').eq('family_id', family.id).eq('id', id).maybeSingle();
+        if (error) throw error;
+        return data?.src || null;
+      });
       const saved = readJSON(FAMILY_KEY, null);
       const first = !saved || saved.id !== family.id;
       if (first) { synced = {}; localStorage.removeItem(PULL_KEY); writeJSON(FAMILY_KEY, { id: family.id }); }
@@ -288,6 +312,20 @@ export function createSync({ getState, onRemote, onStatus, onPeer }) {
       } catch { st.state = 'error'; st.error = '동기화 도구를 불러오지 못했어요(인터넷 연결 확인).'; emit(); }
     },
     changed() { if (family) schedule(); },
+    /** 사진 한 장을 서버에 올린다(연결이 없으면 목록에 남겨 두고 나중에). */
+    async sendPhoto(id) {
+      PH.markPending(id);
+      if (!family || !sb) return false;
+      try { await flushPhotos(); return !PH.pending().includes(id); } catch { return false; }
+    },
+    /** 사진 한 장을 서버에서 지운다(글을 지울 때). */
+    async dropPhoto(id) {
+      PH.markSent(id);
+      await PH.forget(id);
+      if (!family || !sb) return false;
+      const { error } = await sb.from('family_photos').delete().eq('family_id', family.id).eq('id', id);
+      return !error;
+    },
     /** 이 기기의 푸시 구독을 서버에 올린다(내 것만 읽고 쓸 수 있게 RLS 로 막혀 있다). */
     async savePush(sub, memberId) {
       if (!sb || !user || !family || !sub?.endpoint) return false;

@@ -1,11 +1,12 @@
 // 우리집 미니월드 — 가족 캘린더 + 층별 미니룸
 import * as D from './dates.js?v=6';
-import * as M from './model.js?v=12';
+import * as M from './model.js?v=13';
+import * as PH from './photos.js?v=1';
 import * as L from './lunar.js?v=1';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=7';
 import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS, WALL_SPOTS } from './scene.js?v=16';
-import { createSync, syncConfigured } from './sync.js?v=20';
+import { createSync, syncConfigured } from './sync.js?v=21';
 import { parseKakao } from './kakao.js?v=4';
 import * as N from './notify.js?v=2';
 import { APP_URL, PUSH_PUBLIC_KEY } from './config.js?v=12';
@@ -137,6 +138,7 @@ const connected = () => !!(ui.sync && ui.sync.family);
 const sync = createSync({
   getState: () => S,
   onRemote() {
+    movePhotosOut();
     fromRemote = true;
     try { persist(); } finally { fromRemote = false; }
     if (!$('#dlg').open && !ui.elevating) renderAll(); else renderHeader();
@@ -150,6 +152,7 @@ const sync = createSync({
     ui.sync = st;
     if (st.membership && ui.viewer !== st.membership.member_id) { ui.viewer = st.membership.member_id; savePref('viewer', ui.viewer); }
     if (firstConnect) {
+      movePhotosOut();   // 예전 글이 품고 있던 사진을 보관소로 옮긴다(연결됐을 때만)
       const hasDemo = S.events.some(e => e.sourceId === 'src_demo') || S.issues.some(i => i.sourceId === 'src_demo');
       if (hasDemo) { M.stripDemo(S); fromRemote = true; try { persist(); } finally { fromRemote = false; } }
       renderAll();
@@ -507,11 +510,79 @@ function statusCard(m) {
 }
 
 /** 글 안의 사진 — 잘리지 않게 통째로 보여 주고, 누르면 크게 */
+/**
+ * 글에 사진을 붙인다.
+ *
+ * 사진을 글 안에 담지 않는다. 기록은 모두 브라우저 저장칸 하나(약 5MB)에 함께 들어가는데,
+ * 사진 한 장이 나머지 기록 전부보다 크다. 같이 두면 수십 장에서 저장이 막힌다.
+ * 그래서 사진은 보관소(IndexedDB + 서버의 사진 표)에 두고, 글에는 이름만 남긴다.
+ */
+function attachPhoto(post, src) {
+  const id = `ph_${post.id}`;
+  post.photoId = id;
+  post.photo = null;
+  PH.markPending(id);     // 올릴 것으로 먼저 적어 둔다
+  PH.keep(id, src);       // 이 기기에 둔다(못 두면 이번 화면은 머릿속에 든 것으로 버틴다)
+  sync?.sendPhoto?.(id);  // 연결돼 있으면 바로 올리고, 아니면 다음 기회에
+  return id;
+}
+/** 글에서 사진을 뗀다(글을 지우거나 '사진 빼기'를 눌렀을 때). */
+function detachPhoto(post) {
+  const id = post.photoId;
+  post.photoId = null;
+  post.photo = null;
+  if (id) sync?.dropPhoto?.(id);
+}
+
 function postPhotoHTML(post) {
-  if (!post.photo) return '';
+  const pid = post.photoId;
+  if (!pid && !post.photo) return '';
   const who = memberName(post.memberId);
-  return `<button type="button" class="post-photo" data-action="view-photo" data-id="${post.id}"
-    aria-label="${esc(who)}의 사진 크게 보기"><img src="${esc(post.photo)}" alt="${esc(who)}의 사진" draggable="false"></button>`;
+  // 사진이 글 안에 없으니 자리만 잡아 두고, 그린 뒤에 보관소에서 찾아 끼운다(fillPhotos).
+  const src = post.photo || PH.peek(pid) || '';
+  return `<button type="button" class="post-photo${src ? '' : ' ph-wait'}" data-action="view-photo" data-id="${post.id}"
+    aria-label="${esc(who)}의 사진 크게 보기"><img ${src ? `src="${esc(src)}"` : `data-ph="${esc(pid)}"`} alt="${esc(who)}의 사진" draggable="false"></button>`;
+}
+
+/** 자리만 잡아 둔 사진을 보관소에서 찾아 끼운다. 없는 건 조용히 둔다. */
+async function fillPhotos() {
+  for (const img of $$('img[data-ph]')) {
+    const id = img.dataset.ph;
+    const src = await PH.get(id);
+    if (!src || !img.isConnected) continue;
+    img.src = src;
+    img.removeAttribute('data-ph');
+    img.closest('.post-photo')?.classList.remove('ph-wait');
+  }
+}
+
+/**
+ * 예전 글은 사진을 제 안에 품고 있다. 한 장씩 보관소로 옮긴다.
+ *
+ * 옮겼다고 글 안의 사진을 바로 지우지 않는다 — 서버에 올라간 것을 확인한 다음에 지운다.
+ * 확인 전에 지우면, 올리기가 실패했을 때 사진이 글에서도 보관소에서도 사라질 수 있다.
+ */
+let movingPhotos = false;
+async function movePhotosOut() {
+  if (movingPhotos) return;
+  const olds = S.posts.filter(x => typeof x.photo === 'string' && x.photo.startsWith('data:'));
+  if (!olds.length) return;
+  movingPhotos = true;
+  try {
+    for (const x of olds) {
+      const id = x.photoId || `ph_${x.id}`;
+      x.photoId = id;
+      PH.markPending(id);
+      await PH.keep(id, x.photo);
+    }
+    persist();                      // 이름(photoId)을 먼저 적어 둔다
+    if (!connected()) return;       // 연결되면 그때 마저 옮긴다
+    for (const x of olds) { try { await sync.sendPhoto(x.photoId); } catch { /* 다음 기회에 */ } }
+    const left = new Set(PH.pending());
+    let moved = 0;
+    for (const x of olds) if (!left.has(x.photoId)) { x.photo = null; moved++; }
+    if (moved) { persist(); renderAll(); }
+  } finally { movingPhotos = false; }
 }
 // ───────────────────── 💬 글 댓글 · 공감 ─────────────────────
 const commentsOn = id => (S.postComments || []).filter(c => c.postId === id && canSee(c))
@@ -617,13 +688,15 @@ function editPostComment(id) {
   });
 }
 
-function viewPhoto(id) {
+async function viewPhoto(id) {
   const post = S.posts.find(x => x.id === id);
-  if (!post?.photo || !canSee(post)) return;
+  if (!post || !canSee(post)) return;
+  const src = post.photo || await PH.get(post.photoId);
+  if (!src) { toast('사진을 불러오지 못했어요. 연결을 확인해 주세요.', 'err'); return; }
   openDialog({
     title: `${esc(memberName(post.memberId))}의 사진`,
     cls: 'dlg-photo',
-    body: `<img class="photo-big" src="${esc(post.photo)}" alt="${esc(memberName(post.memberId))}의 사진">
+    body: `<img class="photo-big" src="${esc(src)}" alt="${esc(memberName(post.memberId))}의 사진">
       ${post.text ? `<p class="photo-cap">${esc(post.text)}</p>` : ''}
       <p class="photo-meta">${D.fmtStamp(post.createdAt)} · ${esc(memberName(post.createdBy))} 씀</p>`,
     actions: '<span class="sp"></span><button type="button" class="btn-p" data-close>닫기</button>',
@@ -690,15 +763,20 @@ async function importPhotos(files) {
       const photo = await resizeImage(f, 480);
       // 사진의 시각은 '그 자리의 시각'이다. UTC 로 바꾸면 새벽에 찍은 게 전날로 밀린다.
       const at = f.lastModified ? localDay(new Date(f.lastModified)) : D.today();
-      S.posts.push({
-        id: M.newId('po'), memberId: ui.viewer, text: '', photo, at, url: '', tripId: null, filed: false,
+      const post = {
+        id: M.newId('po'), memberId: ui.viewer, text: '', photo: null, photoId: null, at, url: '', tripId: null, filed: false,
         createdAt: new Date().toISOString(), createdBy: ui.viewer, visibility: 'family', sourceId: 'src_manual',
-      });
+      };
+      attachPhoto(post, photo);
+      S.posts.push(post);
       ok++;
     } catch { /* 한 장을 못 읽어도 나머지는 넣는다 */ }
   }
   if (!ok) { toast('사진을 읽지 못했어요.', 'err'); return; }
-  if (!persist()) { S.posts.length = mark; renderAll(); toast('저장 공간이 모자라요. 몇 장씩 나눠 넣어 주세요.', 'err'); return; }
+  if (!persist()) {
+    for (const x of S.posts.slice(mark)) detachPhoto(x);
+    S.posts.length = mark; renderAll(); toast('저장 공간이 모자라요. 몇 장씩 나눠 넣어 주세요.', 'err'); return;
+  }
   renderAll();
   toast(`미분류함에 ${ok}장 넣었어요. 정리는 나중에 해도 돼요.`);
 }
@@ -1944,14 +2022,15 @@ async function resizeImage(file, max = 480) {
   return webp.startsWith('data:image/webp') ? webp : c.toDataURL('image/jpeg', 0.72);
 }
 function postDialog(m, post = null) {
-  let photo = post?.photo || null;
+  let photo = null;                 // 이번에 새로 고른 사진(없으면 건드리지 않는다)
   let dropPhoto = false;
+  const had = !!(post && (post.photoId || post.photo));
   const body = `
     <label class="fld"><span>짧은 글</span><textarea name="text" rows="3" maxlength="140" required placeholder="오늘 있었던 일을 한두 줄로">${esc(post?.text || '')}</textarea></label>
     <label class="fld"><span>언제 있었던 일 <small>(올린 날이 아니라 그 일이 있던 날)</small></span><input type="date" name="at" required value="${post?.at || D.today()}"></label>
     <label class="fld"><span>사진 <small>(선택 · 작게 줄여 저장)</small></span><input type="file" name="photo" accept="image/*"></label>
-    <img class="photo-prev" alt="" ${post?.photo ? `src="${esc(post.photo)}"` : 'hidden'}>
-    ${post?.photo ? '<label class="fld fld-check"><input type="checkbox" name="nophoto"><span>사진 빼기</span></label>' : ''}
+    <img class="photo-prev" alt="" ${had ? (post.photo ? `src="${esc(post.photo)}"` : `data-ph="${esc(post.photoId)}"`) : 'hidden'}>
+    ${had ? '<label class="fld fld-check"><input type="checkbox" name="nophoto"><span>사진 빼기</span></label>' : ''}
     <label class="fld"><span>원본이 있는 곳 <small>(선택 · 공유 앨범 주소 등)</small></span><input name="url" type="url" maxlength="400" inputmode="url" placeholder="https://…" value="${esc(post?.url || '')}"></label>
     <p class="muted small">📷 여기 담기는 건 <b>작게 줄인 미리보기</b>예요. 원본은 휴대폰에 두고, 모아 둔 앨범 주소를 적어 두면 나중에 한 번에 찾을 수 있어요.</p>
     <p class="muted small">🔗 글 안에 http 로 시작하는 주소를 적으면 눌러서 열 수 있는 링크가 돼요.</p>
@@ -1972,6 +2051,9 @@ function postDialog(m, post = null) {
         const prev = f.querySelector('.photo-prev');
         prev.hidden = dropPhoto;
       });
+      // 고칠 때 띄우는 미리보기도 보관소에서 찾아 끼운다
+      const prev = f.querySelector('.photo-prev[data-ph]');
+      if (prev) PH.get(prev.dataset.ph).then(src => { if (src) { prev.src = src; prev.hidden = false; prev.removeAttribute('data-ph'); } });
       f.text.focus();
       f.text.setSelectionRange(f.text.value.length, f.text.value.length);
     },
@@ -1979,9 +2061,10 @@ function postDialog(m, post = null) {
       const text = f.text.value.trim();
       if (!text) return '글을 적어 주세요.';
       if (post) {
-        const before = { text: post.text, photo: post.photo, visibility: post.visibility, at: post.at, url: post.url };
+        const before = { text: post.text, photo: post.photo, photoId: post.photoId, visibility: post.visibility, at: post.at, url: post.url };
         post.text = text;
-        post.photo = dropPhoto ? null : photo;
+        if (dropPhoto) detachPhoto(post);
+        else if (photo) attachPhoto(post, photo);
         post.at = f.at.value || post.at;
         post.url = f.url.value.trim().slice(0, 400);
         post.visibility = f.visibility.value;
@@ -1990,11 +2073,12 @@ function postDialog(m, post = null) {
         renderAll(); toast('글을 고쳤어요.');
         return true;
       }
-      const p = { id: M.newId('po'), memberId: m.id, text, photo: dropPhoto ? null : photo,
+      const p = { id: M.newId('po'), memberId: m.id, text, photo: null, photoId: null,
         at: f.at.value || D.today(), url: f.url.value.trim().slice(0, 400), tripId: null, filed: true,
         createdAt: new Date().toISOString(), createdBy: ui.viewer, visibility: f.visibility.value, sourceId: 'src_manual' };
+      if (photo) attachPhoto(p, photo);
       S.posts.push(p);
-      if (!persist()) { S.posts.pop(); renderAll(); return '저장하지 못했어요. 사진이 너무 크면 빼고 올려 주세요.'; }
+      if (!persist()) { S.posts.pop(); if (p.photoId) detachPhoto(p); renderAll(); return '저장하지 못했어요.'; }
       renderAll(); toast('글을 올렸어요.');
       return true;
     },
@@ -2442,7 +2526,7 @@ function setupFolds() {
     head.appendChild(b);
   });
 }
-function renderAll() { renderHeader(); renderBanner(); renderView(); }
+function renderAll() { renderHeader(); renderBanner(); renderView(); fillPhotos(); }
 
 let toastT;
 function toast(msg, kind = '') {
@@ -2529,6 +2613,8 @@ const ACTIONS = {
   'del-post': b => {
     if (!confirm('이 글을 삭제할까요?\n\n달린 댓글과 공감도 함께 지워져요.')) return;
     const id = b.dataset.id;
+    const gone = S.posts.find(p => p.id === id);
+    if (gone) detachPhoto(gone);
     S.posts = S.posts.filter(p => p.id !== id);
     S.postComments = (S.postComments || []).filter(c => c.postId !== id);
     S.postReactions = (S.postReactions || []).filter(x => x.postId !== id);
