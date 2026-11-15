@@ -323,6 +323,10 @@ main { position: relative; z-index: 1; max-width: 1480px; margin: 0 auto; paddin
 .gb-list li { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: start; padding: 8px 10px; border-radius: 14px; background: var(--pink-xl); border-left: 4px solid var(--c); }
 .gb-list p { margin: 0; font-size: 15px; }
 .gb-list small { color: var(--ink-3); font-size: 12px; }
+/* 쓴 사람 이름은 그 사람 색으로 — 본문과 같은 색이면 이름과 내용이 한 덩어리로 읽힌다.
+   사람 색을 그대로 쓰면 글자로는 옅으니, 읽히도록 조금 어둡게 섞는다.
+   color-mix 를 모르는 옛 브라우저는 윗줄(사람 색 그대로)을 쓴다. */
+.gb-list p b { margin-right: 3px; color: var(--c); color: color-mix(in srgb, var(--c) 65%, #2B1B27); }
 
 /* ── 캘린더 ── */
 .cal-top { display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap; }
