@@ -8,7 +8,10 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=10';
 import { clean, ID_OK, absorb } from './model.js?v=12';
 
 const COLLECTIONS = ['events', 'issues', 'trips', 'tripComments', 'boardItems', 'places', 'recurrenceRules', 'sources', 'posts', 'postComments', 'postReactions', 'guestbook', 'members', 'activity', 'praise', 'prizes'];
+// 이 버전이 다룰 줄 아는 종류. 모르는 종류는 읽지도, 지우지도 않는다(아래 설명).
+const KNOWN = new Set([...COLLECTIONS, 'family', 'sync']);
 const SYNCED_KEY = 'family-home:synced2';
+const KINDS_KEY = 'family-home:kinds';
 const OLD_SYNCED_KEY = 'family-home:synced';
 const PULL_KEY = 'family-home:pulledAt';
 const FAMILY_KEY = 'family-home:family';
@@ -35,6 +38,18 @@ function stable(v) {
   if (Array.isArray(v)) return `[${v.map(stable).join(',')}]`;
   return `{${Object.keys(v).sort().map(k => `${JSON.stringify(k)}:${stable(v[k])}`).join(',')}}`;
 }
+
+/*
+ * 새 종류(칭찬 스티커처럼)가 생긴 뒤 첫 실행이면 서버를 처음부터 다시 읽는다.
+ * 모르던 종류의 줄은 그동안 건너뛰었으니, '언제 이후'만 받으면 영원히 못 본다.
+ */
+try {
+  const sig = [...KNOWN].sort().join(',');
+  if (localStorage.getItem(KINDS_KEY) !== sig) {
+    localStorage.removeItem(PULL_KEY);
+    localStorage.setItem(KINDS_KEY, sig);
+  }
+} catch { /* 저장소를 못 쓰는 브라우저 */ }
 
 // 비교 방식이 바뀌었으니 예전 기록은 버린다. 비운 채로 다시 연결하면
 // '서버에 있는 건 서버를 따르고, 이 기기에만 있는 건 올린다'가 되어 안전하다.
@@ -103,6 +118,7 @@ export function createSync({ getState, onRemote, onStatus, onPeer }) {
     for (const k of Object.keys(synced)) {
       if (!snap[k] && synced[k] !== null) {
         const [kind, ...rest] = k.split(':');
+        if (!KNOWN.has(kind)) continue;   // 모르는 종류는 '내게 없다'가 아니라 '내가 모른다'다
         rows.push({ key: k, row: { family_id: family.id, kind, id: rest.join(':'), data: null, deleted: true }, j: null });
       }
     }
@@ -150,6 +166,13 @@ export function createSync({ getState, onRemote, onStatus, onPeer }) {
     for (const r of rows) {
       // 서버에서 온 값도 그대로 믿지 않는다: 형식이 맞는 것만 받고, 내용은 clean() 으로 정리한다.
       if (!r || typeof r.kind !== 'string' || typeof r.id !== 'string' || !ID_OK.test(r.id)) continue;
+      /*
+       * 이 버전이 모르는 종류는 아예 손대지 않는다 — 맞춘 기록(synced)에도 남기지 않는다.
+       * 남기면 '서버엔 있는데 내 상태엔 없는 것'이 되어, 다음에 올릴 때 지움으로 올라간다.
+       * 11월 15일 21시에 글 댓글·공감 줄이 그렇게 지워졌다. 새 기능이 깔린 기기가 만든 줄을,
+       * 아직 옛 버전을 돌리던 기기가 '내겐 없는 것'으로 보고 지운 것이다.
+       */
+      if (!KNOWN.has(r.kind)) continue;
       if (!r.deleted) {
         if (!r.data || typeof r.data !== 'object' || Array.isArray(r.data)) continue;
         clean(r.data);
