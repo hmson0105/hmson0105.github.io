@@ -5,7 +5,7 @@
 //  - 다른 기기의 변경은 실시간(Realtime)으로 받아 바로 반영한다.
 //  - 오프라인이면 올리지 못한 변경을 남겨 두었다가 다시 연결되면 올린다.
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=10';
-import { clean, ID_OK, absorb } from './model.js?v=13';
+import { clean, ID_OK, absorb } from './model.js?v=14';
 import * as PH from './photos.js?v=1';
 
 const COLLECTIONS = ['events', 'issues', 'trips', 'tripComments', 'boardItems', 'places', 'recurrenceRules', 'sources', 'posts', 'postComments', 'postReactions', 'guestbook', 'members', 'activity', 'praise', 'prizes'];

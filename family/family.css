@@ -1207,3 +1207,12 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 .post-photo.ph-wait { display: block; min-height: 110px; border-radius: 10px;
   background: var(--pink-xl) repeating-linear-gradient(45deg, transparent 0 10px, rgba(255,255,255,.6) 10px 20px); }
 .post-photo.ph-wait img { display: none; }
+
+/* 📍 자리표 — 원본이 어디 있는지 */
+.fld-trace { display: grid; gap: 6px; }
+.trace { display: inline-flex; align-items: center; gap: 4px; max-width: 100%;
+  padding: 1px 7px; border-radius: 99px; background: var(--sky); color: #2B5876; font-size: 11.5px; }
+.trace .ln { color: #2B5876; white-space: nowrap; }   /* '원본 열기' 가 줄을 넘어 쪼개지지 않게 */
+.chat-meta .trace { font-size: 11px; }
+.post footer .trace { font-size: 12px; }
+.inbox-row select[data-change="inbox-where"] { min-width: 0; }

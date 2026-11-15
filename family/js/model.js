@@ -21,7 +21,7 @@ export const SCHEMA_VERSION = 1;
 //  - 사람이 쓴 글(FREE_TEXT)은 그대로 두고, 화면에 넣을 때 esc() 로 처리한다.
 //  - 그 밖의 값(id·날짜·시간·종류 …)에서는 HTML·속성을 깨뜨릴 수 있는 문자를 지운다.
 //  - 사진은 기기에서 만든 data:image 만, 색은 #hex 만 받는다.
-const FREE_TEXT = new Set(['title', 'memo', 'text', 'name', 'displayName', 'roleLabel', 'label', 'bgm', 'destination', 'changes', 'reason', 'prize',
+const FREE_TEXT = new Set(['title', 'memo', 'text', 'hint', 'name', 'displayName', 'roleLabel', 'label', 'bgm', 'destination', 'changes', 'reason', 'prize',
   'place', 'location', 'qty', 'raw', 'line', 'url', 'lastImportFile', 'externalUid', 'uid', 'email', 'summary', 'description']);
 const BAD_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 const UNSAFE = /[<>"'`&\\\u0000-\u001f\u007f]/;
@@ -70,6 +70,23 @@ export function absorb(list, incoming) {
 }
 
 export const newId = p => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+
+/**
+ * 원본이 있는 곳 — '자리표'.
+ *
+ * 이 앱에 담기는 사진은 작게 줄인 미리보기다. 원본은 각자의 사진첩·클라우드에 그대로 있다.
+ * 그래서 기록마다 '원본이 어디 있고, 어떤 단서로 찾는지'를 적어 둔다.
+ * 사진 10만 장에서 찾는 일과, '속초 앨범 2026-05-04 오후'를 펴는 일은 다른 일이다.
+ */
+export const TRACE_WHERE = [
+  { k: 'iphone', l: '아이폰 사진첩' },
+  { k: 'icloud', l: 'iCloud 공유앨범' },
+  { k: 'google', l: '구글포토' },
+  { k: 'kakao', l: '카톡방' },
+  { k: 'drive', l: '드라이브·클라우드' },
+  { k: 'disk', l: '외장하드·PC' },
+  { k: 'paper', l: '종이·실물' },
+];
 
 /** 글에 남기는 공감 — 한 사람이 글마다 하나만 고른다. */
 export const REACTIONS = [
@@ -385,6 +402,12 @@ export function migrate(S) {
     if (typeof x.url !== 'string') x.url = '';
     // 사진은 글 안에 담지 않고 보관소에 두고, 여기엔 그 이름만 남긴다(js/photos.js).
     if (typeof x.photoId !== 'string' || !ID_OK.test(x.photoId)) x.photoId = null;
+    // 자리표 — 비어 있으면 아예 두지 않는다(빈 칸도 기기마다 실어 나르는 짐이다).
+    const t = x.trace && typeof x.trace === 'object' && !Array.isArray(x.trace) ? x.trace : {};
+    const w = TRACE_WHERE.some(o => o.k === t.where) ? t.where : '';
+    const hint = typeof t.hint === 'string' ? t.hint.slice(0, 80) : '';
+    const checked = typeof t.checked === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t.checked) ? t.checked : '';
+    x.trace = (w || hint) ? { where: w, hint, checked } : null;
     if (x.tripId === undefined) x.tripId = null;
     if (typeof x.filed !== 'boolean') x.filed = true;
   }

@@ -1,6 +1,6 @@
 // 우리집 미니월드 — 가족 캘린더 + 층별 미니룸
 import * as D from './dates.js?v=6';
-import * as M from './model.js?v=13';
+import * as M from './model.js?v=14';
 import * as PH from './photos.js?v=1';
 import * as L from './lunar.js?v=1';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
@@ -704,10 +704,18 @@ async function viewPhoto(id) {
   });
 }
 
-/** 원본이 있는 곳으로 가는 작은 링크. http(s) 가 아니면 아무것도 안 내놓는다. */
-function originLink(p) {
+/**
+ * 원본이 어디 있는지 한 줄 — 자리표.
+ * 여기 담긴 사진은 작게 줄인 미리보기뿐이다. 이 줄이 원본으로 가는 길이다.
+ * 주소는 http(s) 가 아니면 내놓지 않는다.
+ */
+function traceHTML(p) {
+  const t = p.trace || {};
+  const w = M.TRACE_WHERE.find(o => o.k === t.where);
   const u = safeUrl(p.url);
-  return u ? ` · <a class="ln" href="${u}" target="_blank" rel="noopener noreferrer">원본 앨범</a>` : '';
+  if (!w && !t.hint && !u) return '';
+  const label = [w && w.l, t.hint].filter(Boolean).map(esc).join(' · ');
+  return `<span class="trace" title="원본이 있는 곳">📍${label ? ` ${label}` : ''}${u ? ` <a class="ln" href="${u}" target="_blank" rel="noopener noreferrer">원본 열기</a>` : ''}</span>`;
 }
 
 const unfiled = () => S.posts.filter(p => p.filed === false && canSee(p))
@@ -729,12 +737,13 @@ function inboxCard() {
       <button type="button" class="btn-p btn-sm" data-action="inbox-shot">📷 사진 던져넣기</button></header>
     <p class="muted small">던져넣을 땐 <b>날짜만</b> 있으면 돼요. 한 줄 설명을 달아 두면 나중에 찾기가 훨씬 쉬워요.</p>
     <ul class="inbox">${list.map(p => `<li class="inbox-it">
-      ${p.photo ? `<button type="button" class="inbox-th" data-action="view-photo" data-id="${p.id}" aria-label="사진 크게 보기"><img src="${esc(p.photo)}" alt="" draggable="false"></button>` : '<span class="inbox-th inbox-note">📝</span>'}
+      ${p.photoId || p.photo ? `<button type="button" class="inbox-th${p.photo || PH.peek(p.photoId) ? '' : ' ph-wait'}" data-action="view-photo" data-id="${p.id}" aria-label="사진 크게 보기"><img ${p.photo || PH.peek(p.photoId) ? `src="${esc(p.photo || PH.peek(p.photoId))}"` : `data-ph="${esc(p.photoId)}"`} alt="" draggable="false"></button>` : '<span class="inbox-th inbox-note">📝</span>'}
       <div class="inbox-f">
         <input class="inbox-tx" data-change="inbox-text" data-id="${p.id}" maxlength="140" value="${esc(p.text || '')}" placeholder="한 줄 설명 (예: 유안이 첫 바다)" aria-label="설명">
         <div class="inbox-row">
           <input type="date" data-change="inbox-at" data-id="${p.id}" value="${esc(p.at || D.today())}" aria-label="언제 있었던 일">
           <select data-change="inbox-trip" data-id="${p.id}" aria-label="여행 연결">${tripOpts(p.tripId)}</select>
+          <select data-change="inbox-where" data-id="${p.id}" aria-label="원본이 있는 곳">${opt([{ k: '', l: '📍 원본 어디에?' }, ...M.TRACE_WHERE], p.trace?.where || '')}</select>
         </div>
       </div>
       <div class="inbox-b">
@@ -821,7 +830,7 @@ function allPostsCard() {
       <div class="chat-b">
         ${sameWho ? '' : `<p class="chat-who"><button type="button" class="link-ev" data-action="go-floor" data-floor="${m?.floor || 1}">${esc(memberName(p.memberId))}</button>${p.createdBy && p.createdBy !== p.memberId ? `<small> · ${esc(memberName(p.createdBy))} 씀</small>` : ''}${srcTag(p)}</p>`}
         <div class="bubble">${postPhotoHTML(p)}${p.text ? `<p>${linkify(p.text)}</p>` : ''}</div>
-        <div class="chat-meta"><time>${esc(stampTime(p.createdAt))}</time>${postedOn && postedOn !== day ? `<span>${esc(D.fmtDate(postedOn, { wd: false }))}에 올림</span>` : ''}${p.editedAt ? '<span>수정됨</span>' : ''}${p.visibility === 'private' ? '<span>🔒</span>' : ''}${originLink(p)}
+        <div class="chat-meta"><time>${esc(stampTime(p.createdAt))}</time>${postedOn && postedOn !== day ? `<span>${esc(D.fmtDate(postedOn, { wd: false }))}에 올림</span>` : ''}${p.editedAt ? '<span>수정됨</span>' : ''}${p.visibility === 'private' ? '<span>🔒</span>' : ''}${traceHTML(p)}
           ${reactionRowHTML(p, true)}${commentToggleHTML(p, true)}
           <span class="post-btns"><button type="button" class="btn-x" data-action="edit-post" data-id="${p.id}">고치기</button><button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">✕</button></span></div>
         ${commentsOn(p.id).length || ui.openComments.has(p.id)
@@ -982,7 +991,7 @@ function memberPanels(m) {
     ${posts.length ? `<ul class="posts">${posts.map(p => `<li class="post">
         ${postPhotoHTML(p)}
         <p>${linkify(p.text)}</p>
-        <footer><span>${D.fmtStamp(p.createdAt)} · ${esc(memberName(p.createdBy))} 씀${p.editedAt ? ' · 수정됨' : ''}${p.visibility === 'private' ? ' · 🔒' : ''}</span>${srcTag(p)}<span class="post-btns"><button type="button" class="btn-x" data-action="edit-post" data-id="${p.id}">고치기</button><button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">삭제</button></span></footer>
+        <footer><span>${D.fmtStamp(p.createdAt)} · ${esc(memberName(p.createdBy))} 씀${p.editedAt ? ' · 수정됨' : ''}${p.visibility === 'private' ? ' · 🔒' : ''}</span>${traceHTML(p)}${srcTag(p)}<span class="post-btns"><button type="button" class="btn-x" data-action="edit-post" data-id="${p.id}">고치기</button><button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">삭제</button></span></footer>
         ${postFootHTML(p)}
       </li>`).join('')}</ul>` : empty('📷', '아직 남긴 글이나 사진이 없어요.')}
   </section>
@@ -2021,6 +2030,13 @@ async function resizeImage(file, max = 480) {
   const webp = c.toDataURL('image/webp', 0.72);
   return webp.startsWith('data:image/webp') ? webp : c.toDataURL('image/jpeg', 0.72);
 }
+/** 글 쓰는 칸에서 자리표를 읽어 온다. 아무것도 안 적었으면 두지 않는다. */
+function readTrace(f) {
+  const where = M.TRACE_WHERE.some(o => o.k === f.where?.value) ? f.where.value : '';
+  const hint = (f.hint?.value || '').trim().slice(0, 80);
+  return (where || hint) ? { where, hint, checked: D.today() } : null;
+}
+
 function postDialog(m, post = null) {
   let photo = null;                 // 이번에 새로 고른 사진(없으면 건드리지 않는다)
   let dropPhoto = false;
@@ -2031,8 +2047,12 @@ function postDialog(m, post = null) {
     <label class="fld"><span>사진 <small>(선택 · 작게 줄여 저장)</small></span><input type="file" name="photo" accept="image/*"></label>
     <img class="photo-prev" alt="" ${had ? (post.photo ? `src="${esc(post.photo)}"` : `data-ph="${esc(post.photoId)}"`) : 'hidden'}>
     ${had ? '<label class="fld fld-check"><input type="checkbox" name="nophoto"><span>사진 빼기</span></label>' : ''}
-    <label class="fld"><span>원본이 있는 곳 <small>(선택 · 공유 앨범 주소 등)</small></span><input name="url" type="url" maxlength="400" inputmode="url" placeholder="https://…" value="${esc(post?.url || '')}"></label>
-    <p class="muted small">📷 여기 담기는 건 <b>작게 줄인 미리보기</b>예요. 원본은 휴대폰에 두고, 모아 둔 앨범 주소를 적어 두면 나중에 한 번에 찾을 수 있어요.</p>
+    <fieldset class="fld fld-trace"><legend>📍 원본은 어디에 <small>(선택)</small></legend>
+      <select name="where" aria-label="원본이 있는 곳">${opt([{ k: '', l: '안 적을래요' }, ...M.TRACE_WHERE], post?.trace?.where || '')}</select>
+      <input name="hint" maxlength="80" placeholder="찾아갈 단서 (예: 속초 앨범 · 5월 4일 오후)" value="${esc(post?.trace?.hint || '')}" aria-label="찾아갈 단서">
+      <input name="url" type="url" maxlength="400" inputmode="url" placeholder="주소가 있으면 (https://…)" value="${esc(post?.url || '')}" aria-label="원본 주소">
+    </fieldset>
+    <p class="muted small">📷 여기 담기는 건 <b>작게 줄인 미리보기</b>예요. 원본은 휴대폰에 그대로 두고, <b>어디에 뒀는지만</b> 적어 두면 나중에 한 번에 찾아갈 수 있어요.</p>
     <p class="muted small">🔗 글 안에 http 로 시작하는 주소를 적으면 눌러서 열 수 있는 링크가 돼요.</p>
     <label class="fld"><span>공개 범위</span><select name="visibility">${opt(M.VISIBILITY, post?.visibility || 'family')}</select></label>`;
   openDialog({
@@ -2061,19 +2081,20 @@ function postDialog(m, post = null) {
       const text = f.text.value.trim();
       if (!text) return '글을 적어 주세요.';
       if (post) {
-        const before = { text: post.text, photo: post.photo, photoId: post.photoId, visibility: post.visibility, at: post.at, url: post.url };
+        const before = { text: post.text, photo: post.photo, photoId: post.photoId, visibility: post.visibility, at: post.at, url: post.url, trace: post.trace };
         post.text = text;
         if (dropPhoto) detachPhoto(post);
         else if (photo) attachPhoto(post, photo);
         post.at = f.at.value || post.at;
         post.url = f.url.value.trim().slice(0, 400);
+        post.trace = readTrace(f);
         post.visibility = f.visibility.value;
         post.editedAt = new Date().toISOString();
         if (!persist()) { Object.assign(post, before); renderAll(); return '저장하지 못했어요. 사진이 너무 크면 빼고 올려 주세요.'; }
         renderAll(); toast('글을 고쳤어요.');
         return true;
       }
-      const p = { id: M.newId('po'), memberId: m.id, text, photo: null, photoId: null,
+      const p = { id: M.newId('po'), memberId: m.id, text, photo: null, photoId: null, trace: readTrace(f),
         at: f.at.value || D.today(), url: f.url.value.trim().slice(0, 400), tripId: null, filed: true,
         createdAt: new Date().toISOString(), createdBy: ui.viewer, visibility: f.visibility.value, sourceId: 'src_manual' };
       if (photo) attachPhoto(p, photo);
@@ -2780,12 +2801,16 @@ document.addEventListener('change', e => {
   if (t.id === 'viewerSel') { ui.viewer = t.value; savePref('viewer', t.value); renderAll(); toast(`${viewerName()}(으)로 보고 있어요. (로그인이 아니라 보기 전환이에요)`); return; }
   const a = t.dataset.change;
   if (a === 'toggle-issue') toggleIssue(t.dataset.id, t.checked);
-  if (a === 'inbox-text' || a === 'inbox-at' || a === 'inbox-trip') {
+  if (a === 'inbox-text' || a === 'inbox-at' || a === 'inbox-trip' || a === 'inbox-where') {
     const p = S.posts.find(x => x.id === t.dataset.id);
     if (p) {
       if (a === 'inbox-text') p.text = t.value.trim().slice(0, 140);
       if (a === 'inbox-at' && t.value) p.at = t.value;
       if (a === 'inbox-trip') p.tripId = t.value || null;
+      if (a === 'inbox-where') {
+        const where = M.TRACE_WHERE.some(o => o.k === t.value) ? t.value : '';
+        p.trace = where ? { ...(p.trace || { hint: '' }), where, checked: D.today() } : null;
+      }
       p.updatedAt = new Date().toISOString();
       persist();            // 화면은 다시 그리지 않는다 — 타이핑하던 칸이 사라지면 안 되니까
     }
