@@ -718,14 +718,16 @@ const stampTime = iso => (iso ? D.seoul(new Date(iso).getTime()).time : '');
  *
  * 전에는 가로 2칸 격자였다. 그래서 같은 줄에 어제 글과 오늘 글이 나란히 놓여,
  * 시간 순으로 읽을 수가 없었다. 이제 위에서 아래로 흐른다 —
- * 날짜가 바뀌면 구분선이 들어가고, 가장 최근 글이 맨 아래에 온다.
- * 내가 올린 글은 오른쪽, 남이 올린 글은 왼쪽. 문자와 같은 자리다.
+ * 날짜가 바뀌면 구분선이 들어가고, 가장 최근 글이 맨 위에 온다.
+ * 문자와 달리 위가 최신인 이유는, 이게 집 전체 화면에 놓인 '요약 칸'이기 때문이다.
+ * 맨 아래로 내려가야 새 글이 보이면 요약이 아니다.
+ * 내가 올린 글은 오른쪽, 남이 올린 글은 왼쪽. 그 자리는 문자와 같다.
  */
 function allPostsCard() {
+  // 최근 것이 먼저 — 맨 위가 가장 최근이다.
   const all = S.posts.filter(p => canSee(p) && p.filed !== false)
-    .sort((a, b) => (a.at || '').localeCompare(b.at || '') || (a.createdAt || '').localeCompare(b.createdAt || ''));
-  // 최근 것부터 세어 자르고, 보여 줄 때는 다시 시간 순으로 — 맨 아래가 가장 최근이다.
-  const posts = all.slice(Math.max(0, all.length - ui.postsShown));
+    .sort((a, b) => (b.at || '').localeCompare(a.at || '') || (b.createdAt || '').localeCompare(a.createdAt || ''));
+  const posts = all.slice(0, ui.postsShown);
   const me = member(ui.viewer);
   let lastDay = '', lastWho = '';
   const rows = posts.map(p => {
@@ -752,8 +754,8 @@ function allPostsCard() {
   return `<section class="card o-7"><header class="card-h"><h2>짧은 글 · 사진</h2>
       <button type="button" class="btn-p btn-sm" data-action="new-post" data-id="${ui.viewer}">+ 글 쓰기</button></header>
     ${posts.length ? `<div class="chat">
-      ${all.length > posts.length ? `<button type="button" class="chat-more" data-action="posts-more">↑ 이전 글 ${all.length - posts.length}개 더 보기</button>` : ''}
       ${rows}
+      ${all.length > posts.length ? `<button type="button" class="chat-more" data-action="posts-more">↓ 이전 글 ${all.length - posts.length}개 더 보기</button>` : ''}
     </div>` : empty('📷', `아직 남긴 글이나 사진이 없어요.`, `<button type="button" class="btn-s" data-action="new-post" data-id="${ui.viewer}">${esc(me?.displayName || '나')}의 방에 글 쓰기</button>`)}
   </section>`;
 }
