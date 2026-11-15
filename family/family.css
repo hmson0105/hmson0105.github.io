@@ -1171,8 +1171,23 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
   .chat-row:hover .post-btns, .chat-row:focus-within .post-btns { opacity: 1; }
 }
 
-.chat-b .pc-list { margin: 2px 0 0; width: 100%; }
-.chat-b .pc-form { margin-top: 2px; width: 100%; }
+/* 댓글은 그 말에 매달린다.
+   전에는 말풍선 아래에 '받은 글'과 똑같은 분홍 칸으로 놓여서, 누가 보낸 새 말처럼
+   읽혔다. 특히 내 말(오른쪽)에 달린 댓글이 왼쪽에 떠 있으면 어느 말에 달린 건지
+   알 수가 없다. 그래서 말풍선 쪽에 점선을 세워 매달고, 글씨도 한 단 낮춘다. */
+.chat-thread { width: 100%; display: grid; gap: 5px; margin-top: 4px;
+  padding-left: 13px; border-left: 2px dashed var(--line);
+  /* 줄 색을 그 말을 쓴 사람 색으로 — 어느 말에 매달렸는지 한눈에 */
+  border-color: color-mix(in srgb, var(--c) 45%, #FFFFFF); }
+.chat-row.mine .chat-thread { padding: 0 13px 0 0; border-left: 0; border-right: 2px dashed var(--line);
+  border-right-color: color-mix(in srgb, var(--c) 45%, #FFFFFF); }
+.chat-thread .pc-list { margin: 0; gap: 5px; width: 100%; }
+.chat-thread .pc-list li { padding: 0; background: none; border-left: 0; gap: 6px; align-items: start; }
+.chat-thread .pc-list .face { width: 22px; height: 22px; border-width: 2px; }
+.chat-thread .pc-list p { font-size: 13.5px; }
+.chat-thread .pc-list small { font-size: 11px; }
+.chat-thread .pc-form { margin: 0; width: 100%; }
+.chat-thread .pc-form .face { width: 22px; height: 22px; border-width: 2px; }
 
 /* 공감 고르기 단추 — 평소엔 ☺ 하나, 누르면 넷이 펼쳐진다 */
 .rx-add { border-style: dashed; color: var(--ink-3); }

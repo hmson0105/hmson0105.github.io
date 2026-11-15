@@ -551,10 +551,11 @@ function commentToggleHTML(p, compact = false) {
 }
 
 /** 댓글 목록과 쓰는 칸 (공감 줄은 빼고) */
-function postCommentsHTML(p) {
+function postCommentsHTML(p, compact = false) {
   const list = commentsOn(p.id);
   const open = ui.openComments.has(p.id);
-  const one = c => `<li style="--c:${member(c.authorId)?.color || '#FF8FB8'}">${face(member(c.authorId))}<div><p><b>${esc(memberName(c.authorId))}</b> ${linkify(c.text)}</p><small>${D.fmtStamp(c.createdAt)}${c.editedAt ? ' · 수정됨' : ''}</small></div>${c.authorId === ui.viewer ? `<span class="post-btns"><button type="button" class="btn-x" data-action="edit-pcomment" data-id="${c.id}">고치기</button><button type="button" class="btn-x" data-action="del-pcomment" data-id="${c.id}" aria-label="댓글 지우기">✕</button></span>` : ''}</li>`;
+  const when = c => (compact ? stampTime(c.createdAt) : D.fmtStamp(c.createdAt));
+  const one = c => `<li style="--c:${member(c.authorId)?.color || '#FF8FB8'}">${face(member(c.authorId))}<div><p><b>${esc(memberName(c.authorId))}</b> ${linkify(c.text)}</p><small>${esc(when(c))}${c.editedAt ? ' · 수정됨' : ''}</small></div>${c.authorId === ui.viewer ? `<span class="post-btns"><button type="button" class="btn-x" data-action="edit-pcomment" data-id="${c.id}">고치기</button><button type="button" class="btn-x" data-action="del-pcomment" data-id="${c.id}" aria-label="댓글 지우기">✕</button></span>` : ''}</li>`;
   return `${list.length ? `<ul class="gb-list pc-list">${list.map(one).join('')}</ul>` : ''}
     ${open ? `<form class="gb-form pc-form" data-submit="post-comment" data-id="${p.id}">
       <span class="gb-me">${face(member(ui.viewer))}</span>
@@ -743,7 +744,8 @@ function allPostsCard() {
         <div class="chat-meta"><time>${esc(stampTime(p.createdAt))}</time>${postedOn && postedOn !== day ? `<span>${esc(D.fmtDate(postedOn, { wd: false }))}에 올림</span>` : ''}${p.editedAt ? '<span>수정됨</span>' : ''}${p.visibility === 'private' ? '<span>🔒</span>' : ''}${originLink(p)}
           ${reactionRowHTML(p, true)}${commentToggleHTML(p, true)}
           <span class="post-btns"><button type="button" class="btn-x" data-action="edit-post" data-id="${p.id}">고치기</button><button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">✕</button></span></div>
-        ${postCommentsHTML(p)}
+        ${commentsOn(p.id).length || ui.openComments.has(p.id)
+          ? `<div class="chat-thread">${postCommentsHTML(p, true)}</div>` : ''}
       </div>
     </article>`;
   }).join('');
