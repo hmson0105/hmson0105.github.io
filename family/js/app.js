@@ -1922,13 +1922,24 @@ function statusDialog(m) {
   });
 }
 
-async function resizeImage(file, max = 560) {
+/**
+ * 여기 담기는 사진은 '미리보기'다 — 원본은 기기에 그대로 두고, 줄인 것만 품는다.
+ *
+ * 크기가 왜 중요하냐면, 이 앱의 모든 기록은 브라우저 저장칸(약 5MB) 하나에 함께 들어간다.
+ * 2026-11-15 에 재 보니 사진 두 장이 전체 데이터의 91% 였고, 한 장이 171kB 였다.
+ * 그대로 두면 서른 장쯤에서 저장이 막힌다.
+ *
+ * webp 는 같은 화질에서 jpeg 보다 2.5배쯤 작다. 못 만드는 브라우저면 jpeg 로 돌아간다
+ * (그런 브라우저에서 toDataURL 은 webp 를 청하면 png 를 돌려주는데, png 는 훨씬 크다).
+ */
+async function resizeImage(file, max = 480) {
   const bmp = await createImageBitmap(file);
   const r = Math.min(1, max / Math.max(bmp.width, bmp.height));
   const c = document.createElement('canvas');
   c.width = Math.round(bmp.width * r); c.height = Math.round(bmp.height * r);
   c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
-  return c.toDataURL('image/jpeg', 0.78);
+  const webp = c.toDataURL('image/webp', 0.72);
+  return webp.startsWith('data:image/webp') ? webp : c.toDataURL('image/jpeg', 0.72);
 }
 function postDialog(m, post = null) {
   let photo = post?.photo || null;
