@@ -4,9 +4,9 @@
 //   mode=due   : 곧 시작하는 일정을 그 일정에 엮인 가족에게. pg_cron 이 5분마다 부른다.
 //   mode=item  : 가족이 뭔가 올렸을 때 나머지 가족에게. family_items 트리거가 pg_net 으로 부른다.
 //
-// 비밀값(함수 쪽에만 둔다. 저장소·브라우저에 절대 넣지 않는다):
-//   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, PUSH_SECRET
-// PUSH_SECRET 은 x-push-secret 헤더로 받아 데이터베이스에서 온 호출만 받아들인다.
+// 비밀값은 데이터베이스 Vault 에 있다(저장소·브라우저에 절대 넣지 않는다):
+//   vapid_public, vapid_private, push_secret  ← public.push_vault_get() 으로 읽는다
+// push_secret 은 x-push-secret 헤더로 받아 데이터베이스에서 온 호출만 받아들인다.
 //
 // 푸시 본문에는 제목 정도만 담는다 — 브라우저 업체 서버를 거쳐 가고 잠금 화면에도 뜬다.
 
@@ -22,7 +22,21 @@ const admin = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY')
   auth: { persistSession: false },
 });
 
-webpush.setVapidDetails(env('VAPID_SUBJECT') || 'mailto:family@example.com', env('VAPID_PUBLIC_KEY'), env('VAPID_PRIVATE_KEY'));
+// 서명 키와 호출 비밀번호는 Vault 에서 읽는다 — 환경변수가 아니다.
+// (2026-11-17: 저장소 파일이 환경변수를 읽는 옛 모양이라 그대로 올렸다가 함수가 죽었다.
+//  실제로 돌던 건 Vault 를 읽는 쪽이었다. 저장소를 실제 배포본에 맞춰 둔다.)
+const vault = async (name: string) => {
+  const { data } = await admin.rpc('push_vault_get', { p_name: name });
+  return typeof data === 'string' ? data : '';
+};
+const VAPID_PUBLIC = await vault('vapid_public');
+const VAPID_PRIVATE = await vault('vapid_private');
+const PUSH_SECRET = await vault('push_secret');
+if (VAPID_PUBLIC && VAPID_PRIVATE) {
+  webpush.setVapidDetails(env('VAPID_SUBJECT') || 'mailto:family@example.com', VAPID_PUBLIC, VAPID_PRIVATE);
+} else {
+  console.error('vapid keys missing');   // 죽지는 않는다 — 요청마다 오류로 답한다
+}
 
 // ───────── 서울 시각 ─────────
 function seoulParts(ms = Date.now()) {
@@ -147,13 +161,23 @@ async function sendDue() {
       if (startMin < lo || startMin >= hi) continue;               // 지금 보낼 시간대가 아니다
       if (!expand(ev, rules.get(ev.recurrenceRuleId) ?? null, now.date, now.date).length) continue;
 
+      const who = new Set<string>([ev.ownerId, ...(ev.attendeeIds || [])].filter(Boolean));
+      if (ev.visibility === 'private') { who.clear(); who.add(ev.ownerId); }
+
+      // 아이 앞으로 온 알림은 보호자가 대신 받는다.
+      // 아이에겐 기기가 없다. 이걸 빼먹으면 '몬테소리 30분 전' 같은 알림이
+      // 아무에게도 도착하지 않는다 — 정작 챙겨야 할 사람이 부모인데도.
+      for (const id of [...who]) {
+        if (members.get(id)?.role !== 'kid') continue;
+        for (const [mid, m] of members) if (m?.role && m.role !== 'kid') who.add(mid);
+      }
+
+      const targets = famSubs.filter(s => who.has(s.member_id));
+      // 받을 기기가 없으면 '보냈다'고 찍지 않는다 — 찍어 두면 영영 다시 시도하지 않는다.
+      if (!targets.length) continue;
+
       const key = `ev:${ev.id}:${now.date}:${ev.startTime}`;
       if (!await claim(key, familyId)) continue;
-
-      const who = new Set<string>([ev.ownerId, ...(ev.attendeeIds || [])].filter(Boolean));
-      let targets = famSubs.filter(s => who.has(s.member_id));
-      if (ev.visibility === 'private') targets = targets.filter(s => s.member_id === ev.ownerId);
-      if (!targets.length) continue;
 
       const place = ev.placeId ? places.get(ev.placeId)?.name : '';
       const owner = members.get(ev.ownerId)?.displayName ?? '';
@@ -248,14 +272,50 @@ async function sendItem(b: Record<string, any>) {
   return { sent };
 }
 
+// ───────── 구독 갈아타기 ─────────
+//
+// 브라우저는 푸시 구독을 제 사정으로 갈아치운다(아이폰은 특히 자주).
+// 그때 서비스 워커가 pushsubscriptionchange 를 받아 새 구독으로 다시 등록하는데,
+// 앱이 떠 있지 않으니 로그인 정보가 없다. 비밀값을 서비스 워커에 둘 수도 없다.
+//
+// 그래서 '옛 구독 주소를 알고 있다'는 것으로 본인임을 확인한다.
+// 그 주소는 그 기기와 푸시 업체만 아는 긴 임의 문자열이고, 이미 우리 표에 있는 것이라야 한다.
+// 이걸 안 하면, 구독이 바뀐 기기는 사람이 앱을 다시 열 때까지 알림이 끊긴다.
+const CORS = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-headers': 'content-type',
+  'access-control-allow-methods': 'POST, OPTIONS',
+};
+async function swapSub(b: Record<string, any>) {
+  const oldEp = String(b.old || ''), ep = String(b.endpoint || '');
+  const p256dh = String(b.p256dh || ''), auth = String(b.auth || '');
+  if (!oldEp || !ep || !p256dh || !auth) return Response.json({ ok: false, error: 'bad' }, { status: 400, headers: CORS });
+  const { data: row } = await admin.from('push_subscriptions')
+    .select('user_id,family_id,member_id,user_agent').eq('endpoint', oldEp).maybeSingle();
+  if (!row) return Response.json({ ok: false, error: 'gone' }, { status: 404, headers: CORS });
+  const { error } = await admin.from('push_subscriptions').upsert({
+    endpoint: ep, user_id: row.user_id, family_id: row.family_id, member_id: row.member_id,
+    user_agent: row.user_agent, p256dh, auth, fail_count: 0,
+  }, { onConflict: 'endpoint' });
+  if (error) return Response.json({ ok: false, error: error.message }, { status: 500, headers: CORS });
+  if (ep !== oldEp) await admin.from('push_subscriptions').delete().eq('endpoint', oldEp);
+  return Response.json({ ok: true, swapped: ep !== oldEp }, { headers: CORS });
+}
+
 // ───────── 입구 ─────────
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
   if (req.method !== 'POST') return new Response('method', { status: 405 });
-  const secret = env('PUSH_SECRET');
-  if (!secret || req.headers.get('x-push-secret') !== secret) return new Response('no', { status: 401 });
 
-  let body: Record<string, any> = {};
-  try { body = await req.json(); } catch { /* 빈 몸통이면 due 로 본다 */ }
+  // 구독 갈아타기만 비밀값 없이 받는다(옛 구독 주소가 열쇠다). 나머지는 모두 비밀값이 있어야 한다.
+  let pre: Record<string, any> = {};
+  let raw = '';
+  try { raw = await req.text(); pre = raw ? JSON.parse(raw) : {}; } catch { pre = {}; }
+  if (pre.mode === 'swap') return await swapSub(pre);
+
+  if (!PUSH_SECRET || req.headers.get('x-push-secret') !== PUSH_SECRET) return new Response('no', { status: 401 });
+
+  const body: Record<string, any> = pre;   // 몸통은 위에서 이미 읽었다
 
   try {
     let out: Record<string, unknown>;
