@@ -584,6 +584,19 @@ async function movePhotosOut() {
     if (moved) { persist(); renderAll(); }
   } finally { movingPhotos = false; }
 }
+/**
+ * 댓글·방명록은 쓴 사람만 고치고 지운다.
+ *
+ * 화면에서 단추를 감추는 것만으로는 규칙이 아니다 — 보는 사람을 바꾸면 남의 글에도
+ * 단추가 뜨고, 그 단추는 그대로 먹혔다. 지우는 자리마다 여기서 한 번 더 따진다.
+ */
+function mineOnly(rec) {
+  if (!rec) return false;
+  if (rec.authorId === ui.viewer) return true;
+  toast(`${memberName(rec.authorId)}가 쓴 거예요. 본인이 쓴 것만 지울 수 있어요.`, 'err');
+  return false;
+}
+
 // ───────────────────── 📍 장소 사전 · 지내는 곳 ─────────────────────
 
 /** 적은 말로 장소를 찾는다 — 이름이든 다른 이름('소아과')이든. */
@@ -868,7 +881,7 @@ function toggleReaction(postId, kind) {
 
 function editPostComment(id) {
   const c = (S.postComments || []).find(x => x.id === id);
-  if (!c) return;
+  if (!mineOnly(c)) return;
   openDialog({
     title: '댓글 고치기',
     body: `<label class="fld"><span>댓글</span><textarea name="text" rows="3" maxlength="200" required>${esc(c.text)}</textarea></label>
@@ -2381,7 +2394,7 @@ function postDialog(m, post = null) {
 
 function editTripComment(id) {
   const c = (S.tripComments || []).find(x => x.id === id);
-  if (!c) return;
+  if (!mineOnly(c)) return;
   openDialog({
     title: '여행 이야기 고치기',
     body: `<label class="fld"><span>이야기</span><textarea name="text" rows="3" maxlength="200" required>${esc(c.text)}</textarea></label>
@@ -2888,8 +2901,10 @@ const ACTIONS = {
   'react': b => toggleReaction(b.dataset.id, b.dataset.kind),
   'edit-pcomment': b => editPostComment(b.dataset.id),
   'del-pcomment': b => {
+    const c = (S.postComments || []).find(x => x.id === b.dataset.id);
+    if (!mineOnly(c)) return;
     if (!confirm('이 댓글을 지울까요?')) return;
-    S.postComments = (S.postComments || []).filter(c => c.id !== b.dataset.id);
+    S.postComments = (S.postComments || []).filter(x => x.id !== c.id);
     persist(); renderAll();
   },
   'posts-more': () => { ui.postsShown += 12; renderAll(); },
@@ -2925,7 +2940,13 @@ const ACTIONS = {
     ui.openComments.delete(id);
     persist(); renderAll();
   },
-  'del-gb': b => { if (confirm('이 방명록을 삭제할까요?')) { S.guestbook = S.guestbook.filter(g => g.id !== b.dataset.id); persist(); renderAll(); } },
+  'del-gb': b => {
+    const g = S.guestbook.find(x => x.id === b.dataset.id);
+    if (!mineOnly(g)) return;
+    if (!confirm('이 방명록을 삭제할까요?')) return;
+    S.guestbook = S.guestbook.filter(x => x.id !== g.id);
+    persist(); renderAll();
+  },
   decorate: b => decorateDialog(b.dataset.id),
   'new-trip': () => { if ($('#dlg').open) $('#dlg').close(); tripDialog(null); },
   'edit-trip': b => tripDialog(tripById(b.dataset.id)),
@@ -2985,7 +3006,13 @@ const ACTIONS = {
       catch { toast('아래 링크를 길게 눌러 복사해 주세요.'); }
     } catch { toast('이 브라우저에서는 링크를 만들 수 없어요.', 'err'); }
   },
-  'del-tcomment': b => { if (confirm('이 댓글을 지울까요?')) { S.tripComments = S.tripComments.filter(c => c.id !== b.dataset.id); persist(); renderAll(); } },
+  'del-tcomment': b => {
+    const c = (S.tripComments || []).find(x => x.id === b.dataset.id);
+    if (!mineOnly(c)) return;
+    if (!confirm('이 댓글을 지울까요?')) return;
+    S.tripComments = S.tripComments.filter(x => x.id !== c.id);
+    persist(); renderAll();
+  },
   'sync-now': async () => { await sync.syncNow(); toast('동기화했어요.'); },
   'sync-signout': async () => {
     if (!confirm('이 기기에서 로그아웃할까요?\n\n이 기기에 내려받아 둔 가족 일정·사진·메모를 지우고 예시 화면으로 돌아가요.\n서버에는 그대로 있어서 다시 로그인하면 돌아와요.')) return;
