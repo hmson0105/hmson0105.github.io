@@ -74,6 +74,23 @@ function toPost(m: any, room: any, fallbackMember: string) {
   };
 }
 
+/**
+ * 새 글이 들어왔다고 가족 기기에 알린다.
+ *
+ * 평소 알림은 '누가 올렸나(updated_by)'를 보고 그 사람만 빼고 보낸다. 그런데 이 글은
+ * 사람이 아니라 서버가 넣은 것이라 그 칸이 비어 있고, 비어 있으면 알림에서 통째로 빠진다.
+ * 그래서 여기서 직접 한 번 불러 준다 — 비운 채로 보내면 '아무도 빼지 않음' = 온 가족이 받는다.
+ */
+async function announce(familyId: string, id: string, at: string) {
+  try {
+    await fetch(`${env('SUPABASE_URL')}/functions/v1/send-push`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-push-secret': PUSH_SECRET },
+      body: JSON.stringify({ mode: 'item', family_id: familyId, kind: 'posts', id, updated_by: null, updated_at: at, deleted: false }),
+    });
+  } catch { /* 알림이 못 가도 글은 들어와 있다 */ }
+}
+
 /** 그 가족의 구성원 하나(채널에 주인을 안 정했을 때 쓸 기본값) */
 async function firstMember(familyId: string) {
   const { data } = await admin.from('family_items').select('id').eq('family_id', familyId).eq('kind', 'members').limit(1);
@@ -101,7 +118,9 @@ async function pull() {
       const { error } = await admin.from('family_items').upsert({
         family_id: room.family_id, kind: 'posts', id: data.id, data, deleted: false,
       }, { onConflict: 'family_id,kind,id', ignoreDuplicates: true });
-      if (!error) pulled++;
+      if (error) continue;
+      pulled++;
+      await announce(room.family_id, data.id, data.createdAt);
     }
     const newest = msgs[0]?.id;
     if (newest) {

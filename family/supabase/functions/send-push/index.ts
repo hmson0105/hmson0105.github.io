@@ -193,9 +193,11 @@ async function sendDue() {
 }
 
 // ───────── mode=item : 가족이 뭔가 올렸을 때 ─────────
+// 가족이 '남긴 것'은 모두 알린다. 공감(❤️)만 뺐다 — 누를 때마다 울리면 알림이 소음이 된다.
 const LABEL: Record<string, string> = {
   events: '일정', issues: '준비할 일', trips: '여행 계획', tripComments: '여행 메모',
   boardItems: '살 것', posts: '가족 글', guestbook: '방명록',
+  postComments: '댓글', praise: '칭찬 스티커',
 };
 
 /** 최근 몇 분 안에 가족이 올린 것을 사람별로 묶어 한 통씩 */
@@ -230,7 +232,8 @@ async function sendRecent(minutes = 6) {
     if (!targets.length) continue;
 
     const label = LABEL[newest.kind];
-    const text = String((newest.data as any)?.title || (newest.data as any)?.text || '').slice(0, 50);
+    const nd: any = newest.data ?? {};
+    const text = String(nd.title || nd.text || nd.reason || '').slice(0, 50);
     const more = visible.length - 1;
     sent += await pushTo(targets, {
       title: `\u{1F46A} ${label}이 올라왔어요${more ? ` 외 ${more}건` : ''}`,
@@ -261,7 +264,7 @@ async function sendItem(b: Record<string, any>) {
     .select('data').eq('family_id', family_id).eq('kind', kind).eq('id', id).maybeSingle();
   const d: any = row?.data ?? {};
   if (d.visibility === 'private') return { sent: 0, skipped: 'private' };
-  const text = String(d.title || d.text || '').slice(0, 50);
+  const text = String(d.title || d.text || d.reason || '').slice(0, 50);
 
   const sent = await pushTo(targets, {
     title: `👪 ${label}${deleted ? '이 지워졌어요' : '이 올라왔어요'}`,
