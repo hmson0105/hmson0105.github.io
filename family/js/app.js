@@ -618,13 +618,39 @@ const KID_DID = [
   { e: '💗', l: '보고 싶어요' },
 ];
 
-/** 소리 내어 읽어 준다. 안 되는 브라우저면 조용히 넘어간다. */
+/**
+ * 소리 내어 읽어 준다.
+ *
+ * lang 만 'ko-KR' 로 적어 두면 브라우저가 영어 목소리로 한글을 읽어 버린다.
+ * ('잘 잤어요'가 '잘캇어요'로 들리던 게 그것이다.) 그래서 한국어 목소리를 직접 고른다.
+ * 목소리 목록은 늦게 채워지는 일이 많아 onvoiceschanged 로 한 번 더 집는다.
+ */
+// 한국어 목소리 중에는 일부러 찌그러뜨린 장난 목소리가 섞여 있다(Rocko, Shelley 같은).
+// 그게 걸리면 '잘 잤어요'가 '잘캇어요'로 들린다. 제대로 읽는 것부터 고른다.
+const SILLY = /(eddy|flo|grandma|grandpa|reed|rocko|sandy|shelley|bells|boing|bubbles|jester|organ|superstar|trinoids|whisper|wobble|zarvox|bahh|good news|bad news)/i;
+let koVoice = null;
+function pickVoice() {
+  try {
+    const vs = (window.speechSynthesis ? speechSynthesis.getVoices() : []) || [];
+    const ko = vs.filter(v => /^ko/i.test(v.lang));
+    koVoice = ko.find(v => /yuna|유나/i.test(v.name))      // 애플 기본 한국어 목소리
+      || ko.find(v => /google/i.test(v.name))              // 크롬 기본 한국어 목소리
+      || ko.find(v => !SILLY.test(v.name))
+      || ko[0] || null;
+  } catch { koVoice = null; }
+}
+if (window.speechSynthesis) {
+  pickVoice();
+  speechSynthesis.addEventListener?.('voiceschanged', pickVoice);
+}
 function say(text) {
   try {
     if (!window.speechSynthesis) return;
+    if (!koVoice) pickVoice();
     const u = new SpeechSynthesisUtterance(String(text).slice(0, 300));
     u.lang = 'ko-KR';
-    u.rate = 0.95;
+    u.rate = 0.92;
+    if (koVoice) u.voice = koVoice;
     speechSynthesis.cancel();
     speechSynthesis.speak(u);
   } catch { /* 소리가 안 나와도 글자는 보인다 */ }
@@ -653,10 +679,10 @@ function kidScreenHTML() {
   return `${note ? `<div class="kd-note" role="dialog" aria-label="엄마 아빠가 보낸 쪽지">
       <div class="kd-note-in">
         <p class="kd-from">${esc(memberName(note.createdBy))}가 보냈어요</p>
+        <button type="button" class="kd-speak" data-action="kid-say" data-id="${note.id}" aria-label="읽어 주기">🔊</button>
         <p class="kd-msg">${esc(note.text)}</p>
         <div class="kd-note-btns">
-          <button type="button" class="kd-btn kd-say" data-action="kid-say" data-id="${note.id}">🔊 읽어 줘</button>
-          <button type="button" class="kd-btn kd-ok" data-action="kid-seen" data-id="${note.id}">✅ 봤어요</button>
+          <button type="button" class="kd-btn kd-ok" data-action="kid-seen" data-id="${note.id}">확인했어요</button>
         </div>
       </div>
     </div>` : ''}
