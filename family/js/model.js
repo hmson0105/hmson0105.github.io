@@ -275,6 +275,10 @@ function baseState() {
     // 기록과 기록을 잇는 줄: { id:'lk_<from>.<관계>.<to>', from, rel, to, at, by }
     // 표를 늘리지 않고 관계를 갖는 방법이다. 자세한 건 RELS 설명 참고.
     links: [],
+    // 디스코드 전용 채널에서 건너온 소식 한 줄:
+    // { id:'dc_<메시지번호>', msgId, channelId, name, text, at, ackBy, ackAt, ackedAt }
+    // ackBy 는 앱에서 '확인했어요'를 누른 사람, ackedAt 은 서버가 디스코드에 표시까지 마친 시각.
+    relays: [],
     praise: [],  // 칭찬 스티커 한 장: { id, memberId, emoji, reason, by, at }
     prizes: [],  // 받은 보상 한 번: { id, prize, count, at }
     boardItems: [], // 살 것·준비할 것: { id, title, kind:'buy'|'prep', qty, ownerId, tripId, dueDate, done, ... }
@@ -406,6 +410,7 @@ export function stripDemo(S) {
   S.postReactions = (S.postReactions || []).filter(c => !isDemo(c) && S.posts.some(x => x.id === c.postId));
   S.guestbook = S.guestbook.filter(g => !isDemo(g));
   S.links = (S.links || []).filter(x => !isDemo(x));
+  S.relays = (S.relays || []).filter(x => !isDemo(x));
   S.praise = (S.praise || []).filter(x => !isDemo(x));
   S.prizes = (S.prizes || []).filter(x => !isDemo(x));
   for (const m of S.members) if (m.status && m.status.demo) m.status = null;
@@ -479,6 +484,10 @@ export function migrate(S) {
   S.postComments = validItems(S.postComments).filter(c => postIds.has(c.postId) && typeof c.text === 'string');
   S.postReactions = validItems(S.postReactions)
     .filter(x => postIds.has(x.postId) && REACTIONS.some(r => r.k === x.kind) && typeof x.memberId === 'string');
+
+  // 디스코드에서 건너온 소식. 원본은 디스코드에 그대로 있으니 여기서는 최근 것만 쥔다.
+  S.relays = validItems(S.relays).filter(x => typeof x.text === 'string')
+    .sort((a, b) => String(a.at || '').localeCompare(String(b.at || ''))).slice(-150);
 
   // 이어 둔 줄 — 양쪽이 다 있는 것만 남긴다. 한쪽이 지워졌으면 줄도 버린다
   // (지움은 동기화가 올려 준다). 한 해를 책으로 묶어 비우면 그 해의 줄도 함께 간다.

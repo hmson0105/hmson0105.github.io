@@ -1248,3 +1248,14 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 .aw-days input:checked + span { background: var(--pink-l); border-color: var(--pink-d); color: var(--pink-d); }
 .aw-days input:focus-visible + span { outline: 2px solid var(--pink-d); }
 .sg-why { margin: -2px 0 0; color: var(--lav-d); }
+
+/* 💬 디스코드에서 온 소식 */
+.rl-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 8px; }
+.rl-list li { display: grid; gap: 6px; padding: 9px 11px; border-radius: 14px; background: var(--sky); }
+/* 글과 단추를 한 줄에 밀어 넣으면 좁은 칸에서 글자가 끼어 쪼개진다. 세로로 둔다. */
+.rl-list li > :last-child { justify-self: end; }
+.rl-list li.done { background: var(--pink-xl); }
+.rl-list p { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
+.rl-list small { color: var(--ink-3); font-size: 12px; }
+.rl-ok { white-space: nowrap; color: var(--ok); }
+

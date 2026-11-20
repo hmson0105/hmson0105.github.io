@@ -1,12 +1,12 @@
 // 우리집 미니월드 — 가족 캘린더 + 층별 미니룸
 import * as D from './dates.js?v=6';
-import * as M from './model.js?v=16';
+import * as M from './model.js?v=17';
 import * as PH from './photos.js?v=1';
 import * as L from './lunar.js?v=1';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=7';
 import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS, WALL_SPOTS } from './scene.js?v=16';
-import { createSync, syncConfigured } from './sync.js?v=23';
+import { createSync, syncConfigured } from './sync.js?v=24';
 import { parseKakao } from './kakao.js?v=4';
 import * as N from './notify.js?v=2';
 import { APP_URL, PUSH_PUBLIC_KEY } from './config.js?v=12';
@@ -597,6 +597,36 @@ function mineOnly(rec) {
   return false;
 }
 
+// ───────────────────── 💬 디스코드에서 온 소식 ─────────────────────
+
+/**
+ * 디스코드 전용 채널에 올라온 글을 서버가 1분마다 가져와 여기 띄운다.
+ *
+ * '확인했어요'를 누르면 이 줄에 누가 언제 눌렀는지 적히고, 서버가 그걸 보고
+ * 디스코드 원본에 ✅ 와 '누가 확인했어요' 한 줄을 단다.
+ * 디스코드는 봇이 남의 '읽음'을 대신 찍을 수 없어서(읽음은 사람마다 따로다)
+ * 그게 할 수 있는 가장 가까운 표시다.
+ */
+function relayCardHTML() {
+  const list = (S.relays || []).slice()
+    .sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+  if (!list.length) return '';
+  const waiting = list.filter(r => !r.ackBy).length;
+  const one = r => {
+    const mark = r.ackBy
+      ? `<small class="rl-ok">✅ ${esc(memberName(r.ackBy))} 확인${r.ackedAt ? ' · 디스코드에 표시함' : ' · 표시하는 중…'}</small>`
+      : `<button type="button" class="btn-p btn-sm" data-action="relay-ack" data-id="${esc(r.id)}">확인했어요</button>`;
+    return `<li${r.ackBy ? ' class="done"' : ''}>
+      <div><p><b>${esc(r.name || '누군가')}</b> ${linkify(r.text)}</p>
+        <small>${esc(D.fmtStamp(r.at))}</small></div>${mark}</li>`;
+  };
+  return `<section class="card o-5 card-relay"><header class="card-h">
+      <h2>💬 디스코드 소식${waiting ? ` <span class="pill">${waiting}</span>` : ''}</h2></header>
+    <ul class="rl-list">${list.slice(0, 8).map(one).join('')}</ul>
+    <p class="muted small">확인을 누르면 디스코드 원본에 ✅ 와 누가 봤는지 한 줄이 달려요.</p>
+  </section>`;
+}
+
 // ───────────────────── 📍 장소 사전 · 지내는 곳 ─────────────────────
 
 /** 적은 말로 장소를 찾는다 — 이름이든 다른 이름('소아과')이든. */
@@ -1080,6 +1110,7 @@ function lobbyPanels() {
   <section class="card o-7"><header class="card-h"><h2>다가오는 일정</h2><button type="button" class="btn-g" data-action="view" data-view="cal">캘린더 →</button></header>
     ${up.length ? `<ul class="ev-list ev-compact">${up.map(i => evRow(i, { showDate: true })).join('')}</ul>` : empty('📭', '앞으로 7일 동안 예정된 일정이 없어요.')}
   </section>
+  ${relayCardHTML()}
   ${activityCard()}
   ${planSummaryCard()}`;
   return { main, side };
@@ -2910,6 +2941,15 @@ const ACTIONS = {
   'posts-more': () => { ui.postsShown += 12; renderAll(); },
   'edit-away': b => { const m = member(b.dataset.id); if (m) awayDialog(m); },
   'place-aka': () => placeAkaDialog(),
+  'relay-ack': b => {
+    const r = (S.relays || []).find(x => x.id === b.dataset.id);
+    if (!r || r.ackBy) return;
+    r.ackBy = ui.viewer;
+    r.ackAt = new Date().toISOString();
+    // ackedAt 은 서버가 적는다 — 디스코드에 실제로 표시한 다음에.
+    if (!persist()) { r.ackBy = null; r.ackAt = null; return; }
+    renderAll(); toast('확인했어요 — 디스코드에도 표시할게요 ✅');
+  },
   'link-add': b => { const p = S.posts.find(x => x.id === b.dataset.id); if (p) linkDialog(p); },
   'link-go': b => { findRecord(b.dataset.id)?.go?.(); },
   'link-del': b => {
