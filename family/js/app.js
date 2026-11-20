@@ -62,6 +62,7 @@ const ui = {
   lastMinute: '',
   openComments: new Set(),   // 댓글 쓰는 칸을 펼쳐 둔 글
   openRx: new Set(),         // 공감 고르는 칸을 펼쳐 둔 글(문자형에서만)
+  kid: loadPref('kid') === '1',   // 아이 화면을 띄워 둔 기기인가(데스크탑에 켜 두는 용)
   postsShown: 12,            // 집 전체 화면에서 한 번에 보여 줄 글 수
 };
 if (![0, 1, 2, 3, 4].includes(ui.floor)) ui.floor = 1; // 0 = 집 전체(1~4층 한 화면)
@@ -597,6 +598,114 @@ function mineOnly(rec) {
   if (rec.authorId === ui.viewer) return true;
   toast(`${memberName(rec.authorId)}가 쓴 거예요. 본인이 쓴 것만 지울 수 있어요.`, 'err');
   return false;
+}
+
+// ───────────────────── 🧒 아이 화면 ─────────────────────
+//
+// 데스크탑에 띄워 두고 아이가 혼자 쓰는 화면.
+// 어른 화면과 같은 데이터를 쓰지만, 손이 닿는 것만 크게 내놓는다.
+//   · 글자를 다 못 읽어도 되게 — 🔊 읽어주기
+//   · 타자가 느려도 되게 — 누르면 끝나는 큰 단추
+//   · 엄마·아빠가 보낸 쪽지는 화면을 덮는 큰 팝업으로
+
+/** 누르면 그대로 기록이 되는 것들. 아이가 하루에 할 만한 일. */
+const KID_DID = [
+  { e: '🦷', l: '양치했어요' },
+  { e: '📚', l: '책 읽었어요' },
+  { e: '🏠', l: '다녀왔습니다' },
+  { e: '🍚', l: '밥 다 먹었어요' },
+  { e: '😴', l: '잘 잤어요' },
+  { e: '💗', l: '보고 싶어요' },
+];
+
+/** 소리 내어 읽어 준다. 안 되는 브라우저면 조용히 넘어간다. */
+function say(text) {
+  try {
+    if (!window.speechSynthesis) return;
+    const u = new SpeechSynthesisUtterance(String(text).slice(0, 300));
+    u.lang = 'ko-KR';
+    u.rate = 0.95;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  } catch { /* 소리가 안 나와도 글자는 보인다 */ }
+}
+
+const kidId = () => (S.members.find(m => m.role === 'kid') || {}).id || 'm_kid';
+
+/** 어른이 아이 방에 남긴 글 = 아이에게 보낸 쪽지. 아직 안 본 것부터. */
+function kidNotes() {
+  const kid = kidId();
+  return S.posts
+    .filter(p => p.memberId === kid && p.createdBy && p.createdBy !== kid && !p.kidSeenAt && canSee(p))
+    .sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+}
+
+function kidScreenHTML() {
+  const kid = member(kidId());
+  const note = kidNotes()[0];
+  const got = sinceLast();
+  const goal = Math.max(1, rewards().goal);
+  const dots = [...Array(Math.min(goal, 20))].map((_, i) =>
+    `<span class="kd-dot${i < got.length ? ' on' : ''}">${i < got.length ? esc(got[i].emoji || '⭐') : ''}</span>`).join('');
+  const now = D.seoul();
+  const hi = now.hour < 11 ? '좋은 아침이에요' : now.hour < 18 ? '안녕하세요' : '좋은 저녁이에요';
+
+  return `${note ? `<div class="kd-note" role="dialog" aria-label="엄마 아빠가 보낸 쪽지">
+      <div class="kd-note-in">
+        <p class="kd-from">${esc(memberName(note.createdBy))}가 보냈어요</p>
+        <p class="kd-msg">${esc(note.text)}</p>
+        <div class="kd-note-btns">
+          <button type="button" class="kd-btn kd-say" data-action="kid-say" data-id="${note.id}">🔊 읽어 줘</button>
+          <button type="button" class="kd-btn kd-ok" data-action="kid-seen" data-id="${note.id}">✅ 봤어요</button>
+        </div>
+      </div>
+    </div>` : ''}
+    <div class="kd-wrap">
+      <header class="kd-head">
+        <h1>${esc(kid?.displayName || '유안이')}야, ${hi}!</h1>
+        <p>${esc(D.fmtDate(now.date, { long: true }))}</p>
+      </header>
+
+      <section class="kd-card">
+        <h2>🌟 칭찬 스티커</h2>
+        <div class="kd-dots">${dots}</div>
+        <p class="kd-count"><b>${got.length}</b> / ${goal}개${rewards().prize ? ` · 🎁 ${esc(rewards().prize)}` : ''}</p>
+      </section>
+
+      <section class="kd-card">
+        <h2>오늘 뭐 했어요?</h2>
+        <div class="kd-grid">${KID_DID.map((d, i) =>
+          `<button type="button" class="kd-do" data-action="kid-did" data-i="${i}"><span>${d.e}</span>${esc(d.l)}</button>`).join('')}</div>
+      </section>
+
+      <section class="kd-card">
+        <h2>하고 싶은 말</h2>
+        <form class="kd-form" data-submit="kid-say-something">
+          <input name="text" maxlength="100" placeholder="여기에 써 보세요" aria-label="하고 싶은 말">
+          <button class="kd-btn kd-ok">보내기</button>
+        </form>
+      </section>
+
+      <button type="button" class="kd-exit" data-action="kid-close">나가기</button>
+    </div>`;
+}
+
+function renderKid() {
+  let el = $('#kidScreen');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'kidScreen';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = kidScreenHTML();
+  document.body.classList.add('kid-on');
+}
+function closeKid() {
+  ui.kid = false;
+  savePref('kid', '0');
+  document.body.classList.remove('kid-on');
+  $('#kidScreen')?.remove();
+  renderAll();
 }
 
 // ───────────────────── 📍 장소 사전 · 지내는 곳 ─────────────────────
@@ -1190,7 +1299,10 @@ function memberPanels(m) {
     .sort((a, b) => (b.at || '').localeCompare(a.at || '') || b.createdAt.localeCompare(a.createdAt)).slice(0, 8);
   const gb = S.guestbook.filter(g => g.roomOwnerId === m.id && canSee(g)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 20);
   const side = `
-  ${m.role === 'kid' ? rewardCardHTML(m) : ''}
+  ${m.role === 'kid' ? `<section class="card o-3"><header class="card-h"><h2>🧒 ${esc(m.displayName)} 화면</h2></header>
+    <p class="muted small">데스크탑에 띄워 두면 ${esc(m.displayName)}가 혼자 쓸 수 있어요. 큰 단추, 읽어 주기, 엄마·아빠 쪽지가 들어 있어요.</p>
+    <button type="button" class="btn-p" data-action="kid-open">${esc(m.displayName)} 화면 열기</button></section>` : ''}
+    ${m.role === 'kid' ? rewardCardHTML(m) : ''}
   <section class="card me-status o-3" style="--c:${m.color}"><header class="card-h"><h2>오늘의 상태</h2><button type="button" class="btn-s" data-action="edit-status" data-id="${m.id}">바꾸기</button></header>
     <div class="speech${st.stale ? ' is-stale' : ''}">${s?.text && canSee({ ...s, ownerId: m.id }) ? esc(s.text) : '<span class="muted">아직 상태 메시지가 없어요</span>'}</div>
     <dl class="kv">
@@ -2838,7 +2950,11 @@ function setupFolds() {
     head.appendChild(b);
   });
 }
-function renderAll() { renderHeader(); renderBanner(); renderView(); fillPhotos(); }
+function renderAll() {
+  // 아이 화면을 켜 둔 기기는 그 화면만 그린다. 어른 화면은 CSS 로 가린다.
+  if (ui.kid) { renderKid(); return; }
+  renderHeader(); renderBanner(); renderView(); fillPhotos();
+}
 
 let toastT;
 function toast(msg, kind = '') {
@@ -2915,6 +3031,29 @@ const ACTIONS = {
   'posts-more': () => { ui.postsShown += 12; renderAll(); },
   'edit-away': b => { const m = member(b.dataset.id); if (m) awayDialog(m); },
   'place-aka': () => placeAkaDialog(),
+  'kid-open': () => { ui.kid = true; savePref('kid', '1'); renderAll(); },
+  'kid-close': () => closeKid(),
+  'kid-say': b => { const p = S.posts.find(x => x.id === b.dataset.id); if (p) say(p.text); },
+  'kid-seen': b => {
+    const p = S.posts.find(x => x.id === b.dataset.id);
+    if (!p) return;
+    p.kidSeenAt = new Date().toISOString();
+    logActivity('member', p.memberId, `${memberName(p.memberId)}가 쪽지를 봤어요 — ${String(p.text).slice(0, 20)}`);
+    persist(); renderAll();
+  },
+  'kid-did': b => {
+    const d = KID_DID[+b.dataset.i];
+    if (!d) return;
+    const kid = kidId();
+    S.posts.push({
+      id: M.newId('po'), memberId: kid, text: `${d.l} ${d.e}`, photo: null, photoId: null, trace: null,
+      at: D.today(), url: '', tripId: null, filed: true,
+      createdAt: new Date().toISOString(), createdBy: kid, visibility: 'family', sourceId: 'src_manual',
+    });
+    if (!persist()) { S.posts.pop(); return; }
+    say(d.l);
+    renderAll();
+  },
   /**
    * 디스코드에서 건너온 글에 '봤어요'를 남긴다.
    * 서버가 1분 안에 디스코드 원본에 ✅ 와 '누가 확인했어요' 한 줄을 단다.
@@ -3186,6 +3325,22 @@ document.addEventListener('submit', e => {
     persist(); renderAll(); toast('댓글을 남겼어요 💬');
     return;
   }
+  if (f.dataset.submit === 'kid-say-something') {
+    e.preventDefault();
+    const text = f.text.value.trim();
+    if (!text) return;
+    const kid = kidId();
+    S.posts.push({
+      id: M.newId('po'), memberId: kid, text, photo: null, photoId: null, trace: null,
+      at: D.today(), url: '', tripId: null, filed: true,
+      createdAt: new Date().toISOString(), createdBy: kid, visibility: 'family', sourceId: 'src_manual',
+    });
+    if (!persist()) { S.posts.pop(); return; }
+    f.text.value = '';
+    say('보냈어요');
+    renderAll();
+    return;
+  }
   if (f.dataset.submit === 'post-comment') {
     e.preventDefault();
     const text = f.text.value.trim();
@@ -3386,6 +3541,7 @@ ui.lastMinute = D.seoul().time;
 setView('world');
 renderHeader();
 renderBanner();
+if (ui.kid) renderKid();   // 아이 화면을 켜 둔 기기는 처음부터 그 화면으로 연다
 readShareLink();
 readQuickAdd();
 sync.start();

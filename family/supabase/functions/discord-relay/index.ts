@@ -132,6 +132,49 @@ async function pull() {
   return { rooms: rooms.length, pulled };
 }
 
+// ───────── ①-b 반대 방향 : 미니월드에 쓴 글 → 디스코드로 ─────────
+//
+// 아이는 데스크탑 미니월드에서 쓰고, 디스코드는 '밖에 있는 어른이 이미 열어 둔 창'이 된다.
+// 주인이 정해진 방(member_id)에 그 사람 글만 내보낸다. 디스코드에서 건너온 글(relay)과
+// 이미 내보낸 글(sentTo)은 건드리지 않는다 — 안 그러면 둘이 서로 메아리친다.
+const MIRROR_WINDOW_MIN = 120;   // 너무 옛 글까지 거슬러 올라가 쏟아내지 않게
+
+async function mirror() {
+  const { data: rooms } = await admin.from('discord_relay').select('*').eq('enabled', true);
+  if (!rooms?.length) return { mirrored: 0 };
+  const since = new Date(Date.now() - MIRROR_WINDOW_MIN * 60_000).toISOString();
+  let mirrored = 0;
+
+  for (const room of rooms) {
+    if (!room.mirror || !room.member_id) continue;   // 내보내기를 켠 방만
+    const { data: rows } = await admin.from('family_items')
+      .select('family_id,id,data').eq('family_id', room.family_id).eq('kind', 'posts')
+      .eq('deleted', false).gt('updated_at', since).limit(100);
+    const { data: ms } = await admin.from('family_items')
+      .select('id,data').eq('family_id', room.family_id).eq('kind', 'members');
+    const name = (ms ?? []).find(m => m.id === room.member_id);
+    const who = (name?.data as any)?.displayName ?? '가족';
+
+    for (const r of rows ?? []) {
+      const d: any = r.data ?? {};
+      if (d.memberId !== room.member_id) continue;
+      if (d.relay || d.sentTo) continue;              // 디스코드에서 왔거나 이미 보냈다
+      if (d.visibility === 'private') continue;
+      const res = await dio(`/channels/${room.channel_id}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ content: `${who}: ${String(d.text ?? '').slice(0, 300)}`, allowed_mentions: { parse: [] } }),
+      });
+      if (!res.ok) { console.error('discord send', res.status, await res.text()); continue; }
+      const sent = await res.json();
+      await admin.from('family_items')
+        .update({ data: { ...d, sentTo: { discord: String(sent?.id ?? ''), at: new Date().toISOString() } }, updated_at: new Date().toISOString() })
+        .eq('family_id', r.family_id).eq('kind', 'posts').eq('id', r.id);
+      mirrored++;
+    }
+  }
+  return { mirrored };
+}
+
 // ───────── ② 확인했어요 → 디스코드에 표시 ─────────
 async function ack() {
   const { data: rows } = await admin.from('family_items')
@@ -183,8 +226,9 @@ Deno.serve(async (req) => {
 
   try {
     const got = await pull();
+    const out = await mirror();
     const sent = await ack();
-    return Response.json({ ok: true, ...got, ...sent });
+    return Response.json({ ok: true, ...got, ...out, ...sent });
   } catch (e) {
     console.error('discord-relay', e);
     return Response.json({ ok: false, error: String(e) }, { status: 500 });
