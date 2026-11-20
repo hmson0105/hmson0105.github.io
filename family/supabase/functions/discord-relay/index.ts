@@ -1,17 +1,21 @@
-// 우리집 미니월드 — 디스코드 전용 채널 ↔ 미니월드 (Supabase Edge Function)
+// 우리집 미니월드 — 디스코드 채널 ↔ 미니월드 (Supabase Edge Function)
 //
 // 두 가지 일을 한다. 1분마다 pg_cron 이 부른다.
-//   ① 가져오기 — 채널에 새로 올라온 글을 family_items(kind='relays') 로 넣는다.
-//   ② 알리기  — 앱에서 '확인했어요'를 누른 줄에 ✅ 반응과 한 줄 답글을 단다.
+//   ① 가져오기 — 채널에 새로 올라온 글을 그대로 '짧은 글'(kind='posts')로 넣는다.
+//   ② 알리기  — 앱에서 '확인했어요'를 누른 글의 디스코드 원본에 ✅ 와 한 줄 답글을 단다.
+//
+// 화면에서는 디스코드에서 왔다고 따로 구분하지 않는다. 가족이 남긴 글은 어디서 썼든 한자리에 모인다.
+//
+// 채널 하나를 사람 하나로 본다(discord_relay.member_id).
+// 데스크탑 디스코드는 어른 계정으로 로그인돼 있어도, #유안이 방에 쓴 글은 유안이가 쓴 것으로 센다.
 //
 // 디스코드에는 '새 글이 생기면 알려주는 웹훅'이 없다. 그래서 긁어온다.
-// 마지막으로 가져온 메시지 번호만 기억해 두고 그 뒤 것만 받는다(public.discord_relay).
+// 마지막으로 가져온 메시지 번호만 기억해 두고 그 뒤 것만 받는다.
 //
-// 읽음 표시에 대해: 디스코드는 봇이 남의 '읽음'을 대신 찍을 수 없다. 읽음은 사람마다
-// 따로이고 봇에게 열려 있지 않다. 그래서 ✅ 반응과 '누가 확인했는지' 한 줄로 대신한다.
+// 읽음 표시에 대해: 디스코드는 봇이 남의 '읽음'을 대신 찍을 수 없다. 읽음은 사람마다 따로이고
+// 봇에게 열려 있지 않다. ✅ 반응과 '누가 확인했는지' 한 줄이 할 수 있는 가장 가까운 표시다.
 //
-// 비밀값은 Vault 에 있다(저장소·브라우저에 절대 넣지 않는다):
-//   discord_bot_token, push_secret
+// 비밀값은 Vault 에 있다: discord_bot_token, push_secret
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
@@ -37,22 +41,43 @@ function dio(path: string, init: RequestInit = {}) {
   });
 }
 
-/** 디스코드 글 한 줄 → 우리 기록 한 줄 */
-function toRelay(m: any, channelId: string) {
+/** 그 순간의 서울 날짜. 글은 '일어난 날'로 묶이니 여기서 맞춰 둔다. */
+function seoulDate(iso: string) {
+  const f = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+  });
+  return f.format(new Date(iso));
+}
+
+/** 디스코드 글 한 줄 → 짧은 글 한 편 */
+function toPost(m: any, room: any, fallbackMember: string) {
   const files = Array.isArray(m.attachments) ? m.attachments.length : 0;
   const text = [String(m.content ?? '').slice(0, 1000), files ? `(사진 ${files}장)` : ''].filter(Boolean).join(' ');
+  const at = String(m.timestamp ?? new Date().toISOString());
+  const who = room.member_id || fallbackMember;
   return {
-    id: `dc_${m.id}`,
-    msgId: String(m.id),
-    channelId,
-    // name 은 사람이 쓴 글로 다뤄 그대로 둔다(화면에 넣을 때 esc 한다)
-    name: String(m.author?.global_name || m.author?.username || '누군가').slice(0, 40),
-    discordId: String(m.author?.id ?? ''),
+    id: `po_dc_${m.id}`,
+    memberId: who,
     text: text || '(내용 없음)',
-    at: String(m.timestamp ?? new Date().toISOString()),
-    ackBy: null, ackAt: null, ackedAt: null,
+    photo: null, photoId: null, trace: null,
+    at: seoulDate(at),
+    url: '', tripId: null, filed: true,
+    createdAt: at, createdBy: who,
+    visibility: 'family',
     sourceId: 'src_discord',
+    // 어디서 왔는지는 화면에 드러내지 않고, 확인 표시를 되돌려 보내는 데만 쓴다.
+    relay: {
+      msgId: String(m.id), channelId: room.channel_id,
+      name: String(m.author?.global_name || m.author?.username || '').slice(0, 40),
+      ackBy: null, ackAt: null, ackedAt: null,
+    },
   };
+}
+
+/** 그 가족의 구성원 하나(채널에 주인을 안 정했을 때 쓸 기본값) */
+async function firstMember(familyId: string) {
+  const { data } = await admin.from('family_items').select('id').eq('family_id', familyId).eq('kind', 'members').limit(1);
+  return data?.[0]?.id ?? 'm_mom';
 }
 
 // ───────── ① 채널에서 가져오기 ─────────
@@ -68,21 +93,21 @@ async function pull() {
     const msgs = await res.json();
     if (!Array.isArray(msgs) || !msgs.length) continue;
 
+    const fallback = await firstMember(room.family_id);
     // 받은 건 최신순이다. 오래된 것부터 넣는다. 봇이 쓴 글(우리 답글 포함)은 건너뛴다.
     const mine = msgs.filter((m: any) => !m.author?.bot).reverse();
     for (const m of mine) {
-      const data = toRelay(m, room.channel_id);
+      const data = toPost(m, room, fallback);
       const { error } = await admin.from('family_items').upsert({
-        family_id: room.family_id, kind: 'relays', id: data.id, data, deleted: false,
+        family_id: room.family_id, kind: 'posts', id: data.id, data, deleted: false,
       }, { onConflict: 'family_id,kind,id', ignoreDuplicates: true });
       if (!error) pulled++;
     }
-    // 커서는 봇 글까지 포함해 가장 큰 번호로 민다(안 그러면 같은 봇 글을 계속 다시 본다)
     const newest = msgs[0]?.id;
     if (newest) {
       await admin.from('discord_relay')
         .update({ last_message_id: String(newest), updated_at: new Date().toISOString() })
-        .eq('family_id', room.family_id);
+        .eq('family_id', room.family_id).eq('channel_id', room.channel_id);
     }
   }
   return { rooms: rooms.length, pulled };
@@ -91,14 +116,13 @@ async function pull() {
 // ───────── ② 확인했어요 → 디스코드에 표시 ─────────
 async function ack() {
   const { data: rows } = await admin.from('family_items')
-    .select('family_id,id,data').eq('kind', 'relays').eq('deleted', false).limit(200);
+    .select('family_id,id,data').eq('kind', 'posts').eq('deleted', false).limit(500);
   const todo = (rows ?? []).filter(r => {
-    const d: any = r.data ?? {};
+    const d: any = (r.data as any)?.relay ?? {};
     return d.ackBy && !d.ackedAt && d.msgId && d.channelId;
   });
   if (!todo.length) return { acked: 0 };
 
-  // 누가 확인했는지 이름을 붙이려고 구성원을 읽어 둔다
   const fams = [...new Set(todo.map(r => r.family_id))];
   const names = new Map<string, string>();
   for (const f of fams) {
@@ -108,10 +132,10 @@ async function ack() {
 
   let acked = 0;
   for (const r of todo) {
-    const d: any = r.data;
+    const post: any = r.data;
+    const d = post.relay;
     const who = names.get(`${r.family_id}|${d.ackBy}`) ?? '가족';
     const a = await dio(`/channels/${d.channelId}/messages/${d.msgId}/reactions/${CHECK}/@me`, { method: 'PUT' });
-    // 이미 달려 있으면 그것도 성공으로 본다
     if (!a.ok && a.status !== 204 && a.status !== 409) { console.error('discord react', a.status, await a.text()); continue; }
     await dio(`/channels/${d.channelId}/messages`, {
       method: 'POST',
@@ -122,8 +146,11 @@ async function ack() {
       }),
     });
     await admin.from('family_items')
-      .update({ data: { ...d, ackedAt: new Date().toISOString() }, updated_at: new Date().toISOString() })
-      .eq('family_id', r.family_id).eq('kind', 'relays').eq('id', r.id);
+      .update({
+        data: { ...post, relay: { ...d, ackedAt: new Date().toISOString() } },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('family_id', r.family_id).eq('kind', 'posts').eq('id', r.id);
     acked++;
   }
   return { acked };
@@ -133,7 +160,7 @@ async function ack() {
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('method', { status: 405 });
   if (!PUSH_SECRET || req.headers.get('x-push-secret') !== PUSH_SECRET) return new Response('no', { status: 401 });
-  if (!BOT) return Response.json({ ok: false, error: 'no-token' });   // 아직 봇 토큰을 안 넣었다 — 조용히 쉰다
+  if (!BOT) return Response.json({ ok: false, error: 'no-token' });
 
   try {
     const got = await pull();

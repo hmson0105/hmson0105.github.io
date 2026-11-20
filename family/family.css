@@ -1259,3 +1259,7 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 .rl-list small { color: var(--ink-3); font-size: 12px; }
 .rl-ok { white-space: nowrap; color: var(--ok); }
 
+
+/* 디스코드에서 건너온 글의 확인 표시 */
+.ack-ask { color: var(--sky-d) !important; }
+.ack-ok { color: var(--ok); font-size: 11.5px; white-space: nowrap; }

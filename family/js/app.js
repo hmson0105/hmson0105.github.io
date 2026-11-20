@@ -49,7 +49,9 @@ let S, bootNote = null, firstRun = false;
 }
 const ui = {
   view: 'world',
-  floor: +(loadPref('floor') || 1),
+  // 앱을 열면 늘 '집 전체'. 마지막으로 보던 층은 기억하지 않는다 —
+  // 열었을 때 온 가족이 한눈에 보이는 게 이 앱의 첫 화면이다.
+  floor: 0,
   viewer: loadPref('viewer') || 'm_mom',
   cal: { mode: 'month', cursor: D.today(), selected: D.today(), filter: new Set(S.members.map(m => m.id)) },
   saveError: canStore ? null : '이 브라우저에서는 저장할 수 없어요(개인정보 보호 모드 등). 새로고침하면 입력한 내용이 사라져요.',
@@ -597,36 +599,6 @@ function mineOnly(rec) {
   return false;
 }
 
-// ───────────────────── 💬 디스코드에서 온 소식 ─────────────────────
-
-/**
- * 디스코드 전용 채널에 올라온 글을 서버가 1분마다 가져와 여기 띄운다.
- *
- * '확인했어요'를 누르면 이 줄에 누가 언제 눌렀는지 적히고, 서버가 그걸 보고
- * 디스코드 원본에 ✅ 와 '누가 확인했어요' 한 줄을 단다.
- * 디스코드는 봇이 남의 '읽음'을 대신 찍을 수 없어서(읽음은 사람마다 따로다)
- * 그게 할 수 있는 가장 가까운 표시다.
- */
-function relayCardHTML() {
-  const list = (S.relays || []).slice()
-    .sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
-  if (!list.length) return '';
-  const waiting = list.filter(r => !r.ackBy).length;
-  const one = r => {
-    const mark = r.ackBy
-      ? `<small class="rl-ok">✅ ${esc(memberName(r.ackBy))} 확인${r.ackedAt ? ' · 디스코드에 표시함' : ' · 표시하는 중…'}</small>`
-      : `<button type="button" class="btn-p btn-sm" data-action="relay-ack" data-id="${esc(r.id)}">확인했어요</button>`;
-    return `<li${r.ackBy ? ' class="done"' : ''}>
-      <div><p><b>${esc(r.name || '누군가')}</b> ${linkify(r.text)}</p>
-        <small>${esc(D.fmtStamp(r.at))}</small></div>${mark}</li>`;
-  };
-  return `<section class="card o-5 card-relay"><header class="card-h">
-      <h2>💬 디스코드 소식${waiting ? ` <span class="pill">${waiting}</span>` : ''}</h2></header>
-    <ul class="rl-list">${list.slice(0, 8).map(one).join('')}</ul>
-    <p class="muted small">확인을 누르면 디스코드 원본에 ✅ 와 누가 봤는지 한 줄이 달려요.</p>
-  </section>`;
-}
-
 // ───────────────────── 📍 장소 사전 · 지내는 곳 ─────────────────────
 
 /** 적은 말로 장소를 찾는다 — 이름이든 다른 이름('소아과')이든. */
@@ -869,7 +841,7 @@ function postCommentsHTML(p, compact = false) {
   const list = commentsOn(p.id);
   const open = ui.openComments.has(p.id);
   const when = c => (compact ? stampTime(c.createdAt) : D.fmtStamp(c.createdAt));
-  const one = c => `<li style="--c:${member(c.authorId)?.color || '#FF8FB8'}">${face(member(c.authorId))}<div><p><b>${esc(memberName(c.authorId))}</b> ${linkify(c.text)}</p><small>${esc(when(c))}${c.editedAt ? ' · 수정됨' : ''}</small></div>${c.authorId === ui.viewer ? `<span class="post-btns"><button type="button" class="btn-x" data-action="edit-pcomment" data-id="${c.id}">고치기</button><button type="button" class="btn-x" data-action="del-pcomment" data-id="${c.id}" aria-label="댓글 지우기">✕</button></span>` : ''}</li>`;
+  const one = c => `<li style="--c:${member(c.authorId)?.color || '#FF8FB8'}">${face(member(c.authorId))}<div><p><b>${esc(memberName(c.authorId))}</b> ${linkify(c.text)}</p><small>${esc(when(c))}${c.editedAt ? ' · 수정됨' : ''}</small></div><span class="post-btns">${c.authorId === ui.viewer ? `<button type="button" class="btn-x" data-action="edit-pcomment" data-id="${c.id}">고치기</button>` : ''}<button type="button" class="btn-x" data-action="del-pcomment" data-id="${c.id}" aria-label="댓글 지우기">✕</button></span></li>`;
   return `${list.length ? `<ul class="gb-list pc-list">${list.map(one).join('')}</ul>` : ''}
     ${open ? `<form class="gb-form pc-form" data-submit="post-comment" data-id="${p.id}">
       <span class="gb-me">${face(member(ui.viewer))}</span>
@@ -882,7 +854,7 @@ function postCommentsHTML(p, compact = false) {
 function postFootHTML(p) {
   const list = commentsOn(p.id);
   const open = ui.openComments.has(p.id);
-  const one = c => `<li style="--c:${member(c.authorId)?.color || '#FF8FB8'}">${face(member(c.authorId))}<div><p><b>${esc(memberName(c.authorId))}</b> ${linkify(c.text)}</p><small>${D.fmtStamp(c.createdAt)}${c.editedAt ? ' · 수정됨' : ''}</small></div>${c.authorId === ui.viewer ? `<span class="post-btns"><button type="button" class="btn-x" data-action="edit-pcomment" data-id="${c.id}">고치기</button><button type="button" class="btn-x" data-action="del-pcomment" data-id="${c.id}" aria-label="댓글 지우기">✕</button></span>` : ''}</li>`;
+  const one = c => `<li style="--c:${member(c.authorId)?.color || '#FF8FB8'}">${face(member(c.authorId))}<div><p><b>${esc(memberName(c.authorId))}</b> ${linkify(c.text)}</p><small>${D.fmtStamp(c.createdAt)}${c.editedAt ? ' · 수정됨' : ''}</small></div><span class="post-btns">${c.authorId === ui.viewer ? `<button type="button" class="btn-x" data-action="edit-pcomment" data-id="${c.id}">고치기</button>` : ''}<button type="button" class="btn-x" data-action="del-pcomment" data-id="${c.id}" aria-label="댓글 지우기">✕</button></span></li>`;
   return `<div class="pc-wrap">
     ${reactionRowHTML(p)}
     ${list.length ? `<ul class="gb-list pc-list">${list.map(one).join('')}</ul>` : ''}
@@ -1074,6 +1046,9 @@ function allPostsCard() {
         ${sameWho ? '' : `<p class="chat-who"><button type="button" class="link-ev" data-action="go-floor" data-floor="${m?.floor || 1}">${esc(memberName(p.memberId))}</button>${p.createdBy && p.createdBy !== p.memberId ? `<small> · ${esc(memberName(p.createdBy))} 씀</small>` : ''}${srcTag(p)}</p>`}
         <div class="bubble">${postPhotoHTML(p)}${p.text ? `<p>${linkify(p.text)}</p>` : ''}</div>
         <div class="chat-meta"><time>${esc(stampTime(p.createdAt))}</time>${postedOn && postedOn !== day ? `<span>${esc(D.fmtDate(postedOn, { wd: false }))}에 올림</span>` : ''}${p.editedAt ? '<span>수정됨</span>' : ''}${p.visibility === 'private' ? '<span>🔒</span>' : ''}${traceHTML(p)}
+          ${p.relay ? (p.relay.ackBy
+            ? `<span class="ack-ok">✅ ${esc(memberName(p.relay.ackBy))} 확인</span>`
+            : `<button type="button" class="pc-toggle ack-ask" data-action="post-ack" data-id="${p.id}">✅ 확인했어요</button>`) : ''}
           ${reactionRowHTML(p, true)}${commentToggleHTML(p, true)}<button type="button" class="pc-toggle" data-action="link-add" data-id="${p.id}" aria-label="이어 붙이기">🔗</button>
           <span class="post-btns"><button type="button" class="btn-x" data-action="edit-post" data-id="${p.id}">고치기</button><button type="button" class="btn-x" data-action="del-post" data-id="${p.id}" aria-label="글 삭제">✕</button></span></div>
         ${linkChipsHTML(p.id)}
@@ -1110,7 +1085,6 @@ function lobbyPanels() {
   <section class="card o-7"><header class="card-h"><h2>다가오는 일정</h2><button type="button" class="btn-g" data-action="view" data-view="cal">캘린더 →</button></header>
     ${up.length ? `<ul class="ev-list ev-compact">${up.map(i => evRow(i, { showDate: true })).join('')}</ul>` : empty('📭', '앞으로 7일 동안 예정된 일정이 없어요.')}
   </section>
-  ${relayCardHTML()}
   ${activityCard()}
   ${planSummaryCard()}`;
   return { main, side };
@@ -2933,7 +2907,7 @@ const ACTIONS = {
   'edit-pcomment': b => editPostComment(b.dataset.id),
   'del-pcomment': b => {
     const c = (S.postComments || []).find(x => x.id === b.dataset.id);
-    if (!mineOnly(c)) return;
+    if (!c) return;
     if (!confirm('이 댓글을 지울까요?')) return;
     S.postComments = (S.postComments || []).filter(x => x.id !== c.id);
     persist(); renderAll();
@@ -2941,13 +2915,17 @@ const ACTIONS = {
   'posts-more': () => { ui.postsShown += 12; renderAll(); },
   'edit-away': b => { const m = member(b.dataset.id); if (m) awayDialog(m); },
   'place-aka': () => placeAkaDialog(),
-  'relay-ack': b => {
-    const r = (S.relays || []).find(x => x.id === b.dataset.id);
-    if (!r || r.ackBy) return;
-    r.ackBy = ui.viewer;
-    r.ackAt = new Date().toISOString();
-    // ackedAt 은 서버가 적는다 — 디스코드에 실제로 표시한 다음에.
-    if (!persist()) { r.ackBy = null; r.ackAt = null; return; }
+  /**
+   * 디스코드에서 건너온 글에 '봤어요'를 남긴다.
+   * 서버가 1분 안에 디스코드 원본에 ✅ 와 '누가 확인했어요' 한 줄을 단다.
+   * ackedAt(디스코드에 실제로 단 시각)은 서버가 적는다 — 앱이 미리 단정하지 않게.
+   */
+  'post-ack': b => {
+    const p = S.posts.find(x => x.id === b.dataset.id);
+    if (!p || !p.relay || p.relay.ackBy) return;
+    const before = p.relay;
+    p.relay = { ...p.relay, ackBy: ui.viewer, ackAt: new Date().toISOString() };
+    if (!persist()) { p.relay = before; return; }
     renderAll(); toast('확인했어요 — 디스코드에도 표시할게요 ✅');
   },
   'link-add': b => { const p = S.posts.find(x => x.id === b.dataset.id); if (p) linkDialog(p); },
@@ -2982,7 +2960,7 @@ const ACTIONS = {
   },
   'del-gb': b => {
     const g = S.guestbook.find(x => x.id === b.dataset.id);
-    if (!mineOnly(g)) return;
+    if (!g) return;
     if (!confirm('이 방명록을 삭제할까요?')) return;
     S.guestbook = S.guestbook.filter(x => x.id !== g.id);
     persist(); renderAll();
@@ -3048,7 +3026,7 @@ const ACTIONS = {
   },
   'del-tcomment': b => {
     const c = (S.tripComments || []).find(x => x.id === b.dataset.id);
-    if (!mineOnly(c)) return;
+    if (!c) return;
     if (!confirm('이 댓글을 지울까요?')) return;
     S.tripComments = S.tripComments.filter(x => x.id !== c.id);
     persist(); renderAll();
