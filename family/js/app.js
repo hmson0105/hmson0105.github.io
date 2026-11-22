@@ -678,6 +678,7 @@ function kidScreenHTML() {
   const now = D.seoul();
   const hi = now.hour < 11 ? '좋은 아침이에요' : now.hour < 18 ? '안녕하세요' : '좋은 저녁이에요';
   const pz = !note && ui.kidPraise && praiseById(ui.kidPraise);
+  const pick = ui.kidPick || [];
 
   return `${pz ? `<div class="kd-note kd-praise" role="dialog" aria-label="칭찬 스티커">
       <div class="kd-note-in">
@@ -714,8 +715,14 @@ function kidScreenHTML() {
 
       <section class="kd-card kd-did">
         <h2>오늘 뭐 했어요?</h2>
-        <div class="kd-grid">${KID_DID.map((d, i) =>
-          `<button type="button" class="kd-do" data-action="kid-did" data-i="${i}"><span>${d.e}</span>${esc(d.l)}</button>`).join('')}</div>
+        <div class="kd-grid">${KID_DID.map((d, i) => {
+          const on = pick.includes(i);
+          return `<button type="button" class="kd-do${on ? ' on' : ''}" data-action="kid-did" data-i="${i}" aria-pressed="${on}"><span>${d.e}</span>${esc(d.l)}</button>`;
+        }).join('')}</div>
+        <div class="kd-send">
+          <button type="button" class="kd-btn kd-ok" data-action="kid-did-send" ${pick.length ? '' : 'disabled'}>입력 완료${pick.length ? ` · ${pick.length}개` : ''}</button>
+          <p class="kd-tip">${ui.kidSent ? '✅ 엄마 아빠한테 보냈어요!' : pick.length ? '다 골랐으면 입력 완료를 눌러요' : '한 일을 고르고 입력 완료를 눌러요'}</p>
+        </div>
       </section>
 
       <section class="kd-card kd-talk">
@@ -3105,18 +3112,36 @@ const ACTIONS = {
     logActivity('member', p.memberId, `${memberName(p.memberId)}가 쪽지를 봤어요 — ${String(p.text).slice(0, 20)}`);
     persist(); renderAll();
   },
+  // 카드를 누르면 고르기만 한다. 장난으로 눌러도 글이 올라가지 않게,
+  // '입력 완료'를 따로 눌러야 짧은 글에 올라간다.
   'kid-did': b => {
-    const d = KID_DID[+b.dataset.i];
+    const i = +b.dataset.i;
+    const d = KID_DID[i];
     if (!d) return;
+    const pick = (ui.kidPick ||= []);
+    const k = pick.indexOf(i);
+    if (k < 0) { pick.push(i); say(d.l); } else pick.splice(k, 1);
+    ui.kidSent = false;
+    renderKid();
+  },
+  'kid-did-send': () => {
+    const pick = (ui.kidPick || []).filter(i => KID_DID[i]).sort((a, b) => a - b);
+    if (!pick.length) return;
     const kid = kidId();
-    S.posts.push({
-      id: M.newId('po'), memberId: kid, text: `${d.l} ${d.e}`, photo: null, photoId: null, trace: null,
+    const now = new Date().toISOString();
+    const added = pick.map(i => ({
+      id: M.newId('po'), memberId: kid, text: `${KID_DID[i].l} ${KID_DID[i].e}`, photo: null, photoId: null, trace: null,
       at: D.today(), url: '', tripId: null, filed: true,
-      createdAt: new Date().toISOString(), createdBy: kid, visibility: 'family', sourceId: 'src_manual',
-    });
-    if (!persist()) { S.posts.pop(); return; }
-    say(d.l);
+      createdAt: now, createdBy: kid, visibility: 'family', sourceId: 'src_manual',
+    }));
+    S.posts.push(...added);
+    if (!persist()) { S.posts.splice(-added.length); return; }
+    ui.kidPick = [];
+    ui.kidSent = true;
+    say('엄마 아빠한테 보냈어요');
     renderAll();
+    clearTimeout(ui.kidSentTimer);
+    ui.kidSentTimer = setTimeout(() => { if (ui.kidSent) { ui.kidSent = false; if (ui.kid) renderKid(); } }, 4000);
   },
   /**
    * 디스코드에서 건너온 글에 '봤어요'를 남긴다.

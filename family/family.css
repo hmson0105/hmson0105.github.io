@@ -1298,12 +1298,23 @@ button.kd-dot:active { transform: scale(.88); }
 .kd-count { margin: 10px 0 0; font-size: 20px; }
 .kd-count b { font-family: var(--font-d); font-size: 26px; color: var(--pink-d); }
 .kd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+/* 고른 카드 — 분홍 바탕에 오른쪽 위 체크 */
+.kd-do { position: relative; }
+.kd-do.on { background: var(--pink-l); border-color: var(--pink-d); }
+.kd-do.on::after { content: '✓'; position: absolute; top: -7px; right: -7px; width: 24px; height: 24px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--pink-d); color: #fff; font: 700 14px/1 system-ui, sans-serif;
+  border: 2px solid #fff; }
+.kd-send { display: grid; justify-items: center; gap: 2px; margin-top: 14px; }
+.kd-send .kd-btn { min-width: 60%; }
+.kd-send .kd-btn:disabled { opacity: .45; cursor: default; transform: none; }
+.kd-send .kd-tip { text-align: center; }
 .kd-do { display: grid; gap: 6px; justify-items: center; padding: 18px 10px; cursor: pointer;
   border: 3px solid var(--line); border-radius: 20px; background: #fff;
   font-family: var(--font-d); font-size: 19px; color: var(--ink); transition: transform .1s ease, background .12s ease; }
 .kd-do span { font-size: 40px; line-height: 1; }
 .kd-do:hover { background: var(--pink-xl); }
 .kd-do:active { transform: scale(.94); background: var(--pink-l); }
+.kd-do.on:hover { background: var(--pink-l); }
 .kd-form { display: flex; gap: 10px; }
 .kd-form input { flex: 1; min-width: 0; border: 3px solid var(--line); border-radius: 16px;
   padding: 14px 16px; font-size: 20px; background: #fff; }
