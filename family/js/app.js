@@ -671,12 +671,25 @@ function kidScreenHTML() {
   const note = kidNotes()[0];
   const got = sinceLast();
   const goal = Math.max(1, rewards().goal);
-  const dots = [...Array(Math.min(goal, 20))].map((_, i) =>
-    `<span class="kd-dot${i < got.length ? ' on' : ''}">${i < got.length ? esc(got[i].emoji || '⭐') : ''}</span>`).join('');
+  // 붙은 스티커는 누르면 어떤 칭찬이었는지 크게 보여 주고 읽어 준다
+  const dots = [...Array(Math.min(goal, 20))].map((_, i) => i < got.length
+    ? `<button type="button" class="kd-dot on" data-action="kid-praise" data-id="${got[i].id}" aria-label="${i + 1}번째 칭찬 보기">${esc(got[i].emoji || '⭐')}</button>`
+    : '<span class="kd-dot"></span>').join('');
   const now = D.seoul();
   const hi = now.hour < 11 ? '좋은 아침이에요' : now.hour < 18 ? '안녕하세요' : '좋은 저녁이에요';
+  const pz = !note && ui.kidPraise && praiseById(ui.kidPraise);
 
-  return `${note ? `<div class="kd-note" role="dialog" aria-label="엄마 아빠가 보낸 쪽지">
+  return `${pz ? `<div class="kd-note kd-praise" role="dialog" aria-label="칭찬 스티커">
+      <div class="kd-note-in">
+        <p class="kd-from">${esc(memberName(pz.by))}가 준 칭찬이에요${pz.at ? ` · ${esc(new Date(pz.at).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric' }))}` : ''}</p>
+        <p class="kd-pz-e">${esc(pz.emoji || '⭐')}</p>
+        <button type="button" class="kd-speak" data-action="kid-praise-say" data-id="${pz.id}" aria-label="읽어 주기">🔊</button>
+        <p class="kd-msg">${esc(pz.reason || '칭찬!')}</p>
+        <div class="kd-note-btns">
+          <button type="button" class="kd-btn kd-ok" data-action="kid-praise-close">닫기</button>
+        </div>
+      </div>
+    </div>` : ''}${note ? `<div class="kd-note" role="dialog" aria-label="엄마 아빠가 보낸 쪽지">
       <div class="kd-note-in">
         <p class="kd-from">${esc(memberName(note.createdBy))}가 보냈어요</p>
         <button type="button" class="kd-speak" data-action="kid-say" data-id="${note.id}" aria-label="읽어 주기">🔊</button>
@@ -692,19 +705,20 @@ function kidScreenHTML() {
         <p>${esc(D.fmtDate(now.date, { long: true }))}</p>
       </header>
 
-      <section class="kd-card">
+      <section class="kd-card kd-stickers">
         <h2>🌟 칭찬 스티커</h2>
         <div class="kd-dots">${dots}</div>
         <p class="kd-count"><b>${got.length}</b> / ${goal}개${rewards().prize ? ` · 🎁 ${esc(rewards().prize)}` : ''}</p>
+        ${got.length ? '<p class="kd-tip">스티커를 누르면 어떤 칭찬인지 알려 줘요</p>' : ''}
       </section>
 
-      <section class="kd-card">
+      <section class="kd-card kd-did">
         <h2>오늘 뭐 했어요?</h2>
         <div class="kd-grid">${KID_DID.map((d, i) =>
           `<button type="button" class="kd-do" data-action="kid-did" data-i="${i}"><span>${d.e}</span>${esc(d.l)}</button>`).join('')}</div>
       </section>
 
-      <section class="kd-card">
+      <section class="kd-card kd-talk">
         <h2>하고 싶은 말</h2>
         <form class="kd-form" data-submit="kid-say-something">
           <input name="text" maxlength="100" placeholder="여기에 써 보세요" aria-label="하고 싶은 말">
@@ -1228,6 +1242,7 @@ function lobbyPanels() {
 // ───────────────────── 🌟 칭찬 스티커 · 보상 ─────────────────────
 const rewards = () => S.family.rewards;            // 목표 개수·보상 이름
 const praise = () => (S.praise ||= []);            // 스티커 한 장이 한 줄
+const praiseById = id => praise().find(x => x.id === id);
 const prizes = () => (S.prizes ||= []);            // 받은 보상 한 번이 한 줄
 /** 마지막 보상 이후 모은 스티커 — 보상을 받으면 0개부터 다시 모은다 */
 const sinceLast = () => {
@@ -1240,8 +1255,9 @@ function rewardCardHTML(m) {
   const got = sinceLast();
   const n = got.length, goal = Math.max(1, r.goal);
   const full = n >= goal;
-  const row = [...Array(Math.min(goal, 30))].map((_, i) =>
-    `<span class="pz-dot${i < n ? ' on' : ''}">${i < n ? esc(got[i].emoji || '⭐') : ''}</span>`).join('');
+  const row = [...Array(Math.min(goal, 30))].map((_, i) => i < n
+    ? `<button type="button" class="pz-dot on" data-action="praise-show" data-id="${got[i].id}" title="${esc(got[i].reason || '칭찬!')}" aria-label="${i + 1}번째 칭찬 보기">${esc(got[i].emoji || '⭐')}</button>`
+    : '<span class="pz-dot"></span>').join('');
   const recent = got.slice(-4).reverse();
   return `<section class="card card-praise o-3" style="--c:${m.color}">
     <header class="card-h"><h2>🌟 칭찬 스티커</h2>
@@ -1258,6 +1274,19 @@ function rewardCardHTML(m) {
     ${recent.length ? `<ul class="pz-log">${recent.map(x => `<li><span class="pz-e">${esc(x.emoji || '⭐')}</span><span>${esc(x.reason || '칭찬!')}</span><small>${esc(memberName(x.by))} · ${D.fmtStamp(x.at)}</small></li>`).join('')}</ul>` : ''}
     ${prizes().length ? `<p class="muted small">지금까지 받은 보상 ${prizes().length}번 · 가장 최근 ${esc(prizes()[prizes().length - 1].prize)}</p>` : ''}
   </section>`;
+}
+/** 붙은 스티커 한 장 — 어떤 칭찬이었는지, 누가 언제 줬는지. */
+function praiseDialog(x) {
+  openDialog({
+    title: '칭찬 스티커', cls: 'dlg-praise',
+    body: `<div class="pz-show">
+        <span class="pz-big" aria-hidden="true">${esc(x.emoji || '⭐')}</span>
+        <p class="pz-why">${esc(x.reason || '칭찬!')}</p>
+        <p class="muted small">${esc(memberName(x.by))}가 줬어요 · ${esc(D.fmtStamp(x.at))}</p>
+      </div>`,
+    actions: '<span class="sp"></span><button type="submit" value="close" class="btn-p">닫기</button>',
+    onSubmit: () => true,
+  });
 }
 function giveSticker(memberId) {
   const body = `<fieldset class="fld chips pz-pick"><legend>스티커</legend>
@@ -3060,6 +3089,15 @@ const ACTIONS = {
   'kid-open': () => { ui.kid = true; savePref('kid', '1'); renderAll(); },
   'kid-close': () => closeKid(),
   'kid-say': b => { const p = S.posts.find(x => x.id === b.dataset.id); if (p) say(p.text); },
+  'praise-show': b => { const x = praiseById(b.dataset.id); if (x) praiseDialog(x); },
+  'kid-praise': b => {
+    const x = praiseById(b.dataset.id);
+    if (!x) return;
+    ui.kidPraise = x.id; renderKid();
+    say(`${memberName(x.by)}가 준 칭찬이에요. ${x.reason || '칭찬!'}`);
+  },
+  'kid-praise-say': b => { const x = praiseById(b.dataset.id); if (x) say(x.reason || '칭찬!'); },
+  'kid-praise-close': () => { ui.kidPraise = null; try { speechSynthesis.cancel(); } catch { /* 소리 없는 기기 */ } renderKid(); },
   'kid-seen': b => {
     const p = S.posts.find(x => x.id === b.dataset.id);
     if (!p) return;

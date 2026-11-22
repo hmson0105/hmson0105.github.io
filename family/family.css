@@ -924,6 +924,12 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
 .pz-log small { color: var(--ink-3); font-size: 11.5px; white-space: nowrap; }
 .pz-e { font-size: 16px; }
 .pz-pick label span { font-size: 20px; }
+button.pz-dot { padding: 0; font: inherit; font-size: 17px; cursor: pointer; transition: transform .1s ease; }
+button.pz-dot:hover { transform: translateY(-2px) scale(1.08); }
+button.pz-dot:focus-visible { outline: 2px solid var(--c); outline-offset: 2px; }
+.pz-show { display: grid; justify-items: center; gap: 6px; text-align: center; padding: 4px 0 2px; }
+.pz-big { font-size: 64px; line-height: 1.1; }
+.pz-why { margin: 0; font-family: var(--font-d); font-size: 22px; line-height: 1.4; color: var(--ink); word-break: keep-all; overflow-wrap: anywhere; }
 
 /* 로비에 다 모였을 때 — 말풍선 대신 머리 위 하트 하나 */
 .pv-heart { position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, -3px);
@@ -1268,9 +1274,14 @@ dialog::backdrop { background: rgba(255, 210, 225, .55); backdrop-filter: blur(3
    데스크탑에 띄워 두고 아이가 혼자 쓰는 화면. 손가락이 닿는 것만 크게 내놓는다. */
 body.kid-on > *:not(#kidScreen) { display: none !important; }
 body.kid-on { overflow: auto; }
-#kidScreen { position: fixed; inset: 0; z-index: 60; overflow: auto;
+#kidScreen { position: fixed; inset: 0; z-index: 60; overflow: auto; overscroll-behavior: contain;
   background: var(--cream) radial-gradient(circle at 50% 0%, #FFE9F2 0%, var(--cream) 60%); }
-.kd-wrap { max-width: 860px; margin: 0 auto; padding: 24px 18px 40px; display: grid; gap: 18px; }
+/* 손가락으로 쓰는 화면 — 두 번 눌러 확대·눌림 파란 표시·길게 눌러 글자 선택을 막는다 */
+#kidScreen button { touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none; user-select: none; }
+.kd-wrap { max-width: 860px; margin: 0 auto; display: grid; gap: 18px;
+  padding: max(24px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right))
+    max(40px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); }
 .kd-head { text-align: center; }
 .kd-head h1 { margin: 0; font-family: var(--font-d); font-size: clamp(28px, 5vw, 44px); color: var(--pink-d); }
 .kd-head p { margin: 4px 0 0; color: var(--ink-2); font-size: 17px; }
@@ -1280,6 +1291,10 @@ body.kid-on { overflow: auto; }
 .kd-dot { width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--line);
   display: inline-flex; align-items: center; justify-content: center; font-size: 20px; background: #fff; }
 .kd-dot.on { background: var(--pink-l); border-color: var(--pink-d); }
+button.kd-dot { padding: 0; font: inherit; font-size: 20px; cursor: pointer; transition: transform .1s ease; }
+button.kd-dot:active { transform: scale(.88); }
+.kd-tip { margin: 6px 0 0; font-size: 14px; color: var(--ink-3); }
+.kd-pz-e { margin: 0; font-size: clamp(52px, 12vw, 96px); line-height: 1; }
 .kd-count { margin: 10px 0 0; font-size: 20px; }
 .kd-count b { font-family: var(--font-d); font-size: 26px; color: var(--pink-d); }
 .kd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
@@ -1308,7 +1323,7 @@ body.kid-on { overflow: auto; }
   background: url('img/note-frame.jpg') center/100% 100% no-repeat; }
 .kd-from { margin: 0; font-family: var(--font-d); font-size: clamp(15px, 2.6vw, 21px); color: var(--pink-d); }
 .kd-msg { margin: 0; font-family: var(--font-d); font-size: clamp(24px, 5.2vw, 46px); line-height: 1.35;
-  color: var(--ink); overflow-wrap: anywhere; }
+  color: var(--ink); word-break: keep-all; overflow-wrap: anywhere; }
 /* 읽어 주기는 글자 바로 위에 — 누를 자리가 글과 붙어 있어야 아이가 연결 지어 안다 */
 .kd-speak { justify-self: center; border: 0; background: none; cursor: pointer; line-height: 1;
   font-size: clamp(30px, 5vw, 46px); padding: 2px 10px; transition: transform .1s ease; }
@@ -1316,3 +1331,52 @@ body.kid-on { overflow: auto; }
 .kd-speak:active { transform: scale(.9); }
 .kd-note-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
 .kd-note-btns .kd-btn { font-size: clamp(15px, 2.6vw, 20px); padding: 10px 18px; }
+.kd-praise .kd-note-in { gap: 8px; }
+.kd-praise .kd-msg { font-size: clamp(22px, 4.6vw, 40px); }
+
+/* 아이 화면 · 휴대폰 — 할 일 단추를 세 칸으로 줄 세워 한 화면에 더 많이 */
+@media (max-width: 600px) {
+  .kd-wrap { gap: 12px;
+    padding: max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+      max(28px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+  .kd-head h1 { font-size: 26px; }
+  .kd-head p { font-size: 15px; }
+  .kd-card { padding: 13px 13px 14px; border-width: 2px; }
+  .kd-card h2 { font-size: 19px; margin-bottom: 8px; }
+  .kd-dots { gap: 5px; }
+  .kd-dot { width: 34px; height: 34px; font-size: 18px; }
+  button.kd-dot { font-size: 18px; }
+  .kd-count { font-size: 17px; margin-top: 8px; }
+  .kd-count b { font-size: 22px; }
+  .kd-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .kd-do { padding: 12px 4px 10px; gap: 4px; border-width: 2px; border-radius: 16px;
+    font-size: 14.5px; line-height: 1.25; word-break: keep-all; }
+  .kd-do span { font-size: 32px; }
+  .kd-form input { font-size: 17px; padding: 12px 13px; border-width: 2px; } /* 16px 아래면 아이폰이 확대한다 */
+  .kd-btn { font-size: 17px; padding: 10px 14px; }
+  .kd-note { padding: 8px; }
+  .kd-note-in { width: min(96vw, 92vh); }
+  .kd-from { font-size: 13.5px; }
+}
+/* 아이 화면 · 태블릿·큰 화면 — 왼쪽에 스티커와 말하기, 오른쪽에 할 일 단추 */
+@media (min-width: 720px) {
+  /* 셋째 줄이 남는 높이를 다 가져가야 왼쪽 두 카드가 벌어지지 않고 붙는다 */
+  .kd-wrap { max-width: 1100px; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    grid-template-rows: auto auto 1fr auto; align-items: start; }
+  .kd-head, .kd-exit { grid-column: 1 / -1; }
+  .kd-stickers { grid-column: 1; grid-row: 2; }
+  .kd-talk { grid-column: 1; grid-row: 3; }
+  .kd-did { grid-column: 2; grid-row: 2 / span 2; }
+  .kd-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .kd-dot, button.kd-dot { width: 50px; height: 50px; font-size: 26px; }
+  .kd-card { padding: 20px 22px; }
+  .kd-card h2 { font-size: 25px; margin-bottom: 14px; }
+  .kd-do { padding: 28px 10px 24px; gap: 10px; font-size: 22px; border-radius: 24px; }
+  .kd-do span { font-size: 58px; }
+  .kd-tip { font-size: 16px; }
+}
+@media (min-width: 720px) and (orientation: landscape) and (min-height: 600px) {
+  .kd-grid { grid-template-columns: repeat(3, 1fr); }
+  .kd-do { padding: 24px 8px 20px; font-size: 20px; }
+  .kd-do span { font-size: 50px; }
+}
