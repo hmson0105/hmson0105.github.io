@@ -1391,3 +1391,26 @@ button.kd-dot:active { transform: scale(.88); }
   .kd-do { padding: 24px 8px 20px; font-size: 20px; }
   .kd-do span { font-size: 50px; }
 }
+
+/* ── 여행 동선 지도 ── */
+.trip-grid > * { min-width: 0; }
+.tday-tabs { display: flex; gap: 6px; overflow-x: auto; max-width: 100%; padding: 2px 2px 8px; margin-bottom: 6px; scrollbar-width: thin; }
+.tday-tabs button { flex: none; border: 2px solid var(--line); background: #fff; border-radius: 99px; padding: 6px 12px; font: inherit; font-size: 14px; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+.tday-tabs button b { font-family: var(--font-d); font-weight: 400; color: var(--dc, var(--pink-d)); }
+.tday-tabs button[aria-pressed="true"] { border-color: var(--dc, var(--sky-d)); box-shadow: 0 3px 0 var(--dc, var(--sky-d)); background: var(--pink-xl); }
+.tday-tabs button:focus-visible { outline: 3px solid var(--yellow); }
+.trip-map-wrap { margin-bottom: 12px; }
+.trip-map { height: 340px; border-radius: 18px; overflow: hidden; border: 2px solid var(--line); background: #EEF3F6; z-index: 0; }
+.trip-map .leaflet-tooltip { font-family: inherit; font-size: 13px; }
+.tm-pin span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; color: #fff; font-weight: 700; font-size: 13px; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); box-sizing: border-box; }
+.tm-pin span.dot { width: 12px; height: 12px; border-width: 2px; }
+.map-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 8px 2px 0; font-size: 13px; color: var(--ink-2); }
+.map-legend span::before { content: ''; display: inline-block; width: 18px; height: 4px; border-radius: 2px; background: var(--dc); margin-right: 5px; vertical-align: middle; }
+.map-links { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+.map-links a { text-decoration: none; }
+.map-note { margin: 6px 2px 0; }
+.map-fail { padding: 20px; text-align: center; color: var(--ink-3); }
+.tday { border-left: 5px solid var(--dc, var(--line)); }
+.tp-n { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--dc, var(--pink)); color: #fff; font-style: normal; font-size: 12px; font-weight: 700; margin-right: 6px; vertical-align: 1px; }
+.tplan .tp-move { color: var(--sky-d); }
+@media (max-width: 760px) { .trip-map { height: 270px; } }

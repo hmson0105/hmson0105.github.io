@@ -21,7 +21,7 @@ export const SCHEMA_VERSION = 1;
 //  - 사람이 쓴 글(FREE_TEXT)은 그대로 두고, 화면에 넣을 때 esc() 로 처리한다.
 //  - 그 밖의 값(id·날짜·시간·종류 …)에서는 HTML·속성을 깨뜨릴 수 있는 문자를 지운다.
 //  - 사진은 기기에서 만든 data:image 만, 색은 #hex 만 받는다.
-const FREE_TEXT = new Set(['title', 'memo', 'text', 'hint', 'name', 'displayName', 'roleLabel', 'label', 'bgm', 'destination', 'changes', 'reason', 'prize',
+const FREE_TEXT = new Set(['title', 'memo', 'move', 'text', 'hint', 'name', 'displayName', 'roleLabel', 'label', 'bgm', 'destination', 'changes', 'reason', 'prize',
   'place', 'location', 'qty', 'raw', 'line', 'url', 'lastImportFile', 'externalUid', 'uid', 'email', 'summary', 'description']);
 const BAD_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 const UNSAFE = /[<>"'`&\\\u0000-\u001f\u007f]/;
@@ -265,7 +265,7 @@ function baseState() {
     issues: [],
     posts: [],
     guestbook: [],
-    trips: [],      // 여행 계획: { id, title, startDate, endDate, destination, memberIds, plan:[{id,date,time,title,memo}], eventId, ... }
+    trips: [],      // 여행 계획: { id, title, startDate, endDate, destination, memberIds, plan:[{id,date,time,title,memo,place,move,lat,lng}], eventId, ... }
     activity: [],   // 가족 소식(변경 내역): { id, at, by, kind, targetId, text }
     tripComments: [], // 여행 댓글: { id, tripId, authorId, text, createdAt, visibility }
     postComments: [], // 글 댓글: { id, postId, authorId, text, createdAt, visibility }
