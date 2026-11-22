@@ -5,7 +5,7 @@ import * as PH from './photos.js?v=1';
 import * as L from './lunar.js?v=1';
 import { load, save, loadPref, savePref, storageAvailable, STORAGE_MODE } from './store.js?v=6';
 import { buildICS, parseICS, downloadText } from './ics.js?v=7';
-import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS, WALL_SPOTS } from './scene.js?v=16';
+import { ASSETS, SPOTS, HEIGHTS, fallbackRoomSVG, avatarFigure, dadSVG, housePlanSVG, PLAN_SPOTS, WALL_SPOTS } from './scene.js?v=17';
 import { createSync, syncConfigured } from './sync.js?v=25';
 import { parseKakao } from './kakao.js?v=4';
 import * as N from './notify.js?v=2';
@@ -2687,32 +2687,48 @@ function renderPlan() {
       <em>${tripStatus(x) || ''}</em>
     </button></li>`).join('') : '';
   let detail;
-  if (!t) detail = empty('🧳', '아직 여행 계획이 없어요. 여행을 만들면 날짜별 계획표와 준비물 목록이 함께 생겨요.', '<button type="button" class="btn-p" data-action="new-trip">+ 여행 만들기</button>');
+  if (!t) detail = empty('🧳', '아직 여행 계획이 없어요. 여행을 만들면 날짜별 일정표와 동선 지도가 함께 생겨요.', '<button type="button" class="btn-p" data-action="new-trip">+ 여행 만들기</button>');
   else {
     const n = Math.min(30, D.diffDays(t.startDate, t.endDate) + 1);
     const days = [...Array(n)].map((_, k) => D.addDays(t.startDate, k));
-    const items = boardItems().filter(b => b.tripId === t.id).sort((a, b) => a.done - b.done);
-    const doneN = items.filter(b => b.done).length;
-    detail = `<header class="trip-h">
-        <div><p class="hello-date">${D.fmtDate(t.startDate, { year: true })} – ${D.fmtDate(t.endDate)} · ${n - 1}박 ${n}일${t.destination ? ` · 📍 ${esc(t.destination)}` : ''}</p>
-        <h2 class="trip-title">${esc(t.title)} <span class="tag tag-today">${tripStatus(t) || ''}</span>${srcTag(t)}</h2>
-        <div class="ev-people">${(t.memberIds || []).map(id => pchip(id)).join('')}</div>
-        ${t.memo ? `<p class="trip-memo">📝 ${esc(t.memo)}</p>` : ''}</div>
-        <div class="trip-btns"><button type="button" class="btn-s btn-sm" data-action="edit-trip" data-id="${t.id}">여행 정보 수정</button>${t.eventId ? `<button type="button" class="btn-g btn-sm" data-action="open-event" data-id="${t.eventId}" data-date="${t.startDate}">📅 캘린더에서 보기</button>` : ''}</div>
+    const nights = n - 1;
+    pickPlanDay(t, days);
+    detail = `<div class="tb">
+      <header class="tb-hero">
+        <span class="tb-cloud c1" aria-hidden="true"></span><span class="tb-cloud c2" aria-hidden="true"></span><span class="tb-cloud c3" aria-hidden="true"></span>
+        <svg class="tb-plane" viewBox="0 0 64 64" aria-hidden="true"><path d="M60 6c-2-2-6-1-9 2L39 20 11 12l-5 5 22 13-10 10-8-1-3 3 9 5 5 9 3-3-1-8 10-10 13 22 5-5-8-28 12-12c3-3 4-7 2-9z"/></svg>
+        <div class="tb-head">
+          <p class="tb-kicker">OUR FAMILY TRIP ${tripStatus(t) ? `<span>${tripStatus(t)}</span>` : ''}${srcTag(t)}</p>
+          <h2 class="tb-title">${esc(t.title)} <span>일정표</span></h2>
+          <p class="tb-sub">${D.fmtDate(t.startDate, { year: true })} – ${D.fmtDate(t.endDate)} · ${nights}박 ${n}일${t.destination ? ` · 📍 ${esc(t.destination)}` : ''}</p>
+          <div class="tb-btns"><button type="button" class="btn-s btn-sm" data-action="edit-trip" data-id="${t.id}">여행 정보 수정</button>${t.eventId ? `<button type="button" class="btn-g btn-sm" data-action="open-event" data-id="${t.eventId}" data-date="${t.startDate}">📅 캘린더에서 보기</button>` : ''}</div>
+        </div>
+        <img class="tb-family" src="${ASSETS.tripFamily}" alt="" width="655" height="420" decoding="async">
       </header>
-      <div class="trip-grid">
-        <section><h3 class="sub-h">🗺️ 여행 계획표</h3>
-          ${planDayTabs(t, days)}
-          ${tripMapHTML(t, days)}
-          ${days.map((d, k) => (ui.plan.day && ui.plan.day !== d) ? '' : tripDayHTML(t, d, k)).join('')}
-        </section>
-        <section><h3 class="sub-h">🎒 이 여행 준비물 · 살 것 <small class="muted">${doneN}/${items.length} 완료</small></h3>
-          <div class="prog" aria-hidden="true"><i style="width:${items.length ? doneN / items.length * 100 : 0}%"></i></div>
-          ${boardAddForm(t.id)}
-          ${items.length ? `<ul class="is-list">${items.map(b => boardRow(b, { showTrip: false })).join('')}</ul>` : '<p class="muted small">준비물을 추가해 보세요.</p>'}
-        </section>
+      <section class="tb-info">
+        <h3 class="tb-tag">여행 한눈에</h3>
+        <div class="tb-card tb-info-c">
+          <p class="tb-memo">${t.memo ? esc(t.memo) : '여행 정보 수정에서 이 여행 소개를 적어 보세요.'}</p>
+          <ul class="tb-facts">
+            <li><b>가는 날</b> ${D.fmtDate(t.startDate)}</li>
+            <li><b>오는 날</b> ${D.fmtDate(t.endDate)}</li>
+            ${t.destination ? `<li><b>여행지</b> ${esc(t.destination)}</li>` : ''}
+            <li><b>함께</b> <span class="ev-people">${(t.memberIds || []).map(id => pchip(id)).join('')}</span></li>
+          </ul>
+        </div>
+      </section>
+      <div class="tb-body">
+        <aside class="tb-mapcol">
+          <div class="tb-mapcard">
+            <h3 class="tb-maph">🗺️ 동선 지도</h3>
+            ${planDayTabs(t, days)}
+            ${tripMapHTML(t, days)}
+          </div>
+        </aside>
+        <div class="tb-days">${days.map((d, k) => tripDayHTML(t, d, k)).join('')}</div>
       </div>
-      ${tripCommentsHTML(t)}`;
+      ${tripCommentsHTML(t)}
+    </div>`;
   }
   ui.plan.mapRoutes = t ? tripMapRoutes(t) : null;
   const f = ui.plan.filter;
@@ -2788,11 +2804,43 @@ function tripMapHTML(t, days) {
     <p class="small muted map-note">${day ? '숫자는 아래 계획 순서예요.' : '날짜를 고르면 그날 동선을 순서대로 보여 줘요.'} 바탕 지도는 OpenStreetMap 서버에서 받아 와요.</p>
   </div>`;
 }
+/** 그날 들르는 곳을 순서대로 (같은 곳이 이어지면 한 번만) */
+function dayRouteNames(its) {
+  const names = [];
+  for (const p of its) {
+    const nm = (p.place || '').trim();
+    if (nm && names.at(-1) !== nm) names.push(nm);
+  }
+  return names;
+}
+const TRIP_PICS = 6;
 function tripDayHTML(t, d, k) {
   const its = planItemsOn(t, d);
-  return `<div class="tday" style="--dc:${TM.dayColor(k)}"><div class="tday-h"><b>${k + 1}일차</b> ${D.fmtDate(d)}<button type="button" class="btn-g btn-sm" data-action="new-plan" data-id="${t.id}" data-date="${d}">+ 추가</button></div>
-    ${its.length ? `<ol class="tplan">${its.map((p, i) => `<li><button type="button" data-action="edit-plan" data-id="${t.id}" data-item="${p.id}"><em>${p.time || '시간 미정'}</em><span>${TM.hasPoint(p) ? `<i class="tp-n">${i + 1}</i>` : ''}${esc(p.title)}${p.place && p.place !== p.title ? `<small>📍 ${esc(p.place)}</small>` : ''}${p.move ? `<small class="tp-move">➡️ ${esc(p.move)}</small>` : ''}${p.memo ? `<small>${esc(p.memo)}</small>` : ''}</span></button></li>`).join('')}</ol>` : '<p class="muted small tday-empty">아직 계획이 없어요</p>'}
-  </div>`;
+  const names = dayRouteNames(its);
+  const route = names.length > 6 ? [...names.slice(0, 5), '…', names.at(-1)] : names;
+  const timed = its.filter(p => p.time);
+  const on = ui.plan.day === d;
+  const pic = ASSETS.tripPics[k % TRIP_PICS];
+  return `<article class="tb-day${on ? ' on' : ''}" style="--dc:${TM.dayColor(k)}">
+    <h3 class="tb-tag"><button type="button" data-action="plan-day" data-d="${on ? '' : d}" aria-pressed="${on}" title="${on ? '전체 동선 보기' : '이날 동선을 지도에서 보기'}"><b>${k + 1}일차</b> ${esc(D.fmtDate(d, { wd: true }))}</button></h3>
+    <div class="tb-row">
+      <div class="tb-stack">
+        <div class="tb-card tb-sum">
+          ${route.length ? `<p class="tb-route">${route.map(x => x === '…' ? '<i>…</i>' : `<span>${esc(x)}</span>`).join('<em aria-hidden="true">→</em>')}</p>` : '<p class="tb-route muted">아직 정한 장소가 없어요</p>'}
+          <ul class="tb-facts">
+            <li><b>일정</b> ${its.length}개${timed.length ? ` · ${timed[0].time} ~ ${timed.at(-1).time}` : ''}</li>
+            ${names.length ? `<li><b>장소</b> ${names.length}곳</li>` : ''}
+          </ul>
+        </div>
+        <div class="tb-rings" aria-hidden="true"><i></i><i></i></div>
+        <div class="tb-card tb-sched">
+          <div class="tb-sched-h"><h4>일정</h4><button type="button" class="btn-g btn-sm" data-action="new-plan" data-id="${t.id}" data-date="${d}">+ 추가</button></div>
+          ${its.length ? `<ol class="tb-list">${its.map((p, i) => `<li><button type="button" data-action="edit-plan" data-id="${t.id}" data-item="${p.id}"><em>${p.time || '미정'}</em><span>${TM.hasPoint(p) ? `<i class="tp-n">${i + 1}</i>` : ''}<b>${esc(p.title)}</b>${p.place && p.place !== p.title ? `<small>📍 ${esc(p.place)}</small>` : ''}${p.move ? `<small class="tp-move">➡️ ${esc(p.move)}</small>` : ''}${p.memo ? `<small>${esc(p.memo)}</small>` : ''}</span></button></li>`).join('')}</ol>` : '<p class="muted small">아직 계획이 없어요. + 추가로 적어 보세요.</p>'}
+        </div>
+      </div>
+      ${pic ? `<figure class="tb-pola" aria-hidden="true"><img src="${pic}" alt="" width="320" height="320" loading="lazy" decoding="async"></figure>` : ''}
+    </div>
+  </article>`;
 }
 function syncTripEvent(t) {
   const now = new Date().toISOString();
@@ -3263,7 +3311,13 @@ const ACTIONS = {
   'new-trip': () => { if ($('#dlg').open) $('#dlg').close(); tripDialog(null); },
   'edit-trip': b => tripDialog(tripById(b.dataset.id)),
   'select-trip': b => { ui.plan.tripId = b.dataset.id; renderPlan(); },
-  'plan-day': b => { ui.plan.day = b.dataset.d || ''; renderPlan(); },
+  'plan-day': b => {
+    // 일정표의 날짜 이름표를 누르면, 지도가 위에 있는 좁은 화면에서는 지도로 올라가 보여 준다
+    const fromTag = !!b.closest('.tb-tag');
+    ui.plan.day = b.dataset.d || '';
+    renderPlan();
+    if (fromTag && window.matchMedia('(max-width: 1000px)').matches) $('.tb-mapcard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  },
   'open-trip': b => { if ($('#dlg').open) $('#dlg').close(); ui.plan.tripId = b.dataset.id; setView('plan'); scrollTopIfMobile(); },
   'new-plan': b => planItemDialog(tripById(b.dataset.id), null, b.dataset.date),
   'edit-plan': b => planItemDialog(tripById(b.dataset.id), b.dataset.item),

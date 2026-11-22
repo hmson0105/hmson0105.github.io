@@ -27,6 +27,10 @@ export const ASSETS = {
   // 없으면 housePlanSVG() 가 그린 등각 평면도가 쓰인다. 가로:세로 = 1200:820.
   // 사람·이름표 위치(PLAN_SPOTS)는 그대로 얹히므로 코드 수정은 이 한 줄뿐이다.
   housePlan: 'img/house-plan.jpg', // Higgsfield · Nano Banana 2
+  // 여행 일정표 꾸밈 그림 (Higgsfield · Nano Banana 2). 특정 여행지가 아닌 일반 여행 그림이라
+  // 어느 여행에나 날짜 순서대로 돌려 쓴다. 실제 여행 정보는 그림에 없다.
+  tripFamily: 'img/trip-family.png',
+  tripPics: ['img/trip-pic-1.jpg', 'img/trip-pic-2.jpg', 'img/trip-pic-3.jpg', 'img/trip-pic-4.jpg', 'img/trip-pic-5.jpg', 'img/trip-pic-6.jpg'],
 };
 
 /** 아바타 발 위치(무대 %, 발끝 기준)와 키(무대 높이 %) */
