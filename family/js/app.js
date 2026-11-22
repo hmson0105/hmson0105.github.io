@@ -10,7 +10,7 @@ import { createSync, syncConfigured } from './sync.js?v=25';
 import { parseKakao } from './kakao.js?v=4';
 import * as N from './notify.js?v=2';
 import { APP_URL, PUSH_PUBLIC_KEY } from './config.js?v=12';
-import * as TM from './tripmap.js?v=4';
+import * as TM from './tripmap.js?v=5';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -2692,7 +2692,9 @@ function renderPlan(force = false) {
   const ef = $('#tbEdit');
   if (ef && ui.plan.edit) {
     if (!force) return;
-    ui.plan.edit.draft = planEditValues(ef);
+    // 방금 줄을 더한 경우처럼 새 draft 를 이미 만들어 왔으면 화면 값으로 덮지 않는다
+    if (ui.plan.edit.fresh) ui.plan.edit.fresh = false;
+    else ui.plan.edit.draft = planEditValues(ef);
   }
   const list = trips();
   const t = pickTrip();
@@ -2767,9 +2769,11 @@ function renderPlan(force = false) {
   const slot = $('#tripMapSlot');
   if (slot && ui.plan.mapRoutes) TM.mountTripMap(slot, ui.plan.mapRoutes.routes, ui.plan.mapRoutes.key);
   if (ui.plan.edit?.focus) {
+    const which = ui.plan.edit.focus;
     ui.plan.edit.focus = false;
     const f = $('#tbEdit');
-    if (f) { f.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); f.title.focus({ preventScroll: true }); }
+    const inp = f && (which === 'last' ? [...f.querySelectorAll('[name=title]')].at(-1) : f.querySelector('[name=title]'));
+    if (inp) { inp.scrollIntoView({ block: 'center', behavior: 'smooth' }); inp.focus({ preventScroll: true }); }
   }
 }
 
@@ -2790,6 +2794,8 @@ function planDayTabs(t, days) {
     ${days.map((d, k) => `<button type="button" data-action="plan-day" data-d="${d}" aria-pressed="${cur === d}" style="--dc:${TM.dayColor(k)}"><b>${k + 1}일차</b> ${esc(D.fmtDate(d, { wd: true }))}</button>`).join('')}
   </div></nav>`;
 }
+/** 일정에 붙이는 링크는 http(s) 주소만 받는다 (javascript: 등은 화면에 링크로 만들지 않는다) */
+const URL_OK = /^https?:\/\/[^\s<>"'`]+$/i;
 /** 숙소인가. 직접 표시(stay)가 우선이고, 없으면 장소 이름으로 짐작한다. */
 const STAY_RE = /호텔|숙소|힐튼|월도프|리조트|료칸|펜션|게스트\s*하우스|hotel|resort|inn\b|ryokan/i;
 const isStay = p => !!p && (p.stay === true || (p.stay !== false && STAY_RE.test(`${p.place || ''}`)));
@@ -2843,9 +2849,8 @@ function tripDayHTML(t, d, k) {
   const timed = its.filter(p => p.time);
   const marks = planMarks(its);
   const pic = ASSETS.tripPics[k % TRIP_PICS];
-  const ed = ui.plan.edit && ui.plan.edit.tripId === t.id ? ui.plan.edit : null;
-  const row = (p, i) => (ed && ed.id === p.id ? planEditHTML(t, d, p, ed.draft) : `<li><button type="button" data-action="edit-plan" data-id="${t.id}" data-item="${p.id}" title="눌러서 고치기"><em>${p.time || '미정'}</em><span>${marks[i] ? `<i class="tp-n${marks[i] === '🏨' ? ' stay' : ''}">${marks[i]}</i>` : ''}<b>${esc(p.title)}</b>${p.place && p.place !== p.title ? `<small>📍 ${esc(p.place)}</small>` : ''}${p.move ? `<small class="tp-move">➡️ ${esc(p.move)}</small>` : ''}${p.memo ? `<small>${esc(p.memo)}</small>` : ''}</span></button></li>`);
-  const adding = ed && !ed.id && ed.date === d;
+  const ed = ui.plan.edit && ui.plan.edit.tripId === t.id && ui.plan.edit.date === d ? ui.plan.edit : null;
+  const row = (p, i) => `<li><em>${p.time || '미정'}</em><span>${marks[i] ? `<i class="tp-n${marks[i] === '🏨' ? ' stay' : ''}">${marks[i]}</i>` : ''}${URL_OK.test(p.url || '') ? `<a class="tb-ln" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" title="${esc(p.url)}"><b>${esc(p.title)}</b> <span aria-hidden="true">🔗</span></a>` : `<b>${esc(p.title)}</b>`}${p.place && p.place !== p.title ? `<small>📍 ${esc(p.place)}</small>` : ''}${p.move ? `<small class="tp-move">➡️ ${esc(p.move)}</small>` : ''}${p.memo ? `<small>${linkify(p.memo)}</small>` : ''}</span></li>`;
   return `<article class="tb-day on" style="--dc:${TM.dayColor(k)}">
     <h3 class="tb-tag"><span><b>${k + 1}일차</b> ${esc(D.fmtDate(d, { wd: true }))}</span></h3>
     <div class="tb-stack">
@@ -2858,60 +2863,103 @@ function tripDayHTML(t, d, k) {
         </ul>
       </div>
       <div class="tb-rings" aria-hidden="true"><i></i><i></i></div>
-      <div class="tb-card tb-sched">
-        <div class="tb-sched-h"><h4>일정</h4>${adding ? '' : `<button type="button" class="btn-g btn-sm" data-action="new-plan" data-id="${t.id}" data-date="${d}">+ 추가</button>`}</div>
-        ${its.length || adding ? `<ol class="tb-list">${its.map(row).join('')}${adding ? planEditHTML(t, d, null, ed.draft) : ''}</ol>` : '<p class="muted small">아직 계획이 없어요. + 추가로 적어 보세요.</p>'}
-        <p class="small muted tb-hint">일정을 누르면 이 자리에서 바로 고칠 수 있어요.</p>
+      <div class="tb-card tb-sched${ed ? ' editing' : ''}">
+        ${ed ? planDayEditHTML(t, d, its, ed) : `
+        <div class="tb-sched-h"><h4>일정</h4><span class="tb-sched-btns"><button type="button" class="btn-g btn-sm" data-action="plan-add" data-id="${t.id}" data-date="${d}">+ 추가</button>${its.length ? `<button type="button" class="btn-s btn-sm" data-action="plan-edit" data-id="${t.id}" data-date="${d}">✏️ 수정</button>` : ''}</span></div>
+        ${its.length ? `<ol class="tb-list">${its.map(row).join('')}</ol>` : '<p class="muted small">아직 계획이 없어요. + 추가로 적어 보세요.</p>'}`}
       </div>
     </div>
   </article>`;
 }
-/** 일정표 안에서 고치는 칸 (창을 띄우지 않는다) */
-function planEditHTML(t, d, it, draft) {
+/**
+ * 그날 일정표를 그 모습 그대로 고치는 칸으로 바꾼다.
+ * 글자 자리가 그대로 입력칸이 되고, [완료]를 누르면 한꺼번에 저장한다.
+ * draft 는 고치던 내용(줄마다 { id, time, title, place, coord, move, memo, stay, del, date }).
+ */
+function planDayDraft(its, d) {
+  return its.map(p => ({ id: p.id, date: p.date, time: p.time || '', title: p.title || '', place: p.place || '', coord: TM.fmtLatLng(p), move: p.move || '', memo: p.memo || '', url: p.url || '', stay: isStay(p), del: false }));
+}
+function planDayEditHTML(t, d, its, ed) {
   const n = Math.min(30, D.diffDays(t.startDate, t.endDate) + 1);
   const days = [...Array(n)].map((_, k) => D.addDays(t.startDate, k));
-  const v = draft || {
-    date: it?.date || d, time: it?.time || '', title: it?.title || '', place: it?.place || '',
-    coord: TM.fmtLatLng(it), move: it?.move || '', memo: it?.memo || '', stay: isStay(it),
+  const rows = ed.draft || planDayDraft(its, d);
+  // 비어 있는 칸(장소·좌표·이동·링크·메모)은 접어 두고, '＋ 더 적기'로 편다
+  const fld = (v, name, icon, attrs, ph, label, cls = '') => `<label class="tbx-f${cls}${(v[name] || '').trim() ? '' : ' empty'}"><span aria-hidden="true">${icon}</span>${name === 'memo'
+    ? `<textarea name="memo" rows="1" maxlength="300" placeholder="${ph}" aria-label="${label}">${esc(v.memo || '')}</textarea>`
+    : `<input name="${name}" ${attrs} value="${esc(v[name] || '')}" placeholder="${ph}" aria-label="${label}">`}</label>`;
+  const line = (v, i) => {
+    const hasEmpty = ['place', 'coord', 'move', 'url', 'memo'].some(k => !(v[k] || '').trim());
+    return `<li class="tbx${v.del ? ' del' : ''}${v.id ? '' : ' more'}" data-row="${i}" data-id="${esc(v.id || '')}">
+    <input class="tbx-time" type="time" name="time" value="${esc(v.time)}" aria-label="시간 (비우면 미정)">
+    <div class="tbx-main">
+      <input class="tbx-title" name="title" maxlength="50" value="${esc(v.title)}" placeholder="할 일 · 갈 곳" aria-label="할 일 · 갈 곳">
+      ${fld(v, 'place', '📍', 'maxlength="60"', '장소 (지도에 보일 이름)', '장소')}
+      ${fld(v, 'coord', '🌐', 'inputmode="decimal" maxlength="60"', '좌표 (구글 지도에서 길게 눌러 복사)', '좌표', ' tbx-coord')}
+      ${fld(v, 'move', '➡️', 'maxlength="120"', '다음 장소까지 이동', '다음 장소까지 이동')}
+      ${fld(v, 'url', '🔗', 'inputmode="url" maxlength="400"', '링크 (구글맵·예약 페이지 주소, https:// 로 시작)', '링크')}
+      ${fld(v, 'memo', '📝', '', '메모', '메모')}
+      <div class="tbx-opts">
+        ${hasEmpty && v.id ? '<button type="button" class="btn-x tbx-morebtn" data-action="plan-row-more">＋ 더 적기</button>' : ''}
+        <label class="tbx-stay"><input type="checkbox" name="stay" ${v.stay ? 'checked' : ''}> 🏨 숙소</label>
+        <select name="date" aria-label="날짜">${days.map((x, k) => `<option value="${x}" ${x === (v.date || d) ? 'selected' : ''}>${k + 1}일차</option>`).join('')}</select>
+        <input type="hidden" name="del" value="${v.del ? '1' : ''}">
+        <button type="button" class="btn-x tbx-delbtn" data-action="plan-row-del">${v.del ? '되살리기' : '🗑 지우기'}</button>
+      </div>
+    </div>
+  </li>`;
   };
-  return `<li class="tb-edit"><form id="tbEdit" data-submit="plan-inline" data-id="${t.id}" data-item="${it?.id || ''}" autocomplete="off">
-    <div class="tbe-top">
-      <input type="time" name="time" value="${esc(v.time)}" aria-label="시간 (비워 두면 시간 미정)">
-      <input name="title" required maxlength="50" value="${esc(v.title)}" placeholder="할 일 · 갈 곳" aria-label="할 일 · 갈 곳">
-    </div>
-    <input name="place" maxlength="60" value="${esc(v.place)}" placeholder="📍 장소 (지도에 보일 이름)" aria-label="장소">
-    <input name="coord" inputmode="decimal" maxlength="60" value="${esc(v.coord)}" placeholder="🌐 좌표 예) 35.18523, 136.89911" aria-label="좌표 (구글 지도에서 장소를 길게 눌러 나온 숫자)">
-    <input name="move" maxlength="120" value="${esc(v.move)}" placeholder="➡️ 다음 장소까지 이동 (예: 택시 약 10분)" aria-label="다음 장소까지 이동">
-    <textarea name="memo" rows="2" maxlength="300" placeholder="메모" aria-label="메모">${esc(v.memo)}</textarea>
-    <div class="tbe-opts">
-      <label class="tbe-stay"><input type="checkbox" name="stay" ${v.stay ? 'checked' : ''}> 🏨 숙소</label>
-      <select name="date" aria-label="날짜">${days.map((x, k) => `<option value="${x}" ${x === v.date ? 'selected' : ''}>${k + 1}일차 · ${esc(D.fmtDate(x))}</option>`).join('')}</select>
-    </div>
+  return `<form id="tbEdit" data-submit="plan-day-save" data-id="${t.id}" data-date="${d}" autocomplete="off">
+    <div class="tb-sched-h"><h4>일정 <small class="muted">고치는 중</small></h4><span class="tb-sched-btns"><button type="button" class="btn-g btn-sm" data-action="plan-edit-cancel">취소</button><button class="btn-p btn-sm">완료</button></span></div>
+    <ol class="tb-list tbx-list">${rows.map(line).join('')}</ol>
+    <button type="button" class="btn-g btn-sm tbx-add" data-action="plan-row-add">+ 일정 한 줄 더</button>
     <p class="tbe-err" role="alert" hidden></p>
-    <div class="tbe-btns">${it ? `<button type="button" class="btn-g btn-sm danger" data-action="del-plan" data-id="${t.id}" data-item="${it.id}">삭제</button>` : ''}<span class="sp"></span><button type="button" class="btn-g btn-sm" data-action="cancel-plan">취소</button><button class="btn-p btn-sm">${it ? '저장' : '추가'}</button></div>
-  </form></li>`;
+  </form>`;
 }
+/** 고치는 칸에 적힌 내용을 줄마다 읽는다 */
 function planEditValues(f) {
-  return { date: f.date.value, time: f.time.value, title: f.title.value, place: f.place.value, coord: f.coord.value, move: f.move.value, memo: f.memo.value, stay: f.stay.checked };
+  return [...f.querySelectorAll('.tbx')].map(li => {
+    const q = n => li.querySelector(`[name=${n}]`);
+    return { id: li.dataset.id || '', date: q('date').value, time: q('time').value, title: q('title').value, place: q('place').value, coord: q('coord').value, move: q('move').value, memo: q('memo').value, url: q('url').value, stay: q('stay').checked, del: q('del').value === '1' };
+  });
 }
-function savePlanInline(f) {
+function savePlanDay(f) {
   const t = tripById(f.dataset.id);
   if (!t) return;
-  const err = m => { const e = f.querySelector('.tbe-err'); e.textContent = m; e.hidden = false; };
-  const v = planEditValues(f);
-  const title = v.title.trim();
-  if (!title) return err('할 일 · 갈 곳을 적어 주세요.');
-  const coordText = v.coord.trim();
-  const pt = coordText ? TM.parseLatLng(coordText) : null;
-  if (coordText && !pt) return err('좌표는 "35.18523, 136.89911"처럼 위도, 경도 숫자 두 개로 적어 주세요.');
+  const errBox = f.querySelector('.tbe-err');
+  f.querySelectorAll('[aria-invalid]').forEach(x => x.removeAttribute('aria-invalid'));
+  const fail = (li, name, msg) => { const x = li.querySelector(`[name=${name}]`); x.setAttribute('aria-invalid', 'true'); x.focus(); errBox.textContent = msg; errBox.hidden = false; };
+  const rows = planEditValues(f);
+  const lis = [...f.querySelectorAll('.tbx')];
+  const out = [];
+  for (let i = 0; i < rows.length; i++) {
+    const v = rows[i];
+    if (v.del) { out.push(v); continue; }
+    const title = v.title.trim();
+    if (!title) {
+      if (!v.id && !v.place.trim() && !v.memo.trim()) continue;      // 비워 둔 새 줄은 그냥 버린다
+      return fail(lis[i], 'title', '할 일 · 갈 곳이 비어 있는 줄이 있어요.');
+    }
+    const ct = v.coord.trim();
+    const pt = ct ? TM.parseLatLng(ct) : null;
+    if (ct && !pt) return fail(lis[i], 'coord', '좌표는 "35.18523, 136.89911"처럼 위도, 경도 숫자 두 개로 적어 주세요.');
+    const url = v.url.trim();
+    if (url && !URL_OK.test(url)) return fail(lis[i], 'url', '링크는 https:// 로 시작하는 주소를 붙여 넣어 주세요.');
+    out.push({ ...v, title, pt, url });
+  }
   t.plan ||= [];
-  const it = f.dataset.item ? t.plan.find(p => p.id === f.dataset.item) : null;
-  const val = { date: v.date, time: v.time || '', title, memo: v.memo.trim(), place: v.place.trim(), move: v.move.trim(), lat: pt ? pt.lat : null, lng: pt ? pt.lng : null, stay: !!v.stay };
-  if (it) Object.assign(it, val); else t.plan.push({ id: M.newId('tp'), ...val });
-  t.updatedAt = new Date().toISOString();
+  let changed = 0;
+  for (const v of out) {
+    const it = v.id ? t.plan.find(p => p.id === v.id) : null;
+    if (v.del) { if (it) { t.plan = t.plan.filter(p => p.id !== it.id); changed++; } continue; }
+    const val = { date: v.date, time: v.time || '', title: v.title, memo: v.memo.trim(), place: v.place.trim(), move: v.move.trim(), lat: v.pt ? v.pt.lat : null, lng: v.pt ? v.pt.lng : null, url: v.url, stay: !!v.stay };
+    if (it) {
+      if (Object.keys(val).some(k => (it[k] ?? null) !== (val[k] ?? null))) { Object.assign(it, val); changed++; }
+    } else { t.plan.push({ id: M.newId('tp'), ...val }); changed++; }
+  }
   ui.plan.edit = null;
-  ui.plan.day = val.date;
-  persist(); renderAll(); toast(it ? '고쳤어요.' : '일정표에 담았어요.');
+  if (changed) { t.updatedAt = new Date().toISOString(); persist(); }
+  renderAll();
+  toast(changed ? '일정표를 고쳤어요.' : '바뀐 내용이 없어요.');
 }
 function syncTripEvent(t) {
   const now = new Date().toISOString();
@@ -3354,24 +3402,33 @@ const ACTIONS = {
     renderPlan(true);
   },
   'open-trip': b => { if ($('#dlg').open) $('#dlg').close(); ui.plan.tripId = b.dataset.id; setView('plan'); scrollTopIfMobile(); },
-  // 일정은 창을 띄우지 않고 일정표 안에서 바로 고친다
-  'new-plan': b => { ui.plan.edit = { tripId: b.dataset.id, id: '', date: b.dataset.date, focus: true }; renderPlan(true); },
-  'edit-plan': b => {
-    const it = (tripById(b.dataset.id)?.plan || []).find(p => p.id === b.dataset.item);
-    if (!it) return;
-    ui.plan.edit = { tripId: b.dataset.id, id: it.id, date: it.date, focus: true };
+  // 일정은 창을 띄우지 않고, 일정표 글자 자리에서 바로 고친다
+  'plan-edit': b => { ui.plan.edit = { tripId: b.dataset.id, date: b.dataset.date, focus: 'first' }; renderPlan(true); },
+  'plan-add': b => {
+    const t = tripById(b.dataset.id);
+    const rows = planDayDraft(planItemsOn(t, b.dataset.date), b.dataset.date);
+    rows.push({ id: '', date: b.dataset.date, time: '', title: '', place: '', coord: '', move: '', memo: '', url: '', stay: false, del: false });
+    ui.plan.edit = { tripId: t.id, date: b.dataset.date, draft: rows, focus: 'last' };
     renderPlan(true);
   },
-  'cancel-plan': () => { ui.plan.edit = null; renderPlan(true); },
-  'del-plan': b => {
-    const t = tripById(b.dataset.id);
-    const it = (t?.plan || []).find(p => p.id === b.dataset.item);
-    if (!it || !confirm(`'${it.title}' 일정을 지울까요?`)) return;
-    t.plan = t.plan.filter(p => p.id !== it.id);
-    t.updatedAt = new Date().toISOString();
-    ui.plan.edit = null;
-    persist(); renderAll(); toast('일정을 지웠어요.');
+  'plan-row-add': b => {
+    const f = b.closest('form');
+    const rows = planEditValues(f);
+    rows.push({ id: '', date: f.dataset.date, time: '', title: '', place: '', coord: '', move: '', memo: '', url: '', stay: false, del: false });
+    ui.plan.edit = { ...ui.plan.edit, draft: rows, focus: 'last', fresh: true };
+    renderPlan(true);
   },
+  'plan-row-del': b => {
+    // 지우기는 [완료]를 눌러야 확정된다. 그전에는 되살릴 수 있다.
+    const li = b.closest('.tbx');
+    const h = li.querySelector('[name=del]');
+    const del = h.value !== '1';
+    h.value = del ? '1' : '';
+    li.classList.toggle('del', del);
+    b.textContent = del ? '되살리기' : '🗑 지우기';
+  },
+  'plan-edit-cancel': () => { ui.plan.edit = null; renderPlan(true); },
+  'plan-row-more': b => { b.closest('.tbx').classList.add('more'); b.remove(); },
   'open-board': b => { const it = (S.boardItems || []).find(x => x.id === b.dataset.id); if (it) boardDialog(it); },
   'board-filter': b => { ui.plan.filter = b.dataset.k; renderPlan(true); },
   'clear-board': () => {
@@ -3577,7 +3634,7 @@ document.addEventListener('submit', e => {
     persist(); renderAll(); toast('프로필을 저장했어요.');
     return;
   }
-  if (f.dataset.submit === 'plan-inline') { e.preventDefault(); savePlanInline(f); return; }
+  if (f.dataset.submit === 'plan-day-save') { e.preventDefault(); savePlanDay(f); return; }
   if (f.dataset.submit === 'trip-comment') {
     e.preventDefault();
     const text = f.text.value.trim();

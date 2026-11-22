@@ -68,7 +68,7 @@ function lib() {
 
 // 화면은 15초마다 다시 그려진다. 그때마다 지도를 새로 만들면 확대·이동한 상태가 풀리므로,
 // 같은 내용이면 만들어 둔 지도 칸을 새 자리로 옮겨 끼운다.
-const st = { map: null, el: null, key: '', fit: () => {}, ro: null };
+const st = { map: null, el: null, key: '', refit: () => {}, ro: null };
 
 /**
  * slot 자리에 지도를 그린다.
@@ -80,7 +80,7 @@ export async function mountTripMap(slot, routes, key) {
   if (st.el && st.key === key) {
     slot.replaceWith(st.el);
     st.map.invalidateSize();
-    st.fit();
+    st.refit();               // 사용자가 확대해 둔 화면은 15초마다 다시 그릴 때도 그대로 둔다
     return;
   }
   let L;
@@ -92,12 +92,14 @@ export async function mountTripMap(slot, routes, key) {
   el.setAttribute('role', 'region');
   el.setAttribute('aria-label', '여행 동선 지도');
   slot.replaceWith(el);
-  // 지도는 그날 동선이 다 보이는 배율로 맞춰 두고 고정한다. 끌기·확대 손짓을 모두 막아
-  // 페이지를 스크롤하다 지도가 움직이거나 배율이 바뀌는 일이 없게 한다.
+  // 처음 화면은 그날 동선이 다 보이는 배율로 고정한다. 확대(＋·두 손가락)는 되지만
+  // 끌어서 옮기기는 확대했을 때만 켠다 — 처음 화면에서 페이지를 스크롤하다 지도가 끌려가지 않게.
+  // ↺ 를 누르면 처음 화면으로 돌아간다.
   const map = L.map(el, {
-    zoomSnap: 0.25, zoomControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false,
-    doubleClickZoom: false, boxZoom: false, keyboard: false, tap: false,
+    zoomSnap: 0.25, zoomDelta: 1, zoomControl: false, dragging: false, touchZoom: true, scrollWheelZoom: false,
+    doubleClickZoom: true, boxZoom: false, keyboard: false, tap: false,
   });
+  L.control.zoom({ position: 'topleft', zoomInTitle: '확대', zoomOutTitle: '축소' }).addTo(map);
   map.attributionControl.setPrefix(false);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19, attribution: '© OpenStreetMap contributors', referrerPolicy: 'strict-origin',
@@ -122,22 +124,45 @@ export async function mountTripMap(slot, routes, key) {
   }
   // 처음 화면 = 그날 동선이 다 들어오는 배율. 지도 칸 크기가 정해지기 전(0px)에 맞추면
   // 가장 크게 확대돼 버리므로, 칸 크기가 생기거나 바뀔 때마다 다시 맞춘다.
+  let base = null;           // 처음 화면의 배율
+  let moved = false;         // 사용자가 확대·이동했는가
   const fit = () => {
     if (!el.clientWidth || !el.clientHeight) return;
     if (all.length === 1) map.setView(all[0], 15, { animate: false });
     else if (all.length) map.fitBounds(all, { padding: [28, 28], maxZoom: 16, animate: false });
     else map.setView([35.0, 136.0], 6, { animate: false });
+    base = map.getZoom(); moved = false;
+    map.setMinZoom(Math.max(2, base - 3));
+    map.dragging.disable();
   };
+  map.on('zoomend', () => {
+    if (base === null) return;
+    const zoomed = map.getZoom() > base + 0.01;
+    if (zoomed) { map.dragging.enable(); moved = true; } else map.dragging.disable();
+  });
+  map.on('dragend', () => { moved = true; });
+  const Reset = L.Control.extend({
+    options: { position: 'topleft' },
+    onAdd() {
+      const b = L.DomUtil.create('button', 'tm-reset leaflet-bar');
+      b.type = 'button'; b.title = '처음 화면'; b.setAttribute('aria-label', '처음 화면으로'); b.textContent = '↺';
+      L.DomEvent.disableClickPropagation(b);
+      L.DomEvent.on(b, 'click', () => { map.invalidateSize({ animate: false }); fit(); });
+      return b;
+    },
+  });
+  new Reset().addTo(map);
   fit();
   if (!el.clientWidth) map.setView(all[0] || [35.0, 136.0], 6, { animate: false }); // 칸이 아직 안 보일 때의 임시 화면
-  const ro = new ResizeObserver(() => { map.invalidateSize({ animate: false }); fit(); });
+  // 칸 크기가 생기거나 바뀌면 다시 맞춘다. 사용자가 확대해 둔 동안에는 그대로 둔다.
+  const ro = new ResizeObserver(() => { map.invalidateSize({ animate: false }); if (!moved || base === null) fit(); });
   ro.observe(el);
-  st.map = map; st.el = el; st.key = key; st.fit = fit; st.ro = ro;
+  st.map = map; st.el = el; st.key = key; st.refit = () => { if (!moved || base === null) fit(); }; st.ro = ro;
 }
 
 /** 지도가 화면에서 빠질 때(다른 여행·다른 화면) 정리한다. */
 export function dropTripMap() {
   st.ro?.disconnect();
   if (st.map) st.map.remove();
-  st.map = null; st.el = null; st.key = ''; st.fit = () => {}; st.ro = null;
+  st.map = null; st.el = null; st.key = ''; st.refit = () => {}; st.ro = null;
 }

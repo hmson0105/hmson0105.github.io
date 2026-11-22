@@ -1478,9 +1478,7 @@ button.kd-dot:active { transform: scale(.88); }
 .tb-sched-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .tb-sched-h h4 { margin: 0; font-family: var(--font-d); font-weight: 400; font-size: 19px; }
 .tb-list { list-style: none; margin: 0; padding: 0 0 0 12px; border-left: 3px solid var(--dc); display: grid; gap: 2px; }
-.tb-list > li > button { all: unset; cursor: pointer; display: grid; grid-template-columns: 3.6em minmax(0, 1fr); gap: 8px; width: 100%; padding: 6px 8px; border-radius: 10px; box-sizing: border-box; font-size: 14.5px; }
-.tb-list > li > button:hover { background: var(--tb-xl); }
-.tb-list > li > button:focus-visible { outline: 3px solid var(--yellow); }
+.tb-list > li:not(.tbx) { display: grid; grid-template-columns: 3.6em minmax(0, 1fr); gap: 8px; padding: 6px 8px; border-radius: 10px; font-size: 14.5px; }
 .tb-list em { font-style: normal; font-weight: 700; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .tb-list b { font-weight: 700; text-decoration: underline; text-decoration-color: var(--tb-l); text-decoration-thickness: 3px; text-underline-offset: 3px; }
 .tb-list small { display: block; color: var(--ink-3); font-size: 13px; line-height: 1.45; }
@@ -1516,20 +1514,45 @@ button.kd-dot:active { transform: scale(.88); }
 .tb-hint { margin: 8px 2px 0; }
 .tp-n.stay { background: #fff !important; border: 2px solid var(--dc, var(--pink)); font-size: 12px; width: 22px; height: 22px; }
 .tm-pin span.stay { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #fff; border: 3px solid; font-size: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.35); box-sizing: border-box; }
-.tb-edit { list-style: none; }
-.tb-edit form { display: grid; gap: 6px; margin: 4px 0; padding: 10px; border-radius: 12px; background: var(--tb-xl); border: 2px dashed var(--dc, var(--tb-d)); }
-.tb-edit input, .tb-edit textarea, .tb-edit select { min-width: 0; width: 100%; box-sizing: border-box; border: 2px solid var(--line); border-radius: 10px; padding: 7px 9px; background: #fff; font: inherit; font-size: 15px; }
-.tb-edit textarea { resize: vertical; }
-.tb-edit input:focus, .tb-edit textarea:focus, .tb-edit select:focus { outline: none; border-color: var(--dc, var(--tb-d)); }
-.tbe-top { display: grid; grid-template-columns: 7.6em minmax(0, 1fr); gap: 6px; }
-.tbe-opts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: center; }
-.tbe-stay { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; white-space: nowrap; }
-.tbe-stay input { width: auto; }
 .tbe-err { margin: 0; color: #C2185B; font-size: 13.5px; }
-.tbe-btns { display: flex; gap: 6px; align-items: center; }
-.tbe-btns .sp { flex: 1; }
 @media (max-width: 760px) {
-  .tbe-top { grid-template-columns: 6.6em minmax(0, 1fr); }
-  .tb-sum-pic { max-width: 40%; }
-  .tbe-btns { padding-right: 58px; }
+    .tb-sum-pic { max-width: 40%; }
+  }
+
+/* 일정표 3차: ✏️ 수정 → 글자 자리에서 그대로 고치기 · 링크 · 지도 확대 */
+.tb-sched-btns { display: flex; gap: 6px; }
+.tb-sched-h h4 small { font-family: inherit; font-size: 13px; margin-left: 4px; }
+.tb-ln { color: inherit; text-decoration: none; }
+.tb-ln:hover b, .tb-ln:focus-visible b { text-decoration-color: var(--dc, var(--tb-d)); }
+.tb-ln span { font-size: 12px; }
+.tb-list small .ln { color: var(--sky-d); word-break: break-all; }
+.tb-sched.editing { border-style: dashed; background: #FFFDFE; }
+.tbx-list { gap: 6px; }
+.tbx { display: grid; grid-template-columns: 7.6em minmax(0, 1fr); gap: 6px; padding: 6px 6px 8px; border-radius: 10px; border-bottom: 1px dashed var(--tb-l); }
+.tbx.del { opacity: .45; }
+.tbx.del :is(input, textarea) { text-decoration: line-through; }
+.tbx :is(input, textarea, select) { font: inherit; color: inherit; min-width: 0; box-sizing: border-box; border: 0; border-bottom: 2px dotted var(--tb-l); border-radius: 6px 6px 0 0; background: transparent; padding: 3px 4px; }
+.tbx :is(input, textarea, select):focus { outline: none; background: #fff; border-bottom: 2px solid var(--dc, var(--tb-d)); }
+.tbx [aria-invalid] { border-bottom-color: #C2185B; background: #FFF0F4; }
+.tbx-time { font-weight: 700; color: var(--ink-2); font-size: 14px; width: 100%; align-self: start; }
+.tbx-main { display: grid; gap: 2px; min-width: 0; }
+.tbx-title { font-weight: 700; font-size: 14.5px; width: 100%; }
+.tbx-f { display: grid; grid-template-columns: 1.4em minmax(0, 1fr); align-items: center; font-size: 13px; color: var(--ink-3); }
+.tbx-f input, .tbx-f textarea { width: 100%; font-size: 13px; color: var(--ink-2); }
+.tbx-f textarea { resize: vertical; min-height: 1.9em; line-height: 1.45; field-sizing: content; }
+.tbx-coord input { color: var(--ink-3); font-size: 12px; }
+.tbx-opts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 2px; font-size: 13px; }
+.tbx-stay { display: inline-flex; gap: 4px; align-items: center; white-space: nowrap; }
+.tbx-stay input { border: 0; }
+.tbx-opts select { font-size: 13px; }
+.tbx-delbtn { margin-left: auto; color: #C2185B; }
+.tbx:not(.more) .tbx-f.empty { display: none; }
+.tbx-morebtn { color: var(--sky-d); }
+.tbx-add { margin-top: 8px; }
+.tm-reset { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; font-size: 17px; line-height: 1; background: #fff; color: var(--ink); cursor: pointer; border: 2px solid rgba(0, 0, 0, .2); border-radius: 4px; background-clip: padding-box; }
+.tm-reset:hover { background: #f4f4f4; }
+.trip-map .leaflet-control-zoom a { color: var(--ink); }
+@media (max-width: 760px) {
+  .tbx { grid-template-columns: minmax(0, 1fr); }
+  .tbx-time { width: 9em; }
 }
