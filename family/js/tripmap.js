@@ -68,11 +68,11 @@ function lib() {
 
 // 화면은 15초마다 다시 그려진다. 그때마다 지도를 새로 만들면 확대·이동한 상태가 풀리므로,
 // 같은 내용이면 만들어 둔 지도 칸을 새 자리로 옮겨 끼운다.
-const st = { map: null, el: null, key: '' };
+const st = { map: null, el: null, key: '', fit: () => {}, ro: null };
 
 /**
  * slot 자리에 지도를 그린다.
- * routes: [{ color, points: [{ lat, lng, n, label }] , numbered }]
+ * routes: [{ color, points: [{ lat, lng, n, stay, label }] , numbered }]
  * label 은 이미 esc() 를 거친 글이어야 한다(말풍선에 HTML 로 들어간다).
  */
 export async function mountTripMap(slot, routes, key) {
@@ -80,18 +80,24 @@ export async function mountTripMap(slot, routes, key) {
   if (st.el && st.key === key) {
     slot.replaceWith(st.el);
     st.map.invalidateSize();
+    st.fit();
     return;
   }
   let L;
   try { L = await lib(); } catch { slot.innerHTML = '<p class="map-fail">지도를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.</p>'; return; }
   if (!slot.isConnected) return;
-  if (st.map) { st.map.remove(); st.map = null; st.el = null; }
+  dropTripMap();
   const el = document.createElement('div');
   el.className = 'trip-map';
   el.setAttribute('role', 'region');
   el.setAttribute('aria-label', '여행 동선 지도');
   slot.replaceWith(el);
-  const map = L.map(el, { scrollWheelZoom: false, tap: true, zoomSnap: 0.5 });
+  // 지도는 그날 동선이 다 보이는 배율로 맞춰 두고 고정한다. 끌기·확대 손짓을 모두 막아
+  // 페이지를 스크롤하다 지도가 움직이거나 배율이 바뀌는 일이 없게 한다.
+  const map = L.map(el, {
+    zoomSnap: 0.25, zoomControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false,
+    doubleClickZoom: false, boxZoom: false, keyboard: false, tap: false,
+  });
   map.attributionControl.setPrefix(false);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19, attribution: '© OpenStreetMap contributors', referrerPolicy: 'strict-origin',
@@ -103,8 +109,10 @@ export async function mountTripMap(slot, routes, key) {
     const line = dedupe(pts).map(p => [p.lat, p.lng]);
     if (line.length > 1) L.polyline(line, { color: r.color, weight: 4, opacity: 0.85, dashArray: r.numbered ? null : '6 6' }).addTo(map);
     for (const p of pts) {
-      const html = r.numbered ? `<span style="background:${r.color}">${p.n}</span>` : `<span class="dot" style="background:${r.color}"></span>`;
-      const size = r.numbered ? 26 : 12;
+      // 숙소는 번호 대신 호텔 표시
+      const html = p.stay ? `<span class="stay" style="border-color:${r.color}">🏨</span>`
+        : r.numbered ? `<span style="background:${r.color}">${p.n}</span>` : `<span class="dot" style="background:${r.color}"></span>`;
+      const size = p.stay ? 30 : r.numbered ? 26 : 12;
       L.marker([p.lat, p.lng], {
         icon: L.divIcon({ className: 'tm-pin', html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] }),
         keyboard: false,
@@ -112,14 +120,24 @@ export async function mountTripMap(slot, routes, key) {
       all.push([p.lat, p.lng]);
     }
   }
-  if (all.length === 1) map.setView(all[0], 15);
-  else if (all.length) map.fitBounds(all, { padding: [28, 28], maxZoom: 16 });
-  else map.setView([35.0, 136.0], 6);
-  st.map = map; st.el = el; st.key = key;
+  // 처음 화면 = 그날 동선이 다 들어오는 배율. 지도 칸 크기가 정해지기 전(0px)에 맞추면
+  // 가장 크게 확대돼 버리므로, 칸 크기가 생기거나 바뀔 때마다 다시 맞춘다.
+  const fit = () => {
+    if (!el.clientWidth || !el.clientHeight) return;
+    if (all.length === 1) map.setView(all[0], 15, { animate: false });
+    else if (all.length) map.fitBounds(all, { padding: [28, 28], maxZoom: 16, animate: false });
+    else map.setView([35.0, 136.0], 6, { animate: false });
+  };
+  fit();
+  if (!el.clientWidth) map.setView(all[0] || [35.0, 136.0], 6, { animate: false }); // 칸이 아직 안 보일 때의 임시 화면
+  const ro = new ResizeObserver(() => { map.invalidateSize({ animate: false }); fit(); });
+  ro.observe(el);
+  st.map = map; st.el = el; st.key = key; st.fit = fit; st.ro = ro;
 }
 
 /** 지도가 화면에서 빠질 때(다른 여행·다른 화면) 정리한다. */
 export function dropTripMap() {
+  st.ro?.disconnect();
   if (st.map) st.map.remove();
-  st.map = null; st.el = null; st.key = '';
+  st.map = null; st.el = null; st.key = ''; st.fit = () => {}; st.ro = null;
 }
